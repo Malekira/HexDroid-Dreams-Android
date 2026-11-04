@@ -1,12 +1,12 @@
 # Pedidos pendientes de HexDroid Dreams
 
-## Actualización 1.0.10 — autorizada e implementándose
+## Actualización 1.0.10 — implementada y APK publicada
 
 Orden «Implementa» posterior al pedido de dos árboles separados: Salas y Mensajes privados, cada uno desplegable de forma independiente dentro de cada red. Corregir también la vista con pestañas de redes que mostraba una lista plana. Mantener WHOIS y Notices aparte, contadores y conversaciones intactos.
 
-Rama `feat/dreams-1.0.10`, basada en la entrega 1.0.9, sin modificar ni fusionar ramas anteriores. Pruebas y APK pendientes de verificar; detalle en [DREAMS_1_0_10.md](DREAMS_1_0_10.md).
+Rama `feat/dreams-1.0.10`, basada en la entrega 1.0.9, sin modificar ni fusionar ramas anteriores. 121 pruebas unitarias locales aprobadas, cuatro pruebas Android nuevas y suites anteriores obligatorias aprobadas en Actions; firma/identidad verificadas y artifact **HexDroid-Dreams-debug** publicado (34,5 MB). [Ejecución y descarga](https://github.com/Malekira/HexDroidVip/actions/runs/41861118536); detalle en [DREAMS_1_0_10.md](DREAMS_1_0_10.md). GitHub aún mostraba la ejecución general en curso al registrar los pasos aprobados y el artifact publicado.
 
-Nota de avatares: las opciones sí existen y están activadas. La foto propia se ve al entrar por la web, pero no en la app/Identidad; referencia aportada por el usuario en la conversación. Este informe permanece anotado y no se incorpora una modificación de fotos en el cambio de árboles.
+Nota de avatares: las opciones sí existen y están activadas. La foto propia se ve al entrar por la web, pero no en la app/Identidad; referencia aportada por el usuario en la conversación. Este informe permanece anotado y no se incorpora una modificación de fotos en el cambio de árboles. El intento de medir esa imagen fue bloqueado por el proxy (CONNECT 403); no se conoce su peso ni sus dimensiones. El límite de descarga es 2 MiB.
 
 
 Estado: **HexDroid Dreams 1.0.9 (48) implementada y publicada** en `feat/dreams-1.0.9`.
