@@ -2009,4 +2009,6 @@
     <string name="dreams_sidebar_rooms">Rooms</string>
     <string name="dreams_sidebar_privates">Private messages</string>
     <string name="dreams_sidebar_other">Other windows</string>
+    <string name="dreams_sidebar_expanded">Expanded</string>
+    <string name="dreams_sidebar_collapsed">Collapsed</string>
 </resources>

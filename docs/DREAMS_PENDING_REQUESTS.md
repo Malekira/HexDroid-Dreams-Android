@@ -1,5 +1,14 @@
 # Pedidos pendientes de HexDroid Dreams
 
+## Actualización 1.0.10 — autorizada e implementándose
+
+Orden «Implementa» posterior al pedido de dos árboles separados: Salas y Mensajes privados, cada uno desplegable de forma independiente dentro de cada red. Corregir también la vista con pestañas de redes que mostraba una lista plana. Mantener WHOIS y Notices aparte, contadores y conversaciones intactos.
+
+Rama `feat/dreams-1.0.10`, basada en la entrega 1.0.9, sin modificar ni fusionar ramas anteriores. Pruebas y APK pendientes de verificar; detalle en [DREAMS_1_0_10.md](DREAMS_1_0_10.md).
+
+Nota de avatares: las opciones sí existen y están activadas. La foto propia se ve al entrar por la web, pero no en la app/Identidad; referencia aportada por el usuario en la conversación. Este informe permanece anotado y no se incorpora una modificación de fotos en el cambio de árboles.
+
+
 Estado: **HexDroid Dreams 1.0.9 (48) implementada y publicada** en `feat/dreams-1.0.9`.
 Autorizaciones «Implementa», «Implementa también las últimas anotaciones» y «todooooo».
 [Actions SUCCESS y APK debug](https://github.com/Malekira/HexDroidVip/actions/runs/41816882972): artifact **HexDroid-Dreams-debug**, 34,5 MB. Código compilado `2227638`.

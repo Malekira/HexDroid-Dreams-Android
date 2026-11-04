@@ -27,12 +27,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +54,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -68,8 +76,33 @@ internal sealed class SidebarItem(val stableKey: String) {
         val netId: String? = null,
         val expanded: Boolean = true,
     ) : SidebarItem("b:$key")
-    data class Section(val netId: String, val kind: String, val title: String) : SidebarItem("g:$kind:$netId")
+    data class Section(val netId: String, val kind: String, val title: String, val expanded: Boolean, val unread: Int, val highlights: Int) : SidebarItem("g:$kind:$netId")
     data class DividerItem(val netId: String) : SidebarItem("d:$netId")
+}
+
+/** Same expandable group header in network tabs and the multi-network tree. */
+@Composable
+internal fun ConversationGroupHeader(item: SidebarItem.Section, onToggle: () -> Unit) {
+    val expansion = stringResource(if (item.expanded) R.string.dreams_sidebar_expanded else R.string.dreams_sidebar_collapsed)
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .testTag("sidebar-group-${item.netId}-${item.kind}")
+            .semantics { stateDescription = expansion }
+            .focusHighlight().clickable(role = Role.Button, onClick = onToggle)
+            .padding(start = 14.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(if (item.expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(item.title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        if (item.unread > 0 || item.highlights > 0) {
+            Badge(containerColor = if (item.highlights > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary) {
+                Text("${maxOf(item.unread, item.highlights)}", Modifier.testTag("sidebar-group-unread-${item.netId}-${item.kind}"))
+            }
+        }
+    }
 }
 
 /**

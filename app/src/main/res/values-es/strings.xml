@@ -2005,6 +2005,8 @@
     <string name="dreams_format_strike_short">T</string>
     <string name="dreams_format_strike">Tachado</string>
     <string name="dreams_sidebar_rooms">Salas</string>
-    <string name="dreams_sidebar_privates">Privados</string>
+    <string name="dreams_sidebar_privates">Mensajes privados</string>
     <string name="dreams_sidebar_other">Otras ventanas</string>
+    <string name="dreams_sidebar_expanded">Desplegado</string>
+    <string name="dreams_sidebar_collapsed">Plegado</string>
 </resources>

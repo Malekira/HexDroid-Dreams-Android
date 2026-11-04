@@ -448,6 +448,7 @@ fun ChatScreen(
             Modifier
                 .fillMaxWidth()
                 .focusHighlight()
+                .testTag("sidebar-buffer-$key")
                 .clickable {
                     scope.launch { if (!isWide) drawerState.close() }
                     onSelectBuffer(key)
@@ -961,6 +962,13 @@ fun ChatScreen(
         input = TextFieldValue(newText, TextRange(newText.length))
     }
 
+    // Hoisted above the drawer: closing it or switching networks must not unfold groups.
+    var collapsedConversationGroups by rememberSaveable { mutableStateOf(listOf<String>()) }
+    fun toggleConversationGroup(item: SidebarItem.Section) {
+        collapsedConversationGroups = if (item.stableKey in collapsedConversationGroups)
+            collapsedConversationGroups - item.stableKey else collapsedConversationGroups + item.stableKey
+    }
+
 	@Composable
 	fun BufferDrawer(mod: Modifier = Modifier) {
         PersonalArea(ThemeRole.SIDEBAR) {
@@ -1005,40 +1013,42 @@ fun ChatScreen(
         val roomsLabel = stringResource(R.string.dreams_sidebar_rooms)
         val privatesLabel = stringResource(R.string.dreams_sidebar_privates)
         val othersLabel = stringResource(R.string.dreams_sidebar_other)
-		val sidebarItems = remember(visibleNets, buffersByNet, state.channelsOnly, selected, state.collapsedNetworkIds, state.connections, roomsLabel, privatesLabel, othersLabel) {
-			val out = mutableListOf<SidebarItem>()
-			for (net in visibleNets) {
-				val nId = net.id
-				val header = net.name
-				val grouped = buffersByNet[nId]
-				val serverKey = grouped?.serverKey ?: "$nId::*server*"
-				val otherKeys = grouped?.others ?: emptyList()
-
-				// A network is expanded unless its id is in the collapsed set.
-				// Empty set (default) = all expanded, matching HexChat behaviour.
-				val expanded = nId !in state.collapsedNetworkIds
-
-				if (state.channelsOnly) {
-					out.add(SidebarItem.Header(nId, header, expanded))
-				} else {
-					// Use the server buffer row as the network "header" to avoid showing the network name twice.
-					out.add(SidebarItem.Buffer(serverKey, header, 0.dp, isNetworkHeader = true, netId = nId, expanded = expanded))
-				}
-                if (expanded) {
-                    val channelTypes = state.connections[nId]?.chanTypes ?: "#&!+"
-                    val rooms = otherKeys.filter { splitKey(it).second.firstOrNull() in channelTypes.toSet() }
-                    val remaining = otherKeys - rooms.toSet()
-                    val privates = remaining.filter { val name = splitKey(it).second; !name.startsWith("*") && !name.startsWith("DCCCHAT:") }
-                    val others = remaining - privates.toSet()
-                    for ((kind, title, keys) in listOf(Triple("rooms", roomsLabel, rooms), Triple("privates", privatesLabel, privates), Triple("other", othersLabel, others))) {
-                        if (keys.isNotEmpty()) out.add(SidebarItem.Section(nId, kind, title))
-                        for (key in keys) out.add(SidebarItem.Buffer(key, bufferLabel(key, state.networks), 14.dp))
+        val conversationItemsByNet = remember(visibleNets, buffersByNet, state.channelsOnly, state.buffers,
+            state.connections, collapsedConversationGroups, roomsLabel, privatesLabel, othersLabel) {
+            visibleNets.associate { net ->
+                val keys = buffersByNet[net.id]?.others.orEmpty()
+                val channelTypes = state.connections[net.id]?.chanTypes ?: "#&!+"
+                val rooms = keys.filter { splitKey(it).second.firstOrNull() in channelTypes.toSet() }
+                val remaining = keys - rooms.toSet()
+                val privates = remaining.filter { val name = splitKey(it).second; !name.startsWith("*") && !name.startsWith("DCCCHAT:") }
+                val others = remaining - privates.toSet()
+                net.id to buildList<SidebarItem> {
+                    for ((kind, title, children) in listOf(Triple("rooms", roomsLabel, rooms),
+                        Triple("privates", privatesLabel, privates), Triple("other", othersLabel, others))) {
+                        if (state.channelsOnly && kind != "rooms") continue
+                        if (kind == "other" && children.isEmpty()) continue
+                        val section = SidebarItem.Section(net.id, kind, title,
+                            "g:$kind:${net.id}" !in collapsedConversationGroups,
+                            children.sumOf { state.buffers[it]?.unread ?: 0 },
+                            children.sumOf { state.buffers[it]?.highlights ?: 0 })
+                        add(section)
+                        if (section.expanded) children.forEach { add(SidebarItem.Buffer(it, bufferLabel(it, state.networks), 36.dp)) }
                     }
                 }
-				out.add(SidebarItem.DividerItem(nId))
-			}
-			out
-		}
+            }
+        }
+        val sidebarItems = remember(visibleNets, buffersByNet, state.channelsOnly, state.collapsedNetworkIds, conversationItemsByNet) {
+            buildList<SidebarItem> {
+                for (net in visibleNets) {
+                    val serverKey = buffersByNet[net.id]?.serverKey ?: "${net.id}::*server*"
+                    val expanded = net.id !in state.collapsedNetworkIds
+                    if (state.channelsOnly) add(SidebarItem.Header(net.id, net.name, expanded))
+                    else add(SidebarItem.Buffer(serverKey, net.name, 0.dp, isNetworkHeader = true, netId = net.id, expanded = expanded))
+                    if (expanded) addAll(conversationItemsByNet[net.id].orEmpty())
+                    add(SidebarItem.DividerItem(net.id))
+                }
+            }
+        }
 
 		val lagInfoByNet = remember(state.networks, state.connections) {
 			state.networks.associate { net ->
@@ -1274,7 +1284,7 @@ fun ChatScreen(
 							Tab(
 								selected = i == selIdx,
 								onClick = { pickedNet = net.id },
-								modifier = Modifier.focusHighlight(),
+								modifier = Modifier.focusHighlight().testTag("sidebar-network-tab-${net.id}"),
 								text = {
 									Row(
 										verticalAlignment = Alignment.CenterVertically,
@@ -1311,7 +1321,7 @@ fun ChatScreen(
 
 					val grouped = buffersByNet[activeNet]
 					val serverKey = grouped?.serverKey ?: "$activeNet::*server*"
-					val otherKeys = grouped?.others ?: emptyList()
+					val conversationItems = conversationItemsByNet[activeNet].orEmpty()
 					val netName = visibleNets.first { it.id == activeNet }.name
 					val tabLag = lagInfoByNet[activeNet]
 
@@ -1330,14 +1340,17 @@ fun ChatScreen(
 								lagLabel = tabLag?.first, lagProgress = tabLag?.second,
 							)
 						}
-						items(otherKeys, key = { "tabbuf:$it" }) { k ->
-							val (_, nm) = splitKey(k)
-							BufferRow(
-								key = k, label = nm, selected = selected,
-								meta = state.buffers[k], indent = 14.dp,
-								closable = true, onClose = { onSend("/closekey $k") },
-							)
-						}
+                        items(conversationItems, key = { it.stableKey }) { item ->
+                            when (item) {
+                                is SidebarItem.Section -> ConversationGroupHeader(item) { toggleConversationGroup(item) }
+                                is SidebarItem.Buffer -> BufferRow(
+                                    key = item.key, label = item.label, selected = selected,
+                                    meta = state.buffers[item.key], indent = item.indent,
+                                    closable = true, onClose = { onSend("/closekey ${item.key}") },
+                                )
+                                else -> Unit
+                            }
+                        }
 					}
 				}
 			} else {
@@ -1492,12 +1505,7 @@ fun ChatScreen(
 									}
 								}
 							}
-                            is SidebarItem.Section -> {
-                                Text(item.title, style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, bottom = 4.dp)
-                                        .testTag("sidebar-group-${item.netId}-${item.kind}"))
-                            }
+                            is SidebarItem.Section -> ConversationGroupHeader(item) { toggleConversationGroup(item) }
 							is SidebarItem.DividerItem -> {
 								HorizontalDivider(Modifier.padding(top = 12.dp))
 							}
