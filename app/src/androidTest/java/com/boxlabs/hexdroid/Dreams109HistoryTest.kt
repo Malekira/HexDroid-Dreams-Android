@@ -162,6 +162,31 @@ class Dreams109HistoryTest {
         }
     }
 
+    @Test fun dreams109RegrantingTheSameFolderAllowsWritesAgainWithoutChangingItsSavedUri() = runBlocking {
+        withModel { vm, repo, id ->
+            val uri = DocumentsContract.buildTreeDocumentUri(instrumentation.context.packageName + ".historytest", "root").toString()
+            repo.updateSettings { it.copy(logFolderUri = uri) }
+            until { vm.state.value.settings.logFolderUri == uri }
+            val ts = System.currentTimeMillis()
+            coroutineScope {
+                val writerScope = this
+                main { vm.writeLogLine("$id::#demo", ts, "DemoNick01", "Antes del permiso", false, scope = writerScope, msgId = "before-grant-$id") }
+            }
+            until { vm.state.value.logFolderUnreadable }
+            instrumentation.uiAutomation.adoptShellPermissionIdentity("android.permission.MANAGE_DOCUMENTS")
+            try {
+                main { vm.onLogFolderGranted(uri) }
+                coroutineScope {
+                    val writerScope = this
+                    main { vm.writeLogLine("$id::#demo", ts + 1000, "DemoNick01", "Después del permiso", false, scope = writerScope, msgId = "after-grant-$id") }
+                }
+                until { !vm.state.value.logFolderUnreadable }
+                assertEquals(uri, repo.settingsFlow.first().logFolderUri)
+                assertEquals(2, vm.logs.logFileInternal(vm.personalLogNetwork(id), "#demo").readLines().size)
+            } finally { instrumentation.uiAutomation.dropShellPermissionIdentity() }
+        }
+    }
+
     @Test fun dreams109OrganizedCopiesRespectSecretRedactionAndTheEncryptedLoggingPreference() = runBlocking {
         withModel { vm, _, id ->
             val ts = System.currentTimeMillis()

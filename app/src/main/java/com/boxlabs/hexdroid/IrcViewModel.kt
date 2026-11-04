@@ -1777,6 +1777,14 @@ fun startAddNetwork() {
         }
     }
 
+    /** A renewed SAF grant can retain exactly the same URI, so settings may not emit again. */
+    fun onLogFolderGranted(uri: String) {
+        logs.clearUnreadable(uri)
+        organizedLogs.clearUnreadable(uri)
+        organizedLogWarnings.removeAll { it.endsWith("|$uri") }
+        _state.update { st -> if (st.settings.logFolderUri == uri) st.copy(logFolderUnreadable = false) else st }
+    }
+
     /** Export the separately organized private TXT files; the canonical backup stays compatible. */
     fun exportOrganizedLogs(uri: android.net.Uri) {
         viewModelScope.launch {

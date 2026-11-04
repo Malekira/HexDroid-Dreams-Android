@@ -24,7 +24,7 @@ El archivo privado canónico permanece organizado por red/conversación para con
 
 La copia adicional solo recibe una línea si el archivo canónico la aceptó, evitando duplicación por eco o reproducción de historial. Las conversaciones cifradas obedecen su opción separada; autenticaciones y secretos se excluyen o redactan antes de escribir cualquiera de las copias. No hay vencimiento ni límite artificial de líneas en disco.
 
-Si falla la carpeta elegida, el mensaje continúa en el archivo privado y aparece un aviso en Status y en Registro. Al recuperar el permiso se reanudan las copias nuevas; los mensajes conservados durante el fallo siguen disponibles para consulta/exportación desde el historial privado. No se promete una sincronización retroactiva automática de la carpeta externa.
+Si falla la carpeta elegida, el mensaje continúa en el archivo privado y aparece un aviso en Status y en Registro. Volver a conceder permiso reactiva las escrituras incluso si Android devuelve la misma URI. Al recuperar el permiso se reanudan las copias nuevas; los mensajes conservados durante el fallo siguen disponibles para consulta/exportación desde el historial privado. No se promete una sincronización retroactiva automática de la carpeta externa.
 
 Desconectar conserva perfiles, credenciales, foto por URL, borradores, historial y configuración de las fases anteriores. La eliminación de registros internos continúa exigiendo confirmación; incluye sus copias organizadas privadas y no borra la carpeta externa del usuario.
 

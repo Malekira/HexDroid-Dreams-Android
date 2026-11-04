@@ -470,6 +470,7 @@ fun SettingsScreen(
     onMeasureLogs: suspend () -> Long = { 0L },
     onExportLogs: (Uri) -> Unit = {},
     onExportOrganizedLogs: (Uri) -> Unit = {},
+    onLogFolderGranted: (String) -> Unit = {},
     onDeleteLogs: (onDone: () -> Unit) -> Unit = {},
     onImportBackup: (Uri) -> Unit = {},
     /** Restore again once the passphrase for a backup's passwords is known, or without them. */
@@ -566,6 +567,7 @@ fun SettingsScreen(
         if (uri != null) {
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             runCatching { ctx.contentResolver.takePersistableUriPermission(uri, flags) }.onSuccess {
+                onLogFolderGranted(uri.toString())
                 val old = s.logFolderUri
                 onUpdate { copy(logFolderUri = uri.toString()) }
                 if (old != uri.toString()) releaseFolder(old, s.dccDownloadFolderUri)
