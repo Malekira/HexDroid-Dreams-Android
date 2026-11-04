@@ -32,7 +32,9 @@ Desconectar conserva perfiles, credenciales, foto por URL, borradores, historial
 
 - Compilación local debug y APK de pruebas Android correctas; 121 pruebas JVM ejecutadas y aprobadas, sin fallos, errores ni omisiones.
 - Pruebas nuevas: desconexión real desde el menú, comandos, carrera al cambiar de red, protección de historial/borradores/perfil, reapertura; archivos diarios y combinados, persistencia y respaldo de opciones, SAF con proveedor Android aislado, conservación ante carpeta inaccesible, privacidad y cifrado; eventos sin no leídos; controles de Registro, separación de salas/PV y avatares con preferencia por metadatos, opción de mensajes y desactivación.
-- Pendiente: ejecución final de todas las pruebas Android en Actions y verificación del artifact correspondiente al código completo. La versión parcial de desconexión ya aprobó sus seis casos Android; no se presenta esa APK como entrega del conjunto completo.
+- **Actions SUCCESS:** [ejecución 41816882972](https://github.com/Malekira/HexDroidVip/actions/runs/41816882972), código `2227638d2ad3c2156ee9789d80555de919d2916b`. Aprobados compilación/pruebas unitarias, pruebas Android, comprobación de todas las suites obligatorias, firma/identidad y publicación de APK. Las 17 pruebas Android nuevas de 1.0.9 y las suites anteriores exigidas aprobaron; no se omitieron para publicar.
+- La APK principal no incluye el proveedor ni la actividad de concesión de permisos utilizados exclusivamente por las pruebas SAF. No solicita MANAGE_DOCUMENTS.
+- Publicados los artifacts **HexDroid-Dreams-debug** (34,5 MB) y **Phase3-test-reports** (278 KB). Digest SHA-256 del artifact ZIP de la APK: `b54c6d447ffccc11ea207329bd31cc93da1d8409c91fcb8365cd03cb5554cdf8`; no es el hash de la APK individual, que se incluye en SHA256SUMS.txt dentro del ZIP.
 
 El intento de comprobar directamente el servicio público de fotos desde este entorno fue bloqueado por su proxy (CONNECT 403). No se afirma haber descargado fotos reales de ChatZona aquí. Se prueban la construcción de URL, alcance de red, protocolo y presentación mediante un cargador controlado. La carga real debe comprobarse en el teléfono.
 
@@ -49,6 +51,12 @@ El intento de comprobar directamente el servicio público de fotos desde este en
 
 ## APK y datos
 
-Mismo paquete `com.malekira.hexdroid.personal.debug`, nombre HexDroid Dreams, GPLv3 y créditos originales. Descargar `HexDroid-Dreams-debug` desde Actions, iniciar sesión en GitHub y abrir el ZIP con Mis archivos de Samsung. El artifact dura 30 días.
+Mismo paquete `com.malekira.hexdroid.personal.debug`, nombre HexDroid Dreams, GPLv3 y créditos originales.
 
-Se mantiene la firma debug solicitada mediante el mecanismo existente. Si Android rechaza actualizar por diferencia de firma, no desinstalar ni borrar los datos anteriores antes de exportar configuración, historial y scripts. No se publica ninguna clave privada.
+- [Descargar HexDroid-Dreams-debug (ZIP)](https://github.com/Malekira/HexDroidVip/actions/runs/41816882972/artifacts/13315582477).
+- [Ejecución de GitHub Actions](https://github.com/Malekira/HexDroidVip/actions/runs/41816882972), terminada correctamente y con el artifact visible.
+- [Cambios completos para revisión](https://github.com/Malekira/HexDroidVip/compare/feat/dreams-1.0.8...feat/dreams-1.0.9). No se fusionó ninguna rama.
+
+En Samsung: iniciar sesión en GitHub, descargar el ZIP, extraerlo con Mis archivos y abrir `HexDroid-Dreams-debug.apk`. Autorizar la instalación desde esa fuente si Android lo solicita. No hace falta una computadora. El artifact dura 30 días.
+
+Se utilizó la firma debug solicitada. Esta ejecución no tenía configurados los secretos opcionales de una firma debug estable y generó una clave de desarrollo temporal; puede no permitir actualizar una instalación anterior. Antes de desinstalar o borrar datos, exportar configuración, historial y scripts desde la versión instalada. Si Android rechaza la actualización por firma, conservar la instalación anterior hasta tener esas copias. No se publica ninguna clave privada.

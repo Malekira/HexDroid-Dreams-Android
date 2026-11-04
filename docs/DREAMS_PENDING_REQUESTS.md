@@ -1,10 +1,13 @@
 # Pedidos pendientes de HexDroid Dreams
 
-Estado: implementando **HexDroid Dreams 1.0.9 (48)** en `feat/dreams-1.0.9`.
-Orden «Implementa» referida al cierre del servidor al desconectar y regreso a Redes.
-La entrega publicada anterior es 1.0.8.
+Estado: **HexDroid Dreams 1.0.9 (48) implementada y publicada** en `feat/dreams-1.0.9`.
+Autorizaciones «Implementa», «Implementa también las últimas anotaciones» y «todooooo».
+[Actions SUCCESS y APK debug](https://github.com/Malekira/HexDroidVip/actions/runs/41816882972): artifact **HexDroid-Dreams-debug**, 34,5 MB. Código compilado `2227638`.
+121 pruebas JVM locales aprobadas; las 17 pruebas Android nuevas y las suites anteriores obligatorias aprobaron en Actions. Se conserva la firma debug solicitada, temporal en esta ejecución; respaldar antes de cualquier reinstalación. Sin fusiones automáticas.
+La comprobación de fotos reales de ChatZona queda para el teléfono: el proxy del entorno bloqueó el acceso directo al servicio; protocolo, alcance, URL y presentación sí se comprobaron.
+No se iniciarán nuevas modificaciones sin otra orden expresa del usuario.
 
-## Desconexión manual — autorización actual
+## Desconexión manual — implementada en 1.0.9
 
 - Cerrar las vistas de la red elegida y volver a Redes.
 - Retirar el servidor cerrado del selector durante la sesión; conservar su perfil.
@@ -12,7 +15,7 @@ La entrega publicada anterior es 1.0.8.
 - Mantener las vistas ante una caída accidental y durante reconexiones.
 - Pruebas y entrega: [DREAMS_1_0_9.md](DREAMS_1_0_9.md).
 
-## Últimas anotaciones — implementación autorizada
+## Últimas anotaciones — implementadas en 1.0.9
 
 - Separar Salas y Privados en el selector de cada red.
 - Mejorar Registro: elegir la ubicación y organización de los archivos (por día/conversación, por sala/PV sin división diaria o todo junto), conservando el historial existente.
@@ -20,7 +23,7 @@ La entrega publicada anterior es 1.0.8.
 - JOIN, PART y QUIT no deben incrementar los mensajes no leídos de las salas.
 - Avatares automáticos de ChatZona, con caché, metadatos, privados, opción en mensajes y ajustes.
 
-Autorización ampliada «Implementa también las últimas anotaciones» y «todooooo». Código implementado; validación Android final y APK completa pendientes.
+Autorización ampliada «Implementa también las últimas anotaciones» y «todooooo». Código completo implementado, pruebas Android aprobadas y APK publicada. Detalles, ajustes y comprobaciones manuales: [DREAMS_1_0_9.md](DREAMS_1_0_9.md).
 
 ## Pendientes posteriores a 1.0.7
 
