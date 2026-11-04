@@ -39,6 +39,7 @@ class Dreams109UiTest {
         compose.onNodeWithTag("history-choose-folder").performScrollTo().assertHasClickAction()
         compose.onNodeWithTag("history-combined").performScrollTo().performClick().assertIsSelected()
         compose.onNodeWithText("Dividir los archivos por día").performScrollTo().performClick()
+        compose.onNodeWithTag("history-daily").assertIsOn()
         compose.runOnIdle { assertTrue(settings.logDailyFiles); assertTrue(settings.logCombineConversations) }
         compose.onNodeWithTag("history-export-organized").performScrollTo().assertHasClickAction()
         compose.onNodeWithTag("history-per-conversation").performScrollTo().performClick().assertIsSelected()

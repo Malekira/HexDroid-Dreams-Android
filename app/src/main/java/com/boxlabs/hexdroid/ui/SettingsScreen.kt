@@ -35,6 +35,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.clickable
@@ -1034,9 +1036,9 @@ fun SettingsScreen(
 
             if (onePage || current == SettingsCategory.MEDIA) {
             if (onePage) item(key = "hdr_MEDIA") { OnePageHeader(SettingsCategory.MEDIA) }
-            item { SettingToggle("Avatares automáticos de ChatZona", s.chatZonaAvatarsEnabled) { onUpdate { copy(chatZonaAvatarsEnabled = !chatZonaAvatarsEnabled) } } }
+            item { FullWidthSettingToggle("Avatares automáticos de ChatZona", s.chatZonaAvatarsEnabled) { onUpdate { copy(chatZonaAvatarsEnabled = !chatZonaAvatarsEnabled) } } }
             item { Text("Usa la foto del perfil o los metadatos y, cuando faltan, busca la foto pública de ChatZona. No se aplica a otras redes ni a conexiones con proxy.", style = MaterialTheme.typography.bodySmall) }
-            item { SettingToggle("Avatares de ChatZona junto a los mensajes", s.chatZonaAvatarsInMessages) { onUpdate { copy(chatZonaAvatarsInMessages = !chatZonaAvatarsInMessages) } } }
+            item { FullWidthSettingToggle("Avatares de ChatZona junto a los mensajes", s.chatZonaAvatarsInMessages) { onUpdate { copy(chatZonaAvatarsInMessages = !chatZonaAvatarsInMessages) } } }
 
 
 
@@ -1700,7 +1702,7 @@ fun SettingsScreen(
                         RadioButton(selected = s.logCombineConversations, onClick = null)
                         Text("Todas las conversaciones en un archivo")
                     }
-                    SettingToggle("Dividir los archivos por día", s.logDailyFiles) { onUpdate { copy(logDailyFiles = !logDailyFiles) } }
+                    FullWidthSettingToggle("Dividir los archivos por día", s.logDailyFiles, Modifier.testTag("history-daily")) { onUpdate { copy(logDailyFiles = !logDailyFiles) } }
                     Text("Se aplica a los mensajes nuevos. Los archivos anteriores se conservan. La copia privada permite consultar, respaldar y recuperar el historial si falla la carpeta elegida.", style = MaterialTheme.typography.bodySmall)
                     if (s.logFolderUri == null && (s.logDailyFiles || s.logCombineConversations)) {
                     OutlinedButton(onClick = {
@@ -2148,6 +2150,16 @@ private fun NumberSettingField(
             focused = f.isFocused
         },
     )
+}
+
+@Composable
+private fun FullWidthSettingToggle(label: String, checked: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Row(modifier.fillMaxWidth().heightIn(min = 48.dp)
+        .toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = { onClick() }),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = null)
+    }
 }
 
 @Composable
