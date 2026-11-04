@@ -68,6 +68,7 @@ internal sealed class SidebarItem(val stableKey: String) {
         val netId: String? = null,
         val expanded: Boolean = true,
     ) : SidebarItem("b:$key")
+    data class Section(val netId: String, val kind: String, val title: String) : SidebarItem("g:$kind:$netId")
     data class DividerItem(val netId: String) : SidebarItem("d:$netId")
 }
 

@@ -327,6 +327,10 @@ data class UiSettings(
     val logServerBuffer: Boolean = false,
     val retentionDays: Int = 0,
     val logFolderUri: String? = null,
+    val chatZonaAvatarsEnabled: Boolean = true,
+    val chatZonaAvatarsInMessages: Boolean = false,
+    val logDailyFiles: Boolean = false,
+    val logCombineConversations: Boolean = false,
     val maxScrollbackLines: Int = 800,
 
     val ircHistoryLimit: Int = 50,
@@ -416,6 +420,7 @@ data class NetConnState(
     val userModes: String = "",
     val userModesKnown: Boolean = false,
     val hasUserMetadata: Boolean = false,
+    val serverNetworkName: String? = null,
     val connected: Boolean = false,
     val connecting: Boolean = false,
     val status: String = "Disconnected",

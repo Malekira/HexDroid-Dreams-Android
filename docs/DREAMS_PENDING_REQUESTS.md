@@ -12,12 +12,15 @@ La entrega publicada anterior es 1.0.8.
 - Mantener las vistas ante una caída accidental y durante reconexiones.
 - Pruebas y entrega: [DREAMS_1_0_9.md](DREAMS_1_0_9.md).
 
-## Nuevas notas — sin implementar
+## Últimas anotaciones — implementación autorizada
 
 - Separar Salas y Privados en el selector de cada red.
 - Mejorar Registro: elegir la ubicación y organización de los archivos (por día/conversación, por sala/PV sin división diaria o todo junto), conservando el historial existente.
 - Abrir directamente el gestor al pulsar Scripts en Ajustes, sin pantalla intermedia «Gestionar».
 - JOIN, PART y QUIT no deben incrementar los mensajes no leídos de las salas.
+- Avatares automáticos de ChatZona, con caché, metadatos, privados, opción en mensajes y ajustes.
+
+Autorización ampliada «Implementa también las últimas anotaciones» y «todooooo». Código implementado; validación Android final y APK completa pendientes.
 
 ## Pendientes posteriores a 1.0.7
 

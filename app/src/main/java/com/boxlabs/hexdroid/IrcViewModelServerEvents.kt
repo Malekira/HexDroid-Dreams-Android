@@ -697,6 +697,7 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         }
                     }
                     is IrcEvent.ISupport -> {
+                        if (ev.networkName != null) setNetConn(netId) { it.copy(serverNetworkName = ev.networkName.take(128)) }
                         _state.update { it.copy(callerIdNetworks = if (ev.callerIdMode == "g") it.callerIdNetworks + netId else it.callerIdNetworks - netId) }
                         val rt = runtimes[netId]
                         if (rt != null) {

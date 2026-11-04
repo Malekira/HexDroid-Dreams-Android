@@ -19,11 +19,33 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.boxlabs.hexdroid.R
+import com.boxlabs.hexdroid.RemoteBitmaps
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+
+/** Shared loader boundary keeps UI behavior testable while production uses the bounded HTTPS cache. */
+internal val LocalAvatarLoader = staticCompositionLocalOf<suspend (String, Long) -> ImageBitmap?> {
+    { url, maxAge -> if (maxAge > 0L) RemoteBitmaps.fetchFresh(url, maxAge)?.asImageBitmap() else RemoteImage.fetch(url) }
+}
 
 @Composable
-fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, refreshToken: Int = 0, onOpen: () -> Unit) {
+fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, refreshToken: Int = 0, refreshEveryMs: Long = 0L, onOpen: () -> Unit) {
+    val loader = LocalAvatarLoader.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     var image by remember(url, refreshToken) { mutableStateOf(RemoteImage.cached(url)) }
-    LaunchedEffect(url, refreshToken) { if (image == null) image = RemoteImage.fetch(url) }
+    LaunchedEffect(url, refreshToken, refreshEveryMs, loader, lifecycle) {
+        if (refreshEveryMs <= 0L) { if (image == null) image = loader(url, 0L) }
+        else lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) {
+                image = loader(url, refreshEveryMs)
+                delay(refreshEveryMs)
+            }
+        }
+    }
     Box(modifier.clip(CircleShape).clickable(onClick = onOpen).testTag("avatar-$nick"), contentAlignment = Alignment.Center) {
         image?.let {
             Image(it, stringResource(R.string.dreams_expand_avatar, nick), contentScale = ContentScale.Crop,
@@ -59,5 +81,15 @@ fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } })
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
+        dismissButton = { TextButton(onClick = { attempt++ }) { Text("Actualizar foto") } })
+}
+
+@Composable
+internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, onOpen: () -> Unit, content: @Composable () -> Unit) {
+    if (url == null) content()
+    else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshEveryMs = refreshEveryMs, onOpen = onOpen)
+        Box(Modifier.weight(1f)) { content() }
+    }
 }

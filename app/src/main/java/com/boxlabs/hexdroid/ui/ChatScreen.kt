@@ -724,16 +724,25 @@ fun ChatScreen(
     // previews AND this profile is unproxied - an avatar URL is chosen by the remote user, so
     // fetching it from a Tor/SOCKS profile would bypass the proxy and leak the user's IP
     // (same rule as filehost uploads). Notifications apply the same rule.
-    val metadataAvatars: Map<String, String> =
-        if (state.settings.imagePreviewsEnabled &&
-            state.networks.firstOrNull { it.id == selNetId }?.proxyType ==
-                com.boxlabs.hexdroid.connection.ProxyType.NONE
-        ) (state.connections[selNetId]?.avatarUrls ?: emptyMap()).let { urls ->
+    val avatarProfile = state.networks.firstOrNull { it.id == selNetId }
+    val isChatZona = avatarProfile != null && com.boxlabs.hexdroid.isChatZonaNetwork(avatarProfile.host, selConn?.serverNetworkName)
+    val automaticChatZona = state.settings.chatZonaAvatarsEnabled && isChatZona
+    val avatarDownloadsAllowed = avatarProfile?.proxyType == com.boxlabs.hexdroid.connection.ProxyType.NONE &&
+        (if (isChatZona) state.settings.chatZonaAvatarsEnabled else state.settings.imagePreviewsEnabled)
+    val metadataAvatars: Map<String, String> = if (avatarDownloadsAllowed) {
+        (selConn?.avatarUrls ?: emptyMap()).let { urls ->
             val own = state.profileAvatarUrls[selNetId]
             if (own == null) urls else if (own.isBlank()) urls - myNick.lowercase()
             else urls + (myNick.lowercase() to own)
         }
-        else emptyMap()
+    } else emptyMap()
+    fun avatarFor(nick: String): String? = metadataAvatars[baseNick(nick).lowercase()]
+        ?: if (automaticChatZona && avatarDownloadsAllowed)
+            com.boxlabs.hexdroid.chatZonaAvatarUrl(avatarProfile!!.host, selConn?.serverNetworkName, baseNick(nick)) else null
+    val avatarRefreshInterval = if (automaticChatZona) com.boxlabs.hexdroid.CHATZONA_AVATAR_REFRESH_MS else 0L
+    LaunchedEffect(selNetId, selBufName, isPrivateMessage, automaticChatZona, selConn?.hasUserMetadata) {
+        if (isPrivateMessage && automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, selBufName)
+    }
     // draft/metadata-2 nick colours (6 hex digits, no #), keyed by lowercased nick.
     // Applied below a manual own-nick override, above the hash colour.
     val metadataColors = state.connections[selNetId]?.nickColors ?: emptyMap()
@@ -823,6 +832,9 @@ fun ChatScreen(
     /** Nick awaiting confirmation before DCC auto-accept is switched on; null when idle. */
     var confirmAutoAcceptFor by remember { mutableStateOf<String?>(null) }
     var selectedNick by remember { mutableStateOf("") }
+    LaunchedEffect(showNickActions, selectedNick, selNetId) {
+        if (showNickActions && automaticChatZona && selectedNick.isNotBlank()) viewModel?.requestAvatarMetadata(selNetId, selectedNick)
+    }
     /** Message long-pressed: shown in a small context sheet with Copy / Reply options. */
     var longPressedMessage by remember { mutableStateOf<UiMessage?>(null) }
     /** msgid awaiting a typed reaction, or null when the prompt is closed. */
@@ -961,6 +973,7 @@ fun ChatScreen(
 				k == null -> null
 				k.startsWith("h:") -> k.removePrefix("h:")
 				k.startsWith("d:") -> k.removePrefix("d:")
+                k.startsWith("g:") -> k.removePrefix("g:").substringAfter(':')
 				k.startsWith("b:") -> splitKey(k.removePrefix("b:")).first
 				else -> null
 			}
@@ -989,7 +1002,10 @@ fun ChatScreen(
 			sortedNets.filter { (it.showInSidebar && it.id !in state.closedNetworkViews) || it.id == openNetId }
 		}
 
-		val sidebarItems = remember(visibleNets, buffersByNet, state.channelsOnly, selected, state.collapsedNetworkIds) {
+        val roomsLabel = stringResource(R.string.dreams_sidebar_rooms)
+        val privatesLabel = stringResource(R.string.dreams_sidebar_privates)
+        val othersLabel = stringResource(R.string.dreams_sidebar_other)
+		val sidebarItems = remember(visibleNets, buffersByNet, state.channelsOnly, selected, state.collapsedNetworkIds, state.connections, roomsLabel, privatesLabel, othersLabel) {
 			val out = mutableListOf<SidebarItem>()
 			for (net in visibleNets) {
 				val nId = net.id
@@ -1008,12 +1024,17 @@ fun ChatScreen(
 					// Use the server buffer row as the network "header" to avoid showing the network name twice.
 					out.add(SidebarItem.Buffer(serverKey, header, 0.dp, isNetworkHeader = true, netId = nId, expanded = expanded))
 				}
-				if (expanded) {
-					for (k in otherKeys) {
-						val (_, name) = splitKey(k)
-						out.add(SidebarItem.Buffer(k, bufferLabel(k, state.networks), 14.dp))
-					}
-				}
+                if (expanded) {
+                    val channelTypes = state.connections[nId]?.chanTypes ?: "#&!+"
+                    val rooms = otherKeys.filter { splitKey(it).second.firstOrNull() in channelTypes.toSet() }
+                    val remaining = otherKeys - rooms.toSet()
+                    val privates = remaining.filter { val name = splitKey(it).second; !name.startsWith("*") && !name.startsWith("DCCCHAT:") }
+                    val others = remaining - privates.toSet()
+                    for ((kind, title, keys) in listOf(Triple("rooms", roomsLabel, rooms), Triple("privates", privatesLabel, privates), Triple("other", othersLabel, others))) {
+                        if (keys.isNotEmpty()) out.add(SidebarItem.Section(nId, kind, title))
+                        for (key in keys) out.add(SidebarItem.Buffer(key, bufferLabel(key, state.networks), 14.dp))
+                    }
+                }
 				out.add(SidebarItem.DividerItem(nId))
 			}
 			out
@@ -1340,6 +1361,7 @@ fun ChatScreen(
 						is SidebarItem.Header -> item.netId
 						is SidebarItem.Buffer -> item.netId ?: splitKey(item.key).first
 						is SidebarItem.DividerItem -> item.netId
+                            is SidebarItem.Section -> item.netId
 					}
 					val isDragging = reorder.isDragging(itemNetId)
 
@@ -1470,6 +1492,12 @@ fun ChatScreen(
 									}
 								}
 							}
+                            is SidebarItem.Section -> {
+                                Text(item.title, style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, bottom = 4.dp)
+                                        .testTag("sidebar-group-${item.netId}-${item.kind}"))
+                            }
 							is SidebarItem.DividerItem -> {
 								HorizontalDivider(Modifier.padding(top = 12.dp))
 							}
@@ -1526,7 +1554,7 @@ fun ChatScreen(
                         ?.takeIf { !it.equals(cleaned, ignoreCase = true) }
                     val isAway = awayNicks.contains(cleaned.lowercase())
                     val isBot = botNicks.contains(cleaned.lowercase())
-                    val nickAvatar = metadataAvatars[cleaned.lowercase()]
+                    val nickAvatar = avatarFor(cleaned)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -1556,7 +1584,7 @@ fun ChatScreen(
                         val avatarGap = (nickFontSp * 0.3f).dp
                         if (nickAvatar != null) {
                             AvatarThumbnail(nickAvatar, cleaned,
-                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefresh) {
+                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefresh, refreshEveryMs = avatarRefreshInterval) {
                                 expandedAvatar = nickAvatar to cleaned
                             }
                         } else if (state.settings.showNickIcons) {
@@ -1577,7 +1605,7 @@ fun ChatScreen(
                                         )
                                 )
                             }
-                        } else if (metadataAvatars.isNotEmpty()) {
+                        } else if (metadataAvatars.isNotEmpty() || automaticChatZona) {
                             Spacer(Modifier.width(avatarSize + avatarGap))
                         }
                         Text(
@@ -2064,6 +2092,10 @@ fun ChatScreen(
                         ) { Text("☰") }
                     }
 
+                    if (isPrivateMessage && automaticChatZona) avatarFor(selBufName)?.let { url ->
+                        AvatarThumbnail(url, selBufName, Modifier.size(32.dp), avatarRefresh,
+                            refreshEveryMs = avatarRefreshInterval) { expandedAvatar = url to selBufName }
+                    }
                     Column(Modifier.weight(1f)) {
                         Text(
                             text = topBarTitle,
@@ -2706,6 +2738,9 @@ fun ChatScreen(
                             findOverlay.matchIds.contains(m.id)
                         val readByPeer = peerReadAtMs != null && !isChannel && m.timeMs <= peerReadAtMs &&
                             !m.failed && !m.pending && m.from != null && m.from.equals(myNick, ignoreCase = true)
+                        val messageAvatar = if (state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from != null && m.from != "ERROR") avatarFor(m.from) else null
+                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarRefreshInterval,
+                            onOpen = { if (messageAvatar != null) expandedAvatar = messageAvatar to m.from.orEmpty() }) {
                         SingleMessageItem(
                             m = m,
                             readByPeer = readByPeer,
@@ -2775,6 +2810,7 @@ fun ChatScreen(
                                 ?.let { metadataDisplayNames[baseNick(it).lowercase()] }
                                 ?.takeIf { !it.equals(baseNick(m.from), ignoreCase = true) },
                         )
+                        }
                         } // end DisplayItem.Single
 
                         } // end when
@@ -4881,7 +4917,7 @@ fun ChatScreen(
 
     expandedAvatar?.let { (url, nick) ->
         // Closing the viewer leaves the room and any nick sheet open behind it.
-        if (metadataAvatars.values.contains(url)) AvatarViewer(url, nick, onDismiss = { expandedAvatar = null; avatarRefresh++ })
+        if (avatarFor(nick) == url) AvatarViewer(url, nick, onDismiss = { expandedAvatar = null; avatarRefresh++ })
     }
     if (showMetadataEditor && viewModel != null && selNetId.isNotBlank()) {
         MetadataEditorDialog(
@@ -5250,7 +5286,7 @@ fun ChatScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val sheetBase = selectedNick.lowercase()
-                    val sheetAvatar = metadataAvatars[sheetBase]
+                    val sheetAvatar = avatarFor(selectedNick)
                     val sheetDisplayName = metadataDisplayNames[sheetBase]
                         ?.takeIf { !it.equals(selectedNick, ignoreCase = true) }
                     val sheetStatus = metadataStatuses[sheetBase]
@@ -5266,7 +5302,7 @@ fun ChatScreen(
                         // Avatar (draft/metadata-2), gated identically to the message rows:
                         // only when image previews are on and this profile is unproxied.
                         if (sheetAvatar != null) {
-                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefresh) {
+                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefresh, refreshEveryMs = avatarRefreshInterval) {
                                 expandedAvatar = sheetAvatar to selectedNick
                             }
                         }

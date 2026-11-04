@@ -2006,4 +2006,7 @@
     <string name="dreams_format_underline_short">U</string>
     <string name="dreams_format_strike_short">S</string>
     <string name="dreams_format_strike">Strikethrough</string>
+    <string name="dreams_sidebar_rooms">Rooms</string>
+    <string name="dreams_sidebar_privates">Private messages</string>
+    <string name="dreams_sidebar_other">Other windows</string>
 </resources>

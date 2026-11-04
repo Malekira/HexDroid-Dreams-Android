@@ -705,6 +705,8 @@ class IrcViewModel(
 
     internal val notifier = NotificationHelper(appContext)
     internal val logs = LogWriter(appContext)
+    internal val organizedLogs = LogWriter(appContext, "organized-history", flushEachLine = true)
+    internal val organizedLogWarnings: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
     internal val historyArchive = HistoryArchive(appContext)
     internal val privateRequests = PrivateRequestStore(appContext)
     internal val privateRequestLane = kotlinx.coroutines.Dispatchers.IO.limitedParallelism(1)
@@ -879,7 +881,7 @@ class IrcViewModel(
         // with the saved log folder. A separate collector so the warning appears as soon as
         // LogWriter discovers the problem.
         viewModelScope.launch {
-            logs.unreadableTreeUrisFlow.collect { unreadable ->
+            kotlinx.coroutines.flow.combine(logs.unreadableTreeUrisFlow, organizedLogs.unreadableTreeUrisFlow) { a, b -> a + b }.collect { unreadable ->
                 _state.update { st ->
                     val current = st.settings.logFolderUri
                     val isUnreadable = !current.isNullOrBlank() && unreadable.contains(current)
@@ -903,13 +905,13 @@ class IrcViewModel(
                 // empty results from the cached "this is dead" state.
                 val newLogUri = s.logFolderUri
                 if (newLogUri != prevLogFolderUri) {
-                    if (!newLogUri.isNullOrBlank()) logs.clearUnreadable(newLogUri)
+                    if (!newLogUri.isNullOrBlank()) { logs.clearUnreadable(newLogUri); organizedLogs.clearUnreadable(newLogUri) }
                     prevLogFolderUri = newLogUri
                 }
                 // Recompute the unreadable flag against the new settings.logFolderUri:
                 // when the user picks a fresh folder we want the warning to clear
                 // immediately, without waiting for the next LogWriter event.
-                val currentUnreadable = logs.unreadableTreeUrisFlow.value
+                val currentUnreadable = logs.unreadableTreeUrisFlow.value + organizedLogs.unreadableTreeUrisFlow.value
                 val newUnreadable = !s.logFolderUri.isNullOrBlank() &&
                     currentUnreadable.contains(s.logFolderUri)
                 _state.value = st.copy(
@@ -1747,7 +1749,7 @@ fun startAddNetwork() {
 
     /** Bytes used by logs kept in app storage. */
     suspend fun internalLogsSize(): Long =
-        withContext(Dispatchers.IO) { runCatching { logs.internalLogsSize() }.getOrDefault(0L) }
+        withContext(Dispatchers.IO) { runCatching { logs.internalLogsSize() + organizedLogs.internalLogsSize() }.getOrDefault(0L) }
 
     /**
      * Delete every log kept in app storage, then call [onDone] on the main thread. Runs in the
@@ -1756,7 +1758,7 @@ fun startAddNetwork() {
      */
     fun deleteInternalLogs(onDone: () -> Unit = {}) {
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) { runCatching { historyArchive.delete(historyArchive.list().map { it.path }.toSet()) }.isSuccess }
+            val ok = withContext(Dispatchers.IO) { runCatching { historyArchive.delete(historyArchive.list().map { it.path }.toSet()); organizedLogs.deleteInternalLogs() }.isSuccess }
             logsToast(if (ok) R.string.setting_logs_deleted else R.string.setting_logs_delete_failed)
             onDone()
         }
@@ -1768,6 +1770,19 @@ fun startAddNetwork() {
             val ok = withContext(Dispatchers.IO) {
                 runCatching {
                     appContext.contentResolver.openOutputStream(uri)?.use { historyArchive.export(historyArchive.list().map { f -> f.path }.toSet(), it) }
+                        ?: throw java.io.IOException("no output stream")
+                }.isSuccess
+            }
+            logsToast(if (ok) R.string.setting_logs_exported else R.string.setting_logs_export_failed)
+        }
+    }
+
+    /** Export the separately organized private TXT files; the canonical backup stays compatible. */
+    fun exportOrganizedLogs(uri: android.net.Uri) {
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                runCatching {
+                    appContext.contentResolver.openOutputStream(uri)?.use { organizedLogs.exportInternalLogs(it) }
                         ?: throw java.io.IOException("no output stream")
                 }.isSuccess
             }
@@ -3509,6 +3524,21 @@ fun startAddNetwork() {
         }
     }
 
+    private val avatarMetadataRequestedAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+    /** Sparse GET for private partners/nick sheets; room members already arrive through SUB avatar. */
+    fun requestAvatarMetadata(netId: String, nick: String) {
+        val profile = _state.value.networks.firstOrNull { it.id == netId } ?: return
+        if (!_state.value.settings.chatZonaAvatarsEnabled || !isChatZonaNetwork(profile.host, _state.value.connections[netId]?.serverNetworkName) || !serverSupportsMetadata(netId)) return
+        if (nick.isBlank() || nick.startsWith("*") || nick.any { it.isWhitespace() || it.isISOControl() }) return
+        val key = "$netId::${casefoldText(netId, nick)}"
+        val now = System.currentTimeMillis()
+        if (avatarMetadataRequestedAt[key]?.let { now - it < 60_000 } == true) return
+        if (avatarMetadataRequestedAt.size > 512) avatarMetadataRequestedAt.clear()
+        avatarMetadataRequestedAt[key] = now
+        viewModelScope.launch { runCatching { runtimes[netId]?.client?.sendMetadata(nick, "GET", "avatar") } }
+    }
+
     /** True when the connected server keeps metadata for users (soju keeps only its own per-target keys). */
     fun serverSupportsMetadata(netId: String): Boolean =
         runtimes[netId]?.client?.let { it.hasCap("draft/metadata-2") && !it.isSoju } == true
@@ -3741,5 +3771,6 @@ fun startAddNetwork() {
         // Flush and close all open log file handles so the last few lines written via the
         // BufferedWriter cache are not lost when the ViewModel is destroyed.
         logs.closeAll()
+        organizedLogs.closeAll()
     }
 }

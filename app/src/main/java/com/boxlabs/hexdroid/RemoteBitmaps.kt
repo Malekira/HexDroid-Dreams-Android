@@ -45,6 +45,9 @@ object RemoteBitmaps {
     }
 
     private val inFlight = HashMap<String, Deferred<Bitmap?>>()
+    private val downloadedAt = java.util.Collections.synchronizedMap(object : LinkedHashMap<String, Long>(16, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>) = size > 128
+    })
     private val downloads = Semaphore(4)
     private val largeCache = object : LinkedHashMap<String, Bitmap>(4, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Bitmap>) = size > 4
@@ -75,8 +78,23 @@ object RemoteBitmaps {
      * Fetch and decode [url]. Returns null on any failure, oversize response or undecodable
      * payload. A cached result short-circuits and concurrent calls for one URL share a request.
      */
+    /** Refresh visible automatic avatars after a bounded cache lifetime; concurrent loads still share a request. */
+    suspend fun fetchFresh(url: String, maxAgeMs: Long): Bitmap? {
+        synchronized(inFlight) {
+            if (inFlight["small:$url"] == null && System.currentTimeMillis() - (downloadedAt[url] ?: 0L) >= maxAgeMs) {
+                synchronized(cache) { cache.remove(url) }
+                synchronized(largeCache) { largeCache.remove(url) }
+            }
+        }
+        return fetch(url)
+    }
+
     suspend fun fetch(url: String, fullSize: Boolean = false, retry: Boolean = false): Bitmap? {
         if (url.isBlank() || !validAvatarUrl(url)) return null
+        if (retry) {
+            val selected = if (fullSize) largeCache else cache
+            synchronized(selected) { selected.remove(url) }
+        }
         cached(url, fullSize)?.let { return it }
         val key = (if (fullSize) "large:" else "small:") + url
         synchronized(failedAt) {
@@ -86,6 +104,9 @@ object RemoteBitmaps {
         val request = synchronized(inFlight) {
             inFlight[key] ?: scope.async(start = kotlinx.coroutines.CoroutineStart.LAZY) {
                 val image = downloads.withPermit { download(url, fullSize) }
+                if (image != null) {
+                    downloadedAt[url] = System.currentTimeMillis()
+                }
                 synchronized(failedAt) {
                     if (image == null) {
                         if (failedAt.size > 128) failedAt.clear()

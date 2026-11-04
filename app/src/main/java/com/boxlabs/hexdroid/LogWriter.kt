@@ -105,7 +105,7 @@ private class HandleCache<T : java.io.Closeable>(
  * Line-based log writer, one file per buffer, under <filesDir>/logs/<network>/ or
  * <treeUri>/<network>/. Keeps a bounded set of handles open; [closeAll] flushes and releases them.
  */
-class LogWriter(private val ctx: Context) {
+class LogWriter(private val ctx: Context, private val internalDirectory: String = "logs", private val flushEachLine: Boolean = false) {
 
     // Last time each log file was flushed to disk. Flushing periodically rather than per line
     // costs one fewer write call per message; flushAll() covers the process being killed.
@@ -138,7 +138,7 @@ class LogWriter(private val ctx: Context) {
     // Open handles for SAF log documents, keyed as safFileCache is.
     private val safWriters = HandleCache<java.io.BufferedOutputStream>(MAX_OPEN_WRITERS)
 
-    private fun internalRoot(): File = File(ctx.filesDir, "logs").apply { mkdirs() }
+    private fun internalRoot(): File = File(ctx.filesDir, internalDirectory).apply { mkdirs() }
 
     fun append(networkName: String, buffer: String, line: String, logFolderUri: String?): String? {
         return runCatching {
@@ -148,7 +148,10 @@ class LogWriter(private val ctx: Context) {
                 appendSaf(Uri.parse(logFolderUri), networkName, buffer, line)
             }
             null
-        }.getOrElse { it.message ?: it.javaClass.simpleName }
+        }.getOrElse {
+            if (!logFolderUri.isNullOrBlank()) markTreeUriUnreadable(Uri.parse(logFolderUri))
+            it.message ?: it.javaClass.simpleName
+        }
     }
 
     // Keep a BufferedWriter open per log file
@@ -169,7 +172,7 @@ class LogWriter(private val ctx: Context) {
                 writer.write(line)
                 writer.newLine()
                 val now = System.currentTimeMillis()
-                if (now - (lastFlushMs[cacheKey] ?: 0L) >= FLUSH_INTERVAL_MS) {
+                if (flushEachLine || now - (lastFlushMs[cacheKey] ?: 0L) >= FLUSH_INTERVAL_MS) {
                     writer.flush()
                     lastFlushMs[cacheKey] = now
                 }
@@ -202,7 +205,7 @@ class LogWriter(private val ctx: Context) {
 
     /** Bytes used by logs in app storage (not a chosen folder). */
     fun internalLogsSize(): Long =
-        File(ctx.filesDir, "logs").walkTopDown().filter { it.isFile }.sumOf { it.length() }
+        File(ctx.filesDir, internalDirectory).walkTopDown().filter { it.isFile }.sumOf { it.length() }
 
     /**
      * Delete every log in app storage. Open files are closed before and again after, so a line
@@ -210,7 +213,7 @@ class LogWriter(private val ctx: Context) {
      */
     fun deleteInternalLogs() {
         closeAll()
-        File(ctx.filesDir, "logs").deleteRecursively()
+        File(ctx.filesDir, internalDirectory).deleteRecursively()
         closeAll()
     }
 
@@ -221,7 +224,7 @@ class LogWriter(private val ctx: Context) {
      */
     fun exportInternalLogs(out: java.io.OutputStream): Int {
         closeAll()
-        val root = File(ctx.filesDir, "logs")
+        val root = File(ctx.filesDir, internalDirectory)
         var count = 0
         java.util.zip.ZipOutputStream(out.buffered()).use { zip ->
             root.walkTopDown().filter { it.isFile }.forEach { f ->
@@ -295,7 +298,7 @@ class LogWriter(private val ctx: Context) {
         cancelled: () -> Boolean,
         out: MutableList<LogSearchHit>,
     ) {
-        val root = File(ctx.filesDir, "logs")
+        val root = File(ctx.filesDir, internalDirectory)
         val nets = root.listFiles()?.filter { it.isDirectory && (netDir == null || it.name.equals(netDir, ignoreCase = true)) }.orEmpty()
         for (dir in nets) {
             val files = dir.listFiles()?.filter { it.isFile && it.name.endsWith(".txt") && (fileName == null || it.name.equals(fileName, ignoreCase = true)) }.orEmpty()
@@ -472,12 +475,12 @@ class LogWriter(private val ctx: Context) {
 
             // Slow path: resolve (or create) the document URI, open and cache a new stream.
             val fileUri = resolveOrCreateSafFile(resolver, treeUri, netDirName, fileName, cacheKey)
-            ?: return   // provider refused to create; silently drop this line
+            ?: throw java.io.IOException("No se pudo crear el archivo de historial")
 
             val stream = runCatching {
                 resolver.openOutputStream(fileUri, "wa")
                 ?.let { java.io.BufferedOutputStream(it, 8192) }
-            }.getOrNull() ?: return  // couldn't open; drop this line
+            }.getOrNull() ?: throw java.io.IOException("No se pudo abrir el archivo de historial")
 
             safWriters.acquire(cacheKey) { stream }
             val writeOk = try {
@@ -492,6 +495,7 @@ class LogWriter(private val ctx: Context) {
                 // Opened but the first write failed, so drop it and let the next call retry.
                 safWriters.take(cacheKey)?.runCatching { close() }
                 safFileCache.remove(cacheKey)
+                throw java.io.IOException("No se pudo escribir el archivo de historial")
             }
         }
     }

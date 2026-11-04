@@ -315,6 +315,8 @@ internal fun IrcClient.buildNumericHandlers(
                 bouncerNetId = bouncerNetId,
                 safeRate = safeRate,
                 callerIdMode = callerIdMode,
+                networkName = tokens.firstOrNull { it.startsWith("NETWORK=", true) }?.substringAfter('=')?.let(::unescapeIsupportValue)
+                    ?: if (tokens.any { it.equals("-NETWORK", true) }) "" else null,
             ))
             // soju lists per-target metadata only once the connection is bound, which
             // BOUNCER_NETID announces after RPL_WELCOME.

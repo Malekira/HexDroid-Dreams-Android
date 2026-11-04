@@ -157,6 +157,7 @@ internal fun IrcViewModel.handleChannelEvent(netId: String, ev: IrcEvent) {
                         isLocal = suppressUnread,
                         timeMs = ev.timeMs,
                         isHistory = ev.isHistory,
+                        countsAsUnread = false,
                         doNotify = false
                     )
                 }
@@ -304,6 +305,7 @@ internal fun IrcViewModel.handleChannelEvent(netId: String, ev: IrcEvent) {
                         isLocal = suppressUnread,
                         timeMs = ev.timeMs,
                         isHistory = ev.isHistory,
+                        countsAsUnread = false,
                         doNotify = false
                     )
                     return
@@ -328,7 +330,8 @@ internal fun IrcViewModel.handleChannelEvent(netId: String, ev: IrcEvent) {
                     isLocal = suppressUnread,
                     timeMs = ev.timeMs,
                     isHistory = ev.isHistory,
-                    doNotify = false
+                    countsAsUnread = false,
+                        doNotify = false
                 )
             }
 
@@ -495,6 +498,7 @@ internal fun IrcViewModel.handleChannelEvent(netId: String, ev: IrcEvent) {
                         isLocal = suppressUnread,
                         timeMs = ev.timeMs,
                         isHistory = ev.isHistory,
+                        countsAsUnread = false,
                         doNotify = false
                     )
                 }

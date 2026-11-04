@@ -1111,6 +1111,7 @@ internal fun IrcViewModel.append(
     /** Bot Mode: sender is a bot (see UiMessage.fromBot). */
     fromBot: Boolean = false,
     isHighlightedNotice: Boolean = false,
+    countsAsUnread: Boolean = true,
 ) {
     val nowMs = System.currentTimeMillis()
     val ts = timeMs ?: nowMs
@@ -1152,6 +1153,7 @@ internal fun IrcViewModel.append(
                 fromOper = fromOper,
                 fromBot = fromBot,
                 isHighlightedNotice = isHighlightedNotice,
+                countsAsUnread = countsAsUnread,
             )
         }
     ) return
@@ -1243,8 +1245,8 @@ internal fun IrcViewModel.append(
         val isSelected = (bufferKey == st.selectedBuffer
             && st.screen == AppScreen.CHAT
             && AppVisibility.isForeground) || bufferKey in bubblesShowing
-        val unreadInc = if (!isSelected && !quiet) 1 else 0
-        val highlightInc = if (!isSelected && effectiveHighlight && !quiet) 1 else 0
+        val unreadInc = if (countsAsUnread && !isSelected && !quiet) 1 else 0
+        val highlightInc = if (countsAsUnread && !isSelected && effectiveHighlight && !quiet) 1 else 0
 
         // Only ever forward: a replayed line is older than what the user has already seen.
         val newLastRead = if (isSelected) {
@@ -1399,8 +1401,16 @@ internal fun IrcViewModel.writeLogLine(
                 logs.releaseBuffer(netName, bufferName)
                 historyArchive.migrateLegacy(logs.logFileInternal(netName, bufferName), path)
             }
-            historyArchive.append(path, logLine, msgId, replay)
-            null
+            val accepted = historyArchive.append(path, logLine, msgId, replay)
+            if (accepted && (st.settings.logFolderUri != null || st.settings.logDailyFiles || st.settings.logCombineConversations)) {
+                val destination = organizedHistoryTarget(netId, netName, casefoldText(netId, bufferName), ts,
+                    st.settings.logDailyFiles, st.settings.logCombineConversations, logLine)
+                val outputError = organizedLogs.append(destination.network, destination.buffer, destination.line, st.settings.logFolderUri)
+                val warningKey = "$netId|${st.settings.logFolderUri}"
+                if (outputError == null) { organizedLogWarnings.remove(warningKey); null }
+                else if (organizedLogWarnings.add(warningKey)) "Copia organizada: $outputError. El historial privado se conservó."
+                else null
+            } else null
         }.getOrElse { t -> t.message ?: t::class.java.simpleName }
         // A failure is reported in the server buffer. That report is logged in turn only
         // when the server buffer is logged, so a failing folder cannot loop.

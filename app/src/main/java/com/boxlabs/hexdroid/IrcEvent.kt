@@ -145,6 +145,7 @@ sealed class IrcEvent {
         /** soju.im/SAFERATE: the server delays rather than disconnects a fast client. */
         val safeRate: Boolean = false,
         val callerIdMode: String? = null,
+        val networkName: String? = null,
     ) : IrcEvent()
 
     // Join failure numerics (e.g. 471-477) with the channel extracted

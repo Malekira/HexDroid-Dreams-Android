@@ -68,7 +68,7 @@ class Dreams107UiTest {
                 onOpenNetworks = {}, onOpenIgnoreList = {}, onOpenScripts = { opened = true })
         } }
         compose.onNodeWithText(context.getString(R.string.settings_scripts)).performClick()
-        compose.onNodeWithTag("scripts-manage").performScrollTo().performClick()
+        compose.onNodeWithTag("scripts-manage").assertDoesNotExist()
         compose.runOnIdle { assertTrue(opened) }
     }
 

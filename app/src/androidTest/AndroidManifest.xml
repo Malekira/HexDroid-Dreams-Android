@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test-only document provider: exercises actual SAF queries, creation and append streams. -->
+        <provider android:name="com.boxlabs.hexdroid.HistoryTestDocumentsProvider"
+            android:permission="android.permission.MANAGE_DOCUMENTS"
+            android:authorities="${applicationId}.historytest" android:exported="true" android:grantUriPermissions="true">
+            <intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER" /></intent-filter>
+        </provider>
+    </application>
+</manifest>

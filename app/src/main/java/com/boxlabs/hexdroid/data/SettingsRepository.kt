@@ -407,6 +407,10 @@ class SettingsRepository(private val ctx: Context) {
                 retentionDays = 0,
                 maxScrollbackLines = o.optInt("maxScrollbackLines", 800),
                 logFolderUri = o.optString("logFolderUri", "").takeIf { it.isNotBlank() },
+                chatZonaAvatarsEnabled = o.optBoolean("chatZonaAvatarsEnabled", true),
+                chatZonaAvatarsInMessages = o.optBoolean("chatZonaAvatarsInMessages", false),
+                logDailyFiles = o.optBoolean("logDailyFiles", false),
+                logCombineConversations = o.optBoolean("logCombineConversations", false),
 
                 ircHistoryLimit = o.optInt("ircHistoryLimit", 50),
                 ircHistoryCountsAsUnread = o.optBoolean("ircHistoryCountsAsUnread", false),
@@ -536,6 +540,10 @@ class SettingsRepository(private val ctx: Context) {
         o.put("retentionDays", s.retentionDays)
         o.put("maxScrollbackLines", s.maxScrollbackLines)
         o.put("logFolderUri", s.logFolderUri ?: "")
+        o.put("chatZonaAvatarsEnabled", s.chatZonaAvatarsEnabled)
+        o.put("chatZonaAvatarsInMessages", s.chatZonaAvatarsInMessages)
+        o.put("logDailyFiles", s.logDailyFiles)
+        o.put("logCombineConversations", s.logCombineConversations)
 
         o.put("ircHistoryLimit", s.ircHistoryLimit)
         o.put("ircHistoryCountsAsUnread", s.ircHistoryCountsAsUnread)

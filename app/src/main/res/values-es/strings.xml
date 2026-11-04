@@ -2004,4 +2004,7 @@
     <string name="dreams_format_underline_short">S</string>
     <string name="dreams_format_strike_short">T</string>
     <string name="dreams_format_strike">Tachado</string>
+    <string name="dreams_sidebar_rooms">Salas</string>
+    <string name="dreams_sidebar_privates">Privados</string>
+    <string name="dreams_sidebar_other">Otras ventanas</string>
 </resources>

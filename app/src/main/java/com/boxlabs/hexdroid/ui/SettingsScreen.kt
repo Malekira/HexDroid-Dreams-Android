@@ -35,6 +35,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -467,6 +469,7 @@ fun SettingsScreen(
     /** Bytes used by logs in app storage. */
     onMeasureLogs: suspend () -> Long = { 0L },
     onExportLogs: (Uri) -> Unit = {},
+    onExportOrganizedLogs: (Uri) -> Unit = {},
     onDeleteLogs: (onDone: () -> Unit) -> Unit = {},
     onImportBackup: (Uri) -> Unit = {},
     /** Restore again once the passphrase for a backup's passwords is known, or without them. */
@@ -512,7 +515,7 @@ fun SettingsScreen(
     val logsScope = rememberCoroutineScope()
     // Measured with or without a chosen folder: logs written to app storage before a folder was
     // picked stay there, and need the same way out.
-    LaunchedEffect(s.logFolderUri) { logsBytes = onMeasureLogs() }
+    LaunchedEffect(s.logFolderUri, s.logDailyFiles, s.logCombineConversations) { logsBytes = onMeasureLogs() }
     val exportLogsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
     ) { uri: Uri? ->
@@ -532,6 +535,10 @@ fun SettingsScreen(
         if (uri != null) onExportBackup(uri, pendingExportPassphrase, pendingExportHistory)
         pendingExportPassphrase = null
         pendingExportHistory = false
+    }
+
+    val exportOrganizedLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
+        if (uri != null) onExportOrganizedLogs(uri)
     }
 
     val importBackupLauncher = rememberLauncherForActivityResult(
@@ -558,10 +565,13 @@ fun SettingsScreen(
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
         if (uri != null) {
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            runCatching { ctx.contentResolver.takePersistableUriPermission(uri, flags) }
-            val old = s.logFolderUri
-            onUpdate { copy(logFolderUri = uri.toString()) }
-            if (old != uri.toString()) releaseFolder(old, s.dccDownloadFolderUri)
+            runCatching { ctx.contentResolver.takePersistableUriPermission(uri, flags) }.onSuccess {
+                val old = s.logFolderUri
+                onUpdate { copy(logFolderUri = uri.toString()) }
+                if (old != uri.toString()) releaseFolder(old, s.dccDownloadFolderUri)
+            }.onFailure {
+                android.widget.Toast.makeText(ctx, "No se pudo conservar el permiso de la carpeta. Elegí otra carpeta.", android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -601,6 +611,9 @@ fun SettingsScreen(
     // that opens one category at a time on phones.
     val railLayout = useSideRailNav()
     var picked by rememberSaveable { mutableStateOf<SettingsCategory?>(null) }
+    LaunchedEffect(picked) {
+        if (picked == SettingsCategory.SCRIPTS) { picked = null; onOpenScripts() }
+    }
     val current = if (railLayout) (picked ?: SettingsCategory.APPEARANCE) else picked
 
     // One page: every category in one continuous list. The tour points at the category
@@ -764,7 +777,8 @@ fun SettingsScreen(
             SettingsSearchResults(
                 results = searchResults,
                 onOpen = { entry ->
-                    if (onePage) jumpTo = entry.category else picked = entry.category
+                    if (entry.category == SettingsCategory.SCRIPTS) onOpenScripts()
+                    else if (onePage) jumpTo = entry.category else picked = entry.category
                     closeSearch()
                 },
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -780,7 +794,7 @@ fun SettingsScreen(
                 SettingsNavPanel(
                     current = current,
                     rail = railLayout,
-                    onSelect = { picked = it },
+                    onSelect = { if (it == SettingsCategory.SCRIPTS) onOpenScripts() else picked = it },
                     onRunTour = onRunTour,
                     modifier = if (railLayout) {
                         Modifier.width(RAIL_WIDTH).fillMaxHeight()
@@ -1018,6 +1032,11 @@ fun SettingsScreen(
 
             if (onePage || current == SettingsCategory.MEDIA) {
             if (onePage) item(key = "hdr_MEDIA") { OnePageHeader(SettingsCategory.MEDIA) }
+            item { SettingToggle("Avatares automáticos de ChatZona", s.chatZonaAvatarsEnabled) { onUpdate { copy(chatZonaAvatarsEnabled = !chatZonaAvatarsEnabled) } } }
+            item { Text("Usa la foto del perfil o los metadatos y, cuando faltan, busca la foto pública de ChatZona. No se aplica a otras redes ni a conexiones con proxy.", style = MaterialTheme.typography.bodySmall) }
+            item { SettingToggle("Avatares de ChatZona junto a los mensajes", s.chatZonaAvatarsInMessages) { onUpdate { copy(chatZonaAvatarsInMessages = !chatZonaAvatarsInMessages) } } }
+
+
 
             item {
                 Column(Modifier.fillMaxWidth()) {
@@ -1326,22 +1345,13 @@ fun SettingsScreen(
 
             }
 
-            if (onePage || current == SettingsCategory.SCRIPTS) {
-                if (onePage) item { OnePageHeader(SettingsCategory.SCRIPTS) }
-            item {
-                Card(Modifier.fillMaxWidth()) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.settings_scripts), style = MaterialTheme.typography.titleSmall)
-                            Text(stringResource(R.string.settings_scripts_desc), style = MaterialTheme.typography.bodySmall)
-                        }
-                        OutlinedButton(onClick = onOpenScripts, modifier = Modifier.testTag("scripts-manage").focusHighlight(RoundedCornerShape(50))) { Text(stringResource(R.string.manage)) }
+            if (onePage) {
+                item { OnePageHeader(SettingsCategory.SCRIPTS) }
+                item {
+                    OutlinedButton(onClick = onOpenScripts, modifier = Modifier.fillMaxWidth().testTag("scripts-direct")) {
+                        Text(stringResource(R.string.settings_scripts_desc))
                     }
                 }
-            }
             }
 
             if (onePage || current == SettingsCategory.IRC) {
@@ -1622,7 +1632,9 @@ fun SettingsScreen(
             if (onePage || current == SettingsCategory.LOGGING) {
             if (onePage) item(key = "hdr_LOGGING") { OnePageHeader(SettingsCategory.LOGGING) }
 
-            item { Button(onClick = onOpenPersonalHistory) { Text("Consultar, buscar, exportar y restaurar historiales") } }
+            item {
+                Button(onClick = onOpenPersonalHistory, modifier = Modifier.fillMaxWidth()) { Text("Consultar y administrar historial") }
+            }
             item { SettingToggle(stringResource(R.string.setting_enable_logging), s.loggingEnabled) { onUpdate { copy(loggingEnabled = !loggingEnabled) } } }
             item { Text("El historial permanente registra salas y privados. Los buffers de protocolo y autenticación quedan excluidos.") }
 
@@ -1665,7 +1677,35 @@ fun SettingsScreen(
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("Fase 3 guarda los mensajes nuevos en almacenamiento privado. La carpeta anterior se conserva para consultar los registros existentes; podés importarlos desde una copia ZIP compatible.")
+                    OutlinedButton(onClick = { folderPicker.launchPicker(ctx, null) }, modifier = Modifier.fillMaxWidth().testTag("history-choose-folder")) {
+                        Text("Elegir carpeta de historial")
+                    }
+                    if (s.logFolderUri != null) {
+                        TextButton(onClick = {
+                            val old = s.logFolderUri
+                            onUpdate { copy(logFolderUri = null) }
+                            releaseFolder(old, s.dccDownloadFolderUri)
+                        }, modifier = Modifier.testTag("history-use-internal")) { Text("Usar almacenamiento interno") }
+                    }
+                    Text("Organización de los archivos TXT", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
+                        .testTag("history-per-conversation").selectable(selected = !s.logCombineConversations, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = { onUpdate { copy(logCombineConversations = false) } })) {
+                        RadioButton(selected = !s.logCombineConversations, onClick = null)
+                        Text("Un archivo por sala o privado")
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
+                        .testTag("history-combined").selectable(selected = s.logCombineConversations, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = { onUpdate { copy(logCombineConversations = true) } })) {
+                        RadioButton(selected = s.logCombineConversations, onClick = null)
+                        Text("Todas las conversaciones en un archivo")
+                    }
+                    SettingToggle("Dividir los archivos por día", s.logDailyFiles) { onUpdate { copy(logDailyFiles = !logDailyFiles) } }
+                    Text("Se aplica a los mensajes nuevos. Los archivos anteriores se conservan. La copia privada permite consultar, respaldar y recuperar el historial si falla la carpeta elegida.", style = MaterialTheme.typography.bodySmall)
+                    if (s.logFolderUri == null && (s.logDailyFiles || s.logCombineConversations)) {
+                    OutlinedButton(onClick = {
+                        exportOrganizedLauncher.launchPicker(ctx, "hexdroid_txt_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))}.zip")
+                    }, modifier = Modifier.fillMaxWidth().testTag("history-export-organized")) { Text("Exportar archivos TXT organizados internos") }
+                    }
+
                     // Logs in app storage: what they take, and a way to export or delete them. Shown
                     // without a folder, and with one while older logs remain in app storage. Nothing
                     // is shown until the size has been measured.
@@ -1676,14 +1716,14 @@ fun SettingsScreen(
                         Text(
                             when {
                                 bytes == 0L -> stringResource(R.string.setting_logs_none)
-                                usingFolder -> stringResource(R.string.setting_logs_size_leftover, size)
+                                usingFolder -> "Copia privada y archivos internos: $size"
                                 else -> stringResource(R.string.setting_logs_size, size)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(top = 8.dp),
                         )
                         if (bytes > 0L) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedButton(
                                     onClick = {
                                         val ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))

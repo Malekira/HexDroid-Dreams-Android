@@ -437,6 +437,7 @@ fun AppRoot(
                     onExportBackup = { uri, passphrase, history -> vm.exportBackup(uri, passphrase, history) },
                     onMeasureLogs = vm::internalLogsSize,
                     onExportLogs = vm::exportInternalLogs,
+                    onExportOrganizedLogs = vm::exportOrganizedLogs,
                     onDeleteLogs = vm::deleteInternalLogs,
                     onImportBackup = { uri -> vm.importBackup(uri) },
                     onRestoreBackup = { uri, passphrase, withoutPasswords -> vm.restoreBackup(uri, passphrase, withoutPasswords) },
