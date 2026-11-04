@@ -340,6 +340,7 @@ internal fun IrcViewModel.openBuffer(key: String, switchToChat: Boolean) {
         st.copy(
             buffers = buffers,
             selectedBuffer = key,
+            closedNetworkViews = st.closedNetworkViews - netId,
             screen = if (switchToChat) AppScreen.CHAT else st.screen,
         )
     }

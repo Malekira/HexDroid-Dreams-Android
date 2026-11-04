@@ -281,7 +281,8 @@ fun AppRoot(
 	            }
 
 	            // Only intercept back when we have an in-app screen to pop.
-	            BackHandler(enabled = !tourActive && state.screen != AppScreen.CHAT) {
+	            BackHandler(enabled = !tourActive && state.screen != AppScreen.CHAT &&
+                (state.screen != AppScreen.NETWORKS || state.buffers.containsKey(state.selectedBuffer))) {
                 when (state.screen) {
                     AppScreen.NETWORK_EDIT -> vm.cancelEditNetwork()
                     AppScreen.LIST,
@@ -372,7 +373,7 @@ fun AppRoot(
                     onSetAutoConnect = vm::setNetworkAutoConnect,
                     onSetShowInSidebar = vm::setNetworkShowInSidebar,
                     onConnect = { netId -> vm.connectNetwork(netId, openServerBuffer = true) },
-                    onDisconnect = vm::disconnectNetwork,
+                    onDisconnect = vm::disconnectAndCloseNetwork,
                     onAllowPlaintextConnect = vm::allowPlaintextAndConnect,
                     onDismissPlaintextWarning = vm::dismissPlaintextWarning,
                     onRequestLocalNetworkPermission = { netId ->

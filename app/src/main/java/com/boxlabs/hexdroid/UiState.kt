@@ -668,6 +668,8 @@ data class UiState(
      */
     val listElistUserFilter: Boolean = false,
 
+    /** Session-only: servers explicitly closed by Disconnect, still available in Networks. */
+    val closedNetworkViews: Set<String> = emptySet(),
     val collapsedNetworkIds: Set<String> = emptySet(),
     val settings: UiSettings = UiSettings(),
     val whoisWindows: List<WhoisWindow> = emptyList(),

@@ -903,6 +903,7 @@ internal suspend fun IrcViewModel.connectNetworkInternal(netId: String, force: B
                     myNick = cfg.nick,
                     listModes = preservedListModes
                 )),
+                closedNetworkViews = cur.closedNetworkViews - netId,
                 screen = if (cur.screen == AppScreen.NETWORKS) AppScreen.CHAT else cur.screen,
                 selectedBuffer = cur.selectedBuffer.ifBlank { serverKey },
             )

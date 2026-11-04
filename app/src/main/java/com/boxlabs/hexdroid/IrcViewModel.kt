@@ -1136,7 +1136,7 @@ class IrcViewModel(
             val nextBuffers = if (needsClear) {
                 st.buffers + (key to buf.copy(unread = 0, highlights = 0))
             } else st.buffers
-            st.copy(screen = AppScreen.CHAT, buffers = nextBuffers)
+            st.copy(screen = if (buf != null) AppScreen.CHAT else AppScreen.NETWORKS, buffers = nextBuffers)
         }
     }
 
@@ -1409,7 +1409,7 @@ class IrcViewModel(
         // A mounted script view is tied to the network/buffer it was opened
         // from, and its game state is global to the single script engine.
         if (id != st.activeNetworkId && _scriptView.value != null) closeScriptView()
-        val next = st.copy(activeNetworkId = id)
+        val next = st.copy(activeNetworkId = id, closedNetworkViews = st.closedNetworkViews - id)
         _state.value = syncActiveNetworkSummary(next)
         ensureServerBuffer(id)
         viewModelScope.launch(Dispatchers.IO) { runCatching { repo.setLastNetworkId(id) } }
@@ -2451,7 +2451,12 @@ fun startAddNetwork() {
 
     fun disconnectActive() {
         val netId = _state.value.activeNetworkId ?: return
-        disconnectNetwork(netId)
+        disconnectAndCloseNetwork(netId)
+    }
+
+    /** Explicit user action; internal teardown keeps its existing navigation behavior. */
+    fun disconnectAndCloseNetwork(netId: String, reasonOverride: String? = null) {
+        disconnectNetwork(netId, reasonOverride, closeViews = true)
     }
 
     /**
@@ -2461,7 +2466,7 @@ fun startAddNetwork() {
      * `/quit Going to lunch, back in an hour` actually send "Going to lunch,
      * back in an hour" on the wire instead of the user's default quit message.
      */
-    fun disconnectNetwork(netId: String, reasonOverride: String? = null) {
+    fun disconnectNetwork(netId: String, reasonOverride: String? = null, closeViews: Boolean = false) {
         val quitMsg = reasonOverride?.trim()?.takeIf { it.isNotBlank() }
             ?: _state.value.settings.quitMessage.ifBlank { "Client disconnect" }
         viewModelScope.launch {
@@ -2487,6 +2492,7 @@ fun startAddNetwork() {
             val newConns = st.connections + (netId to prev.copy(connected = false, connecting = false, status = appContext.getString(R.string.vm_status_disconnected)))
             _state.value = syncActiveNetworkSummary(st.copy(connections = newConns))
             if (st.activeNetworkId == netId) clearConnectionNotification()
+            if (closeViews) closeDisconnectedNetworkViews(netId)
         }
             }
     }

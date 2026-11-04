@@ -1,9 +1,23 @@
 # Pedidos pendientes de HexDroid Dreams
 
-Estado: pendientes posteriores a 1.0.7 implementados y verificados en
-**HexDroid Dreams 1.0.8 (47)**, con autorización
-«Mejor como está con url. Implementa el resto de los cambios pendientes».
-Rama `feat/dreams-1.0.8`, basada en la entrega publicada 1.0.7.
+Estado: implementando **HexDroid Dreams 1.0.9 (48)** en `feat/dreams-1.0.9`.
+Orden «Implementa» referida al cierre del servidor al desconectar y regreso a Redes.
+La entrega publicada anterior es 1.0.8.
+
+## Desconexión manual — autorización actual
+
+- Cerrar las vistas de la red elegida y volver a Redes.
+- Retirar el servidor cerrado del selector durante la sesión; conservar su perfil.
+- Conservar historial, borradores, credenciales, foto y las conexiones de otras redes.
+- Mantener las vistas ante una caída accidental y durante reconexiones.
+- Pruebas y entrega: [DREAMS_1_0_9.md](DREAMS_1_0_9.md).
+
+## Nuevas notas — sin implementar
+
+- Separar Salas y Privados en el selector de cada red.
+- Mejorar Registro: elegir la ubicación y organización de los archivos (por día/conversación, por sala/PV sin división diaria o todo junto), conservando el historial existente.
+- Abrir directamente el gestor al pulsar Scripts en Ajustes, sin pantalla intermedia «Gestionar».
+- JOIN, PART y QUIT no deben incrementar los mensajes no leídos de las salas.
 
 ## Pendientes posteriores a 1.0.7
 

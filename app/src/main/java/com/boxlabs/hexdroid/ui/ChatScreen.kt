@@ -976,7 +976,7 @@ fun ChatScreen(
 
 		// The networks shown in the drawer, after applying the sort order, any live drag
 		// reorder, and the per-network "Show in channel switcher" flag. Shared by tree and tabs.
-		val visibleNets = remember(state.networks, openNetId, dragNetworkOrder) {
+		val visibleNets = remember(state.networks, state.closedNetworkViews, openNetId, dragNetworkOrder) {
 			val naturalOrder = state.networks
 				.sortedWith(compareBy({ !it.isFavourite }, { it.sortOrder }, { it.name }))
 			val sortedNets = if (dragNetworkOrder != null) {
@@ -986,7 +986,7 @@ fun ChatScreen(
 			} else naturalOrder
 			// Show networks the user keeps in the switcher, plus whichever network holds the
 			// buffer you're currently viewing (so opening a hidden network never loses your place).
-			sortedNets.filter { it.showInSidebar || it.id == openNetId }
+			sortedNets.filter { (it.showInSidebar && it.id !in state.closedNetworkViews) || it.id == openNetId }
 		}
 
 		val sidebarItems = remember(visibleNets, buffersByNet, state.channelsOnly, selected, state.collapsedNetworkIds) {

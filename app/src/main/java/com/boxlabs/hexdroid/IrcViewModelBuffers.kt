@@ -775,7 +775,7 @@ internal fun IrcViewModel.renameBufferState(from: String, to: String) {
     }
 }
 
-internal fun IrcViewModel.removeBuffer(key: String) {
+internal fun IrcViewModel.removeBuffer(key: String, preserveDraft: Boolean = false) {
     // If this is a DCC CHAT buffer, close the underlying session.
     val (_, name) = splitKey(key)
     if (isDccChatBufferName(name)) {
@@ -801,7 +801,7 @@ internal fun IrcViewModel.removeBuffer(key: String) {
     catchupAnchorMs.remove(key)
     gapMarkers.remove(key)
     chatHistory.forget(key)
-    draftStore.clear(key)
+    if (!preserveDraft) draftStore.clear(key)
     run {
         val (netId, bufferName) = splitKey(key)
         val netName = _state.value.networks.firstOrNull { it.id == netId }?.name ?: "network"

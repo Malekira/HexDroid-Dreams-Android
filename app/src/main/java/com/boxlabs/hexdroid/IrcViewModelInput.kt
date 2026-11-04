@@ -287,7 +287,7 @@ internal fun IrcViewModel.sendInputInternal(raw: String, aliasDepth: Int, target
                     val reason = cmdLine.substringAfter(' ', missingDelimiterValue = "")
                         .trim()
                         .takeIf { it.isNotBlank() }
-                    disconnectNetwork(netId, reasonOverride = reason)
+                    disconnectAndCloseNetwork(netId, reasonOverride = reason)
                     return@launch
                 }
                 "agm-key" -> {
