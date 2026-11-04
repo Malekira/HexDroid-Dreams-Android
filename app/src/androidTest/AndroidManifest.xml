@@ -7,5 +7,7 @@
             android:authorities="${applicationId}.historytest" android:exported="true" android:grantUriPermissions="true">
             <intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER" /></intent-filter>
         </provider>
+        <activity android:name="com.boxlabs.hexdroid.HistoryTestGrantActivity" android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     </application>
 </manifest>

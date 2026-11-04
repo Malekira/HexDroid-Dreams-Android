@@ -19,6 +19,19 @@ class Dreams109HistoryTest {
     private fun main(block: () -> Unit) = instrumentation.runOnMainSync(block)
     private suspend fun until(condition: () -> Boolean) { withTimeout(15_000) { while (!condition()) delay(25) } }
 
+    private suspend fun setTestTreeAccess(grant: Boolean): Uri {
+        val source = instrumentation.context.packageName
+        val tree = DocumentsContract.buildTreeDocumentUri(source + ".historytest", "root")
+        val command = "am start -W -n $source/com.boxlabs.hexdroid.HistoryTestGrantActivity --es targetPackage ${context.packageName} --ez grant $grant"
+        instrumentation.uiAutomation.executeShellCommand(command).use { descriptor ->
+            java.io.FileInputStream(descriptor.fileDescriptor).use { it.readBytes() }
+        }
+        val modes = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        until { (context.checkUriPermission(tree, android.os.Process.myPid(), android.os.Process.myUid(), modes) == android.content.pm.PackageManager.PERMISSION_GRANTED) == grant }
+        if (grant) context.contentResolver.takePersistableUriPermission(tree, modes)
+        return tree
+    }
+
     private suspend fun withModel(block: suspend (IrcViewModel, SettingsRepository, String) -> Unit) {
         val repo = SettingsRepository(context)
         val networks = repo.networksFlow.first()
@@ -122,12 +135,10 @@ class Dreams109HistoryTest {
         } finally { repo.saveNetworks(networks); repo.updateSettings { old } }
     }
 
-    @Test fun dreams109ActualSafProviderCreatesAndAppendsUnicodeTextInTheChosenFolder() {
-        val authority = instrumentation.context.packageName + ".historytest"
-        val tree = DocumentsContract.buildTreeDocumentUri(authority, "root")
+    @Test fun dreams109ActualSafProviderCreatesAndAppendsUnicodeTextInTheChosenFolder() = runBlocking {
+        val tree = setTestTreeAccess(true)
         val writer = LogWriter(context, "saf-test-private", flushEachLine = true)
         val group = "saf-demo-${java.util.UUID.randomUUID()}"
-        instrumentation.uiAutomation.adoptShellPermissionIdentity("android.permission.MANAGE_DOCUMENTS")
         try {
             assertNull(writer.append(group, "#demo", "Primero ñ 🙂", tree.toString()))
             assertNull(writer.append(group, "#demo", "Segundo mensaje", tree.toString()))
@@ -144,7 +155,7 @@ class Dreams109HistoryTest {
             val text = context.contentResolver.openInputStream(file)!!.bufferedReader(Charsets.UTF_8).use { it.readText() }
             assertEquals("Primero ñ 🙂\nSegundo mensaje\n", text)
             DocumentsContract.deleteDocument(context.contentResolver, DocumentsContract.buildDocumentUriUsingTree(tree, dirId))
-        } finally { writer.closeAll(); instrumentation.uiAutomation.dropShellPermissionIdentity() }
+        } finally { writer.closeAll(); setTestTreeAccess(false) }
     }
 
     @Test fun dreams109MissingFolderReportsFailureWhileCanonicalHistoryStillRecordsTheMessage() = runBlocking {
@@ -164,7 +175,7 @@ class Dreams109HistoryTest {
 
     @Test fun dreams109RegrantingTheSameFolderAllowsWritesAgainWithoutChangingItsSavedUri() = runBlocking {
         withModel { vm, repo, id ->
-            val uri = DocumentsContract.buildTreeDocumentUri(instrumentation.context.packageName + ".historytest", "root").toString()
+            val uri = setTestTreeAccess(false).toString()
             repo.updateSettings { it.copy(logFolderUri = uri) }
             until { vm.state.value.settings.logFolderUri == uri }
             val ts = System.currentTimeMillis()
@@ -173,7 +184,7 @@ class Dreams109HistoryTest {
                 main { vm.writeLogLine("$id::#demo", ts, "DemoNick01", "Antes del permiso", false, scope = writerScope, msgId = "before-grant-$id") }
             }
             until { vm.state.value.logFolderUnreadable }
-            instrumentation.uiAutomation.adoptShellPermissionIdentity("android.permission.MANAGE_DOCUMENTS")
+            setTestTreeAccess(true)
             try {
                 main { vm.onLogFolderGranted(uri) }
                 coroutineScope {
@@ -183,7 +194,7 @@ class Dreams109HistoryTest {
                 until { !vm.state.value.logFolderUnreadable }
                 assertEquals(uri, repo.settingsFlow.first().logFolderUri)
                 assertEquals(2, vm.logs.logFileInternal(vm.personalLogNetwork(id), "#demo").readLines().size)
-            } finally { instrumentation.uiAutomation.dropShellPermissionIdentity() }
+            } finally { setTestTreeAccess(false) }
         }
     }
 
