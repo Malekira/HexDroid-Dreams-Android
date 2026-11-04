@@ -64,7 +64,7 @@ class Dreams109HistoryTest {
         }
     }
 
-    @Test fun dreams109OrganizedTxtWritesRotateByEventDayAndNeverDuplicateAReplay() = runBlocking {
+    @Test fun dreams109OrganizedTxtWritesRotateByEventDayAndNeverDuplicateAReplay(): Unit = runBlocking {
         withModel { vm, _, id ->
             val ts = Instant.parse("2026-11-04T12:00:00Z").toEpochMilli()
             val first = organizedHistoryTarget(id, "Historial de prueba", "#demo", ts, true, false, "")
@@ -86,7 +86,7 @@ class Dreams109HistoryTest {
         }
     }
 
-    @Test fun dreams109CombinedFilesIncludeTheirConversationAndKeepThePrivateArchive() = runBlocking {
+    @Test fun dreams109CombinedFilesIncludeTheirConversationAndKeepThePrivateArchive(): Unit = runBlocking {
         withModel { vm, repo, id ->
             repo.updateSettings { it.copy(logCombineConversations = true, logDailyFiles = true) }
             until { vm.state.value.settings.logCombineConversations }
@@ -111,7 +111,7 @@ class Dreams109HistoryTest {
         }
     }
 
-    @Test fun dreams109FolderAndLayoutOptionsPersistInTheRepositoryAndCompatibleBackups() = runBlocking {
+    @Test fun dreams109FolderAndLayoutOptionsPersistInTheRepositoryAndCompatibleBackups(): Unit = runBlocking {
         val repo = SettingsRepository(context)
         val old = repo.settingsFlow.first()
         val networks = repo.networksFlow.first()
@@ -135,7 +135,7 @@ class Dreams109HistoryTest {
         } finally { repo.saveNetworks(networks); repo.updateSettings { old } }
     }
 
-    @Test fun dreams109ActualSafProviderCreatesAndAppendsUnicodeTextInTheChosenFolder() = runBlocking {
+    @Test fun dreams109ActualSafProviderCreatesAndAppendsUnicodeTextInTheChosenFolder(): Unit = runBlocking {
         val tree = setTestTreeAccess(true)
         val writer = LogWriter(context, "saf-test-private", flushEachLine = true)
         val group = "saf-demo-${java.util.UUID.randomUUID()}"
@@ -158,7 +158,7 @@ class Dreams109HistoryTest {
         } finally { writer.closeAll(); setTestTreeAccess(false) }
     }
 
-    @Test fun dreams109MissingFolderReportsFailureWhileCanonicalHistoryStillRecordsTheMessage() = runBlocking {
+    @Test fun dreams109MissingFolderReportsFailureWhileCanonicalHistoryStillRecordsTheMessage(): Unit = runBlocking {
         withModel { vm, repo, id ->
             val uri = DocumentsContract.buildTreeDocumentUri(instrumentation.context.packageName + ".historytest", "missing-${java.util.UUID.randomUUID()}").toString()
             repo.updateSettings { it.copy(logFolderUri = uri) }
@@ -173,7 +173,7 @@ class Dreams109HistoryTest {
         }
     }
 
-    @Test fun dreams109RegrantingTheSameFolderAllowsWritesAgainWithoutChangingItsSavedUri() = runBlocking {
+    @Test fun dreams109RegrantingTheSameFolderAllowsWritesAgainWithoutChangingItsSavedUri(): Unit = runBlocking {
         withModel { vm, repo, id ->
             val uri = setTestTreeAccess(false).toString()
             repo.updateSettings { it.copy(logFolderUri = uri) }
@@ -198,7 +198,7 @@ class Dreams109HistoryTest {
         }
     }
 
-    @Test fun dreams109OrganizedCopiesRespectSecretRedactionAndTheEncryptedLoggingPreference() = runBlocking {
+    @Test fun dreams109OrganizedCopiesRespectSecretRedactionAndTheEncryptedLoggingPreference(): Unit = runBlocking {
         withModel { vm, _, id ->
             val ts = System.currentTimeMillis()
             coroutineScope {
@@ -219,7 +219,7 @@ class Dreams109HistoryTest {
         }
     }
 
-    @Test fun dreams109MembershipEventsStayVisibleWithoutUnreadButOrdinaryMessagesStillCount() = runBlocking {
+    @Test fun dreams109MembershipEventsStayVisibleWithoutUnreadButOrdinaryMessagesStillCount(): Unit = runBlocking {
         withModel { vm, repo, id ->
             repo.updateSettings { it.copy(ircHistoryCountsAsUnread = true) }
             until { vm.state.value.settings.ircHistoryCountsAsUnread }
