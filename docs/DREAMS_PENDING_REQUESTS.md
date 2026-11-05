@@ -1,10 +1,10 @@
 # Pedidos pendientes de HexDroid Dreams
 
-## Actualización Android 1.0.11 — en implementación
+## Actualización Android 1.0.11 — implementada y APK publicada
 
 Orden expresa «Implementa lo pendiente de la versión de Android». Rama nueva `feat/dreams-1.0.11`, desde 1.0.10, separada de Windows. Alcance confirmado: foto propia automática en Identidad, vista previa/ampliación, reintento y errores claros; URL de servidor antes de alternativa ChatZona, sin borrar metadatos al guardar un campo vacío sin cambios. Se conservan las opciones de descarga y la protección de perfiles con proxy. Las miniaturas fallidas reintentan en primer plano sin esperar cinco minutos.
 
-La medición del archivo real sigue bloqueada por CONNECT 403 en el proxy del entorno; no se conoce su tamaño ni se afirma que exceda 2 MiB. Plan, pruebas y entrega: [DREAMS_1_0_11.md](DREAMS_1_0_11.md). La APK y los resultados se registrarán después de verificarlos.
+La medición del archivo real sigue bloqueada por CONNECT 403 en el proxy del entorno; no se conoce su tamaño ni se afirma que exceda 2 MiB. Plan, pruebas y entrega: [DREAMS_1_0_11.md](DREAMS_1_0_11.md). 127 pruebas JVM aprobadas localmente; las cinco pruebas Android nuevas y las suites anteriores obligatorias aprobaron en Actions. Firma/identidad verificadas y artifact **HexDroid-Dreams-debug** publicado (34,5 MB). [Actions SUCCESS y descarga](https://github.com/Malekira/HexDroidVip/actions/runs/41945688999). Esta ejecución usó una nueva clave debug temporal; exportar configuración, historial y scripts antes de cualquier reinstalación por diferencia de firma. La foto real queda para comprobación en el Samsung; no se afirma haberla descargado desde el entorno. No se iniciarán nuevas modificaciones sin una nueva orden expresa.
 
 ## Actualización 1.0.10 — implementada y APK publicada
 
