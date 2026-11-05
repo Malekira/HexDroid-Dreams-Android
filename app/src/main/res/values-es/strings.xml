@@ -2009,4 +2009,16 @@
     <string name="dreams_sidebar_other">Otras ventanas</string>
     <string name="dreams_sidebar_expanded">Desplegado</string>
     <string name="dreams_sidebar_collapsed">Plegado</string>
+    <string name="dreams_avatar_automatic">Foto automática de la red</string>
+    <string name="dreams_avatar_use_source">Usar esta dirección en mi perfil</string>
+    <string name="dreams_avatar_option_disabled">La carga de fotos está desactivada. Activala en Ajustes → Vistas previas multimedia: avatares de ChatZona o vistas previas de imágenes en otras redes.</string>
+    <string name="dreams_avatar_proxy_disabled">Los perfiles con proxy no descargan fotos externas.</string>
+    <string name="dreams_avatar_enlarge">Ampliar foto</string>
+    <string name="dreams_avatar_refresh">Actualizar / reintentar foto</string>
+    <string name="dreams_avatar_too_large">La imagen supera el límite de descarga de 2 MiB. Usá una imagen más pequeña.</string>
+    <string name="dreams_avatar_http_error">El servidor no entregó la foto. Puede no estar disponible, no existir o requerir acceso desde la web.</string>
+    <string name="dreams_avatar_not_image">La dirección no devolvió una imagen compatible. Usá un enlace directo a la imagen.</string>
+    <string name="dreams_avatar_timeout">Se agotó el tiempo de espera de la foto. Podés reintentar.</string>
+    <string name="dreams_avatar_connection_error">No se pudo conectar de forma segura al servidor de fotos. Revisá la dirección y la conexión y reintentá.</string>
+    <string name="dreams_avatar_redirect_error">La foto redirige a una dirección no admitida o realiza demasiadas redirecciones.</string>
 </resources>

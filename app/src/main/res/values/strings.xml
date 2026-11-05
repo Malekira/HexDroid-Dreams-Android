@@ -2011,4 +2011,16 @@
     <string name="dreams_sidebar_other">Other windows</string>
     <string name="dreams_sidebar_expanded">Expanded</string>
     <string name="dreams_sidebar_collapsed">Collapsed</string>
+    <string name="dreams_avatar_automatic">Automatic network photo</string>
+    <string name="dreams_avatar_use_source">Use this address in my profile</string>
+    <string name="dreams_avatar_option_disabled">Photo loading is off. Enable it in Settings → Media previews: ChatZona avatars or image previews for other networks.</string>
+    <string name="dreams_avatar_proxy_disabled">External photos are not downloaded for profiles using a proxy.</string>
+    <string name="dreams_avatar_enlarge">Enlarge photo</string>
+    <string name="dreams_avatar_refresh">Update / retry photo</string>
+    <string name="dreams_avatar_too_large">The image exceeds the 2 MiB download limit. Use a smaller image.</string>
+    <string name="dreams_avatar_http_error">The server did not provide the photo. It may be unavailable, missing or require web access.</string>
+    <string name="dreams_avatar_not_image">The address did not return a compatible image. Use a direct image URL.</string>
+    <string name="dreams_avatar_timeout">The photo request timed out. You can retry.</string>
+    <string name="dreams_avatar_connection_error">Could not connect securely to the photo server. Check the address and connection, then retry.</string>
+    <string name="dreams_avatar_redirect_error">The photo redirects to an unsupported address or redirects too many times.</string>
 </resources>

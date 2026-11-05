@@ -732,14 +732,16 @@ fun ChatScreen(
         (if (isChatZona) state.settings.chatZonaAvatarsEnabled else state.settings.imagePreviewsEnabled)
     val metadataAvatars: Map<String, String> = if (avatarDownloadsAllowed) {
         (selConn?.avatarUrls ?: emptyMap()).let { urls ->
-            val own = state.profileAvatarUrls[selNetId]
-            if (own == null) urls else if (own.isBlank()) urls - myNick.lowercase()
-            else urls + (myNick.lowercase() to own)
+            val own = state.profileAvatarUrls[selNetId] ?: avatarProfile?.avatarUrl
+            if (own.isNullOrBlank()) urls else urls + (myNick.lowercase() to own)
         }
     } else emptyMap()
     fun avatarFor(nick: String): String? = metadataAvatars[baseNick(nick).lowercase()]
         ?: if (automaticChatZona && avatarDownloadsAllowed)
             com.boxlabs.hexdroid.chatZonaAvatarUrl(avatarProfile!!.host, selConn?.serverNetworkName, baseNick(nick)) else null
+    LaunchedEffect(selNetId, myNick, automaticChatZona, selConn?.hasUserMetadata) {
+        if (automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, myNick)
+    }
     val avatarRefreshInterval = if (automaticChatZona) com.boxlabs.hexdroid.CHATZONA_AVATAR_REFRESH_MS else 0L
     LaunchedEffect(selNetId, selBufName, isPrivateMessage, automaticChatZona, selConn?.hasUserMetadata) {
         if (isPrivateMessage && automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, selBufName)

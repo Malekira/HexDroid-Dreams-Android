@@ -105,6 +105,7 @@ fun NetworkEditScreen(
     onAddCertToServices: (networkId: String, fingerprint: String, service: String) -> Boolean = { _, _, _ -> false },
     /** The account service to preselect for a network. */
     accountServiceFor: (networkId: String) -> String = { "NickServ" },
+    onRequestAvatarMetadata: (networkId: String, nick: String) -> Unit = { _, _ -> },
 ) {
     val n0 = state.editingNetwork ?: run {
         Text(stringResource(R.string.network_no_network_selected))
@@ -445,7 +446,7 @@ fun NetworkEditScreen(
                                 altNick = altNick.trim().takeIf { it.isNotBlank() },
                                 username = username.trim().ifBlank { "hexdroid" },
                                 realname = realname.trim().ifBlank { "HexDroid IRC" },
-                                avatarUrl = avatarUrl.trim(),
+                                avatarUrl = com.boxlabs.hexdroid.profileAvatarEdit(n0.avatarUrl, avatarUrl),
                                 saslEnabled = saslEnabled,
                                 saslMechanism = saslMechanism,
                                 saslAuthcid = saslAuthcid.trim().takeIf { it.isNotBlank() },
@@ -853,7 +854,18 @@ fun NetworkEditScreen(
                     label = { Text(stringResource(R.string.network_realname_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                ProfileAvatarField(avatarUrl, { avatarUrl = it })
+                val connection = state.connections[n0.id]
+                val previewNick = if (nick == n0.nick) connection?.myNick?.takeIf { it.isNotBlank() } ?: nick else nick
+                val metadata = connection?.avatarUrls?.entries?.firstOrNull { it.key.equals(previewNick, true) }?.value
+                val chatZona = com.boxlabs.hexdroid.isChatZonaNetwork(host, connection?.serverNetworkName)
+                val downloadsAllowed = proxyType == ProxyType.NONE &&
+                    (if (chatZona) state.settings.chatZonaAvatarsEnabled else state.settings.imagePreviewsEnabled)
+                LaunchedEffect(n0.id, previewNick, connection?.connected, connection?.hasUserMetadata) {
+                    if (connection?.connected == true) onRequestAvatarMetadata(n0.id, previewNick)
+                }
+                ProfileAvatarField(avatarUrl, { avatarUrl = it },
+                    source = com.boxlabs.hexdroid.profileAvatarSource(avatarUrl, metadata, host, connection?.serverNetworkName, previewNick),
+                    nick = previewNick, downloadsAllowed = downloadsAllowed, proxied = proxyType != ProxyType.NONE)
             }
 
             CardSection(stringResource(R.string.network_section_autoconnect), visible = shown(NetEditSection.AUTOCONNECT)) {

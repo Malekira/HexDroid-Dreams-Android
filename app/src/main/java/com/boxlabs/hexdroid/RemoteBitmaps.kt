@@ -28,7 +28,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -59,7 +58,19 @@ object RemoteBitmaps {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private const val MAX_CACHED = 64
-    private const val MAX_BYTES = 2 * 1024 * 1024
+    private val failures = java.util.Collections.synchronizedMap(object : LinkedHashMap<String, AvatarFailure>(16, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, AvatarFailure>) = size > 128
+    })
+    internal fun failure(url: String, fullSize: Boolean = false): AvatarFailure? = failures[(if (fullSize) "large:" else "small:") + url]
+    private fun failed(url: String, fullSize: Boolean, reason: AvatarFailure): Bitmap? {
+        failures[(if (fullSize) "large:" else "small:") + url] = reason
+        return null
+    }
+    fun invalidate(url: String) {
+        synchronized(cache) { cache.remove(url) }; synchronized(largeCache) { largeCache.remove(url) }
+        synchronized(failedAt) { failedAt.remove("small:$url"); failedAt.remove("large:$url"); failedAt.remove(url) }
+        downloadedAt.remove(url)
+    }
 
     /** Longest decoded edge. The byte cap alone does not bound memory: a flat image decodes huge. */
     private const val MAX_EDGE_PX = 256
@@ -106,6 +117,7 @@ object RemoteBitmaps {
                 val image = downloads.withPermit { download(url, fullSize) }
                 if (image != null) {
                     downloadedAt[url] = System.currentTimeMillis()
+                    failures.remove(key)
                 }
                 synchronized(failedAt) {
                     if (image == null) {
@@ -152,30 +164,23 @@ object RemoteBitmaps {
         conn.instanceFollowRedirects = false
         try {
             if (conn.responseCode in setOf(301, 302, 303, 307, 308)) {
-                val location = conn.getHeaderField("Location") ?: return@runCatching null
+                val location = conn.getHeaderField("Location") ?: return@runCatching failed(url, fullSize, AvatarFailure.REDIRECT)
                 val target = URL(URL(url), location).toString()
-                if (redirects >= 3 || !validAvatarUrl(target)) return@runCatching null
+                if (redirects >= 3 || !validAvatarUrl(target)) return@runCatching failed(url, fullSize, AvatarFailure.REDIRECT)
                 conn.disconnect()
-                return@runCatching download(target, fullSize, redirects + 1)?.also {
+                val redirected = download(target, fullSize, redirects + 1)
+                if (redirected == null) return@runCatching failed(url, fullSize, failure(target, fullSize) ?: AvatarFailure.CONNECTION)
+                return@runCatching redirected.also {
                     val selected = if (fullSize) largeCache else cache
                     synchronized(selected) { selected[url] = it }
                     if (fullSize) cached(target)?.let { small -> synchronized(cache) { cache[url] = small } }
                 }
             }
-            if (conn.responseCode !in 200..299) return@runCatching null
-            if (conn.contentLengthLong > MAX_BYTES) return@runCatching null
-            val buf = ByteArrayOutputStream()
-            conn.inputStream.use { input ->
-                // readNBytes needs API 33; minSdk is 26.
-                val chunk = ByteArray(16 * 1024)
-                while (true) {
-                    val n = input.read(chunk)
-                    if (n < 0) break
-                    buf.write(chunk, 0, n)
-                    if (buf.size() > MAX_BYTES) return@runCatching null
-                }
-            }
-            decodeSampled(buf.toByteArray(), if (fullSize) 1024 else MAX_EDGE_PX)?.also { bmp ->
+            if (conn.responseCode !in 200..299) return@runCatching failed(url, fullSize, AvatarFailure.HTTP)
+            val bytes = conn.inputStream.use { readAvatarBytes(it, conn.contentLengthLong) }
+            val decoded = decodeSampled(bytes, if (fullSize) 1024 else MAX_EDGE_PX)
+                ?: return@runCatching failed(url, fullSize, AvatarFailure.NOT_IMAGE)
+            decoded.also { bmp ->
                 val selected = if (fullSize) largeCache else cache
                 synchronized(selected) { selected[url] = bmp }
                 if (fullSize) {
@@ -187,7 +192,13 @@ object RemoteBitmaps {
         } finally {
             conn.disconnect()
         }
-    }.getOrNull()
+    }.getOrElse { error ->
+        failed(url, fullSize, when (error) {
+            is AvatarTooLargeException -> AvatarFailure.TOO_LARGE
+            is java.net.SocketTimeoutException -> AvatarFailure.TIMEOUT
+            else -> AvatarFailure.CONNECTION
+        })
+    }
 
     /** Decode [bytes] with the longest edge no larger than [MAX_EDGE_PX]. */
     private fun decodeSampled(bytes: ByteArray, maxEdge: Int): Bitmap? {

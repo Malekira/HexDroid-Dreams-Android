@@ -41,8 +41,9 @@ fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, re
         if (refreshEveryMs <= 0L) { if (image == null) image = loader(url, 0L) }
         else lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (isActive) {
-                image = loader(url, refreshEveryMs)
-                delay(refreshEveryMs)
+                val loaded = loader(url, refreshEveryMs)
+                if (loaded != null) image = loaded
+                delay(if (loaded == null) minOf(refreshEveryMs, 30_000L) else refreshEveryMs)
             }
         }
     }
@@ -75,7 +76,7 @@ fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
                         contentScale = ContentScale.Fit, filterQuality = FilterQuality.High,
                         modifier = Modifier.fillMaxSize().testTag("avatar-full-image"))
                     else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.dreams_avatar_load_error))
+                        Text(stringResource(avatarFailureText(RemoteBitmaps.failure(url, fullSize = true))))
                         TextButton(onClick = { attempt++ }, modifier = Modifier.testTag("avatar-retry")) { Text(stringResource(R.string.dreams_retry)) }
                     }
                 }
@@ -92,4 +93,14 @@ internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, 
         AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshEveryMs = refreshEveryMs, onOpen = onOpen)
         Box(Modifier.weight(1f)) { content() }
     }
+}
+
+internal fun avatarFailureText(failure: com.boxlabs.hexdroid.AvatarFailure?): Int = when (failure) {
+    com.boxlabs.hexdroid.AvatarFailure.TOO_LARGE -> R.string.dreams_avatar_too_large
+    com.boxlabs.hexdroid.AvatarFailure.HTTP -> R.string.dreams_avatar_http_error
+    com.boxlabs.hexdroid.AvatarFailure.NOT_IMAGE -> R.string.dreams_avatar_not_image
+    com.boxlabs.hexdroid.AvatarFailure.TIMEOUT -> R.string.dreams_avatar_timeout
+    com.boxlabs.hexdroid.AvatarFailure.CONNECTION -> R.string.dreams_avatar_connection_error
+    com.boxlabs.hexdroid.AvatarFailure.REDIRECT -> R.string.dreams_avatar_redirect_error
+    null -> R.string.dreams_avatar_load_error
 }

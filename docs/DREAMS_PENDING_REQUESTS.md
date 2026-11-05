@@ -1,5 +1,11 @@
 # Pedidos pendientes de HexDroid Dreams
 
+## Actualización Android 1.0.11 — en implementación
+
+Orden expresa «Implementa lo pendiente de la versión de Android». Rama nueva `feat/dreams-1.0.11`, desde 1.0.10, separada de Windows. Alcance confirmado: foto propia automática en Identidad, vista previa/ampliación, reintento y errores claros; URL de servidor antes de alternativa ChatZona, sin borrar metadatos al guardar un campo vacío sin cambios. Se conservan las opciones de descarga y la protección de perfiles con proxy. Las miniaturas fallidas reintentan en primer plano sin esperar cinco minutos.
+
+La medición del archivo real sigue bloqueada por CONNECT 403 en el proxy del entorno; no se conoce su tamaño ni se afirma que exceda 2 MiB. Plan, pruebas y entrega: [DREAMS_1_0_11.md](DREAMS_1_0_11.md). La APK y los resultados se registrarán después de verificarlos.
+
 ## Actualización 1.0.10 — implementada y APK publicada
 
 Orden «Implementa» posterior al pedido de dos árboles separados: Salas y Mensajes privados, cada uno desplegable de forma independiente dentro de cada red. Corregir también la vista con pestañas de redes que mostraba una lista plana. Mantener WHOIS y Notices aparte, contadores y conversaciones intactos.

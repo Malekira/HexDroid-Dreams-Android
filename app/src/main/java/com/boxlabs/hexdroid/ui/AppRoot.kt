@@ -403,6 +403,7 @@ fun AppRoot(
                     onCertFingerprint = vm::networkCertFingerprint,
                     onAddCertToServices = vm::addCertToServices,
                     accountServiceFor = vm::accountService,
+                    onRequestAvatarMetadata = vm::requestAvatarMetadata,
                 )
 
                 AppScreen.LIST -> ListScreen(

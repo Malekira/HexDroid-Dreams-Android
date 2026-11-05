@@ -1632,7 +1632,9 @@ fun startAddNetwork() {
             }
 
             repo.upsertNetwork(updated)
-            updated.avatarUrl?.let { setOwnMetadata(updated.id, "avatar", it.ifEmpty { null }) }
+            if (profileAvatarChanged(stored?.avatarUrl, updated.avatarUrl)) {
+                updated.avatarUrl?.let { setOwnMetadata(updated.id, "avatar", it.ifEmpty { null }) }
+            }
             repo.setLastNetworkId(updated.id)
             // Editing the profile gives the user a chance to fix bad credentials, so
             // clear the auth-failure block. Even if they didn't actually touch the
