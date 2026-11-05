@@ -42,7 +42,7 @@ fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, re
         else lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (isActive) {
                 val loaded = loader(url, refreshEveryMs)
-                if (loaded != null) image = loaded
+                image = loaded
                 delay(if (loaded == null) minOf(refreshEveryMs, 30_000L) else refreshEveryMs)
             }
         }
