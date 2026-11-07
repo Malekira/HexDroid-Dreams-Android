@@ -3227,7 +3227,9 @@ fun ChatScreen(
                                                 }
                                             }
                                         }
-                                        Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        // Keep the label's hit area separate from Close's minimum touch target.
+                                        Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.widthIn(min = 64.dp))
                                         if (unread > 0) {
                                             Badge(
                                                 containerColor = if (hi > 0) MaterialTheme.colorScheme.error
@@ -3236,17 +3238,19 @@ fun ChatScreen(
                                         }
                                         // Close button on conversation tabs.
                                         if (!isServerTab) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = stringResource(R.string.chat_cd_close_label, label),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    .copy(alpha = 0.6f),
-                                                modifier = Modifier
-                                                    .size(16.dp)
-                                                    .clip(CircleShape)
+                                            IconButton(
+                                                onClick = { onSend("/closekey $key") },
+                                                modifier = Modifier.size(40.dp)
                                                     .focusHighlight(CircleShape)
-                                                    .clickable { onSend("/closekey $key") }
-                                            )
+                                                    .testTag("conversation-tab-close:$key"),
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = stringResource(R.string.chat_cd_close_label, label),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                    modifier = Modifier.size(16.dp),
+                                                )
+                                            }
                                         }
                                     }
                                 },

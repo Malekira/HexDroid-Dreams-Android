@@ -12,6 +12,7 @@ import com.boxlabs.hexdroid.data.SettingsRepository
 import com.boxlabs.hexdroid.ui.ChatScreen
 import com.boxlabs.hexdroid.ui.theme.HexDroidIRCTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -24,12 +25,13 @@ class ChatNavigationRegressionTest {
         val first = "${profile.id}::#one"
         val second = "${profile.id}::#two"
         val drafts = mutableMapOf<String, Draft>()
+        val commands = mutableListOf<String>()
         var state by mutableStateOf(UiState(networks = listOf(profile), selectedBuffer = first,
             buffers = mapOf(first to UiBuffer(first), second to UiBuffer(second)),
             showBufferList = false, showNickList = false))
         compose.setContent {
             HexDroidIRCTheme {
-                ChatScreen(state, onSelectBuffer = { state = state.copy(selectedBuffer = it) }, onSend = {},
+                ChatScreen(state, onSelectBuffer = { state = state.copy(selectedBuffer = it) }, onSend = { commands += it },
                     onDisconnect = {}, onReconnect = {}, onExit = {}, onToggleBufferList = {}, onToggleNickList = {},
                     onToggleChannelsOnly = {}, onWhois = {}, onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> },
                     onIgnoreNotifications = { _, _ -> }, onUnignoreNotifications = { _, _ -> },
@@ -56,6 +58,7 @@ class ChatNavigationRegressionTest {
             assertEquals("Saved draft for the second room", "Borrador de la segunda sala", drafts[second]?.text)
         }
         secondTab.performClick()
+        compose.runOnIdle { assertTrue("Tapping the tab must not close it: $commands", commands.isEmpty()) }
         secondTab.assertIsSelected()
         input.assertTextEquals("Borrador de la segunda sala")
         messages.performTouchInput { swipeUp() }
