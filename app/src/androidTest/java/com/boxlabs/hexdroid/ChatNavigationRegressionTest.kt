@@ -2,6 +2,8 @@
 package com.boxlabs.hexdroid
 
 import androidx.compose.runtime.*
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
@@ -44,7 +46,7 @@ class ChatNavigationRegressionTest {
         input.performTextInput("Borrador de la primera sala")
         messages.performTouchInput { swipeLeft() }
         secondTab.assertIsSelected()
-        input.assertTextEquals("")
+        input.assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
         input.performTextInput("Borrador de la segunda sala")
         messages.performTouchInput { swipeRight() }
         firstTab.assertIsSelected()
