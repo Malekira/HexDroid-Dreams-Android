@@ -6,6 +6,7 @@ on:
       - feat/personal-phase1-whois-notice
       - feat/personal-phase2
       - feat/personal-phase3
+      - feat/chat-tabs-history
   workflow_dispatch:
 
 permissions:
@@ -241,3 +242,4 @@ jobs:
             fi
           fi
           echo "[PR de Fase 3 para revisión]($url)" >> "$GITHUB_STEP_SUMMARY"
+
