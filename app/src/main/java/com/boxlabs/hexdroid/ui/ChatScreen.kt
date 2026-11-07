@@ -581,14 +581,18 @@ fun ChatScreen(
             listOf(group?.serverKey ?: "${net.id}::*server*") + group?.others.orEmpty()
         }
     val conversationSwipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
-    fun selectConversation(key: String) {
-        // Save before the old composer's collection is cancelled.
-        onDraftChanged(selected, input.text, input.selection.start)
-        onSelectBuffer(key)
-    }
-    /** The buffer and composer on screen now, for async results that outlive the ones they started from. */
+    /** The buffer and composer on screen now, for callbacks that outlive their composition. */
     val liveSelected by rememberUpdatedState(selected)
     val liveInputState by rememberUpdatedState(inputState)
+    val liveSelectBuffer by rememberUpdatedState(onSelectBuffer)
+    val liveDraftChanged by rememberUpdatedState(onDraftChanged)
+    fun selectConversation(key: String) {
+        // Tab-row subcompositions can retain an older callback. Always save the
+        // composer that is visible NOW, before switching or cancelling its collector.
+        val current = liveInputState.value
+        liveDraftChanged(liveSelected, current.text, current.selection.start)
+        liveSelectBuffer(key)
+    }
 
     // Keyed on the selected buffer because the composer state above is too
     LaunchedEffect(selected) {

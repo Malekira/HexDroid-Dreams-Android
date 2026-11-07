@@ -11,6 +11,7 @@ import com.boxlabs.hexdroid.data.Draft
 import com.boxlabs.hexdroid.data.SettingsRepository
 import com.boxlabs.hexdroid.ui.ChatScreen
 import com.boxlabs.hexdroid.ui.theme.HexDroidIRCTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -51,7 +52,11 @@ class ChatNavigationRegressionTest {
         messages.performTouchInput { swipeRight() }
         firstTab.assertIsSelected()
         input.assertTextEquals("Borrador de la primera sala")
+        compose.runOnIdle {
+            assertEquals("Saved draft for the second room", "Borrador de la segunda sala", drafts[second]?.text)
+        }
         secondTab.performClick()
+        secondTab.assertIsSelected()
         input.assertTextEquals("Borrador de la segunda sala")
         messages.performTouchInput { swipeUp() }
         secondTab.assertIsSelected()
