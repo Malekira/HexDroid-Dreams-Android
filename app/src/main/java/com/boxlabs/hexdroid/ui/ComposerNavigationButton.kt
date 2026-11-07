@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardTab
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +29,7 @@ internal fun ComposerNavigationButton(
     description: String,
     modifier: Modifier = Modifier,
     backwards: Boolean = false,
+    label: String? = null,
     onLongClickLabel: String? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -38,7 +41,8 @@ internal fun ComposerNavigationButton(
         .semantics { contentDescription = description }
         .combinedClickable(enabled = enabled, role = Role.Button, onClick = onClick,
             onLongClickLabel = onLongClickLabel, onLongClick = onLongClick), contentAlignment = Alignment.Center) {
-        Icon(Icons.AutoMirrored.Filled.KeyboardTab, contentDescription = null, tint = color,
+        if (label != null) Text(label, color = color, fontSize = 11.sp)
+        else Icon(Icons.AutoMirrored.Filled.KeyboardTab, contentDescription = null, tint = color,
             modifier = Modifier.size(20.dp).graphicsLayer { scaleX = if (backwards) -1f else 1f })
     }
 }

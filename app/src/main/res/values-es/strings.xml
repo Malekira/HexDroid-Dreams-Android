@@ -93,8 +93,8 @@
     <string name="setting_compact_mode">Modo compacto</string>
     <string name="setting_network_tabs">Pestañas de redes</string>
     <string name="setting_network_tabs_desc">Mostrar las redes como pestañas en lugar de en árbol.</string>
-    <string name="setting_network_tabs_bottom">Barra de redes sobre la entrada</string>
-    <string name="setting_network_tabs_bottom_desc">Mostrar el selector de canales en la parte inferior del chat.</string>
+    <string name="setting_network_tabs_bottom">Pestañas compactas de salas y PV arriba</string>
+    <string name="setting_network_tabs_bottom_desc">Mostrar salas y privados sobre los mensajes, conservando sus árboles de navegación.</string>
     <string name="setting_portrait_nicklist_overlay">Panel lateral de nicks</string>
     <string name="setting_portrait_nicklist_overlay_desc">Mostrar la lista de nicks como un panel lateral redimensionable en lugar de una ventana emergente. Cuando está activado, el botón de la lista funciona como mostrar/ocultar persistente.</string>
     <string name="setting_ignore_list">Lista de ignorados</string>
