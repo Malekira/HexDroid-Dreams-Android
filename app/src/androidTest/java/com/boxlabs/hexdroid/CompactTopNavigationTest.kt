@@ -57,7 +57,11 @@ class CompactTopNavigationTest {
         compose.onNodeWithTag("nick-tab-button").performClick()
         compose.onNodeWithTag("chat-input").assertTextEquals("DemoNick01: ")
         compose.onNodeWithTag("buffer-tree-button").performClick()
-        compose.onNodeWithTag("sidebar-group-$network-rooms").assertIsDisplayed().performClick()
+        val rooms = compose.onNodeWithTag("sidebar-group-$network-rooms")
+        compose.waitUntil(timeoutMillis = 5_000) {
+            runCatching { rooms.assertIsDisplayed(); true }.getOrDefault(false)
+        }
+        rooms.assertIsDisplayed().performClick()
         compose.onNodeWithTag("sidebar-buffer-$room").assertDoesNotExist()
         compose.onNodeWithTag("sidebar-buffer-$pv").assertIsDisplayed()
         compose.onNodeWithTag("sidebar-group-$network-rooms").performClick()

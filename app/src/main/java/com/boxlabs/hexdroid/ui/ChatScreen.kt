@@ -2121,7 +2121,11 @@ fun ChatScreen(
                         // The room/private trees remain accessible alongside the top tabs.
                         BarIconButton(
                             size = iconBtnSize,
-                            onClick = { scope.launch { drawerState.open() } },
+                            onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                                openMenu { scope.launch { drawerState.open() } }
+                            },
                             modifier = Modifier.tourTarget(TourTarget.CHAT_DRAWER_BUTTON).testTag("buffer-tree-button"),
                         ) { Text("☰") }
                     }
