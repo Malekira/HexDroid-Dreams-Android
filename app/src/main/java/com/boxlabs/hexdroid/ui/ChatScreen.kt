@@ -2115,14 +2115,18 @@ fun ChatScreen(
                         BarIconButton(
                             size = iconBtnSize,
                             onClick = onToggleBufferList,
-                            modifier = Modifier.tourTarget(TourTarget.CHAT_DRAWER_BUTTON),
+                            modifier = Modifier.tourTarget(TourTarget.CHAT_DRAWER_BUTTON).testTag("buffer-tree-button"),
                         ) { Text("☰") }
-                    } else if (!state.settings.networkTabsAtBottom) {
-                        // The bottom bar replaces the drawer in this mode, so drop the opener.
+                    } else {
+                        // The room/private trees remain accessible alongside the top tabs.
                         BarIconButton(
                             size = iconBtnSize,
-                            onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.tourTarget(TourTarget.CHAT_DRAWER_BUTTON),
+                            onClick = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                                openMenu { scope.launch { drawerState.open() } }
+                            },
+                            modifier = Modifier.tourTarget(TourTarget.CHAT_DRAWER_BUTTON).testTag("buffer-tree-button"),
                         ) { Text("☰") }
                     }
 
@@ -3164,103 +3168,6 @@ fun ChatScreen(
             .navigationBarsPadding()
             .imePadding()
         ) {
-            // Conversation switcher pinned just above the input bar (Settings > Network tabs > Tabs at
-            // bottom). It lists EVERY network and all of its buffers in one scrollable row: each
-            // network's server tab (network name + connection dot) followed by that network's channels
-            // and PMs. It replaces the drawer, which is disabled while this mode is on.
-            if (state.settings.networkTabsAtBottom) {
-                val allTabKeys = conversationTabKeys
-                if (allTabKeys.isNotEmpty()) {
-                    val barSelIdx = allTabKeys.indexOf(selected).coerceIn(0, allTabKeys.lastIndex)
-                    // key() on the tab set. ScrollableTabRow caches its subcomposition and reads
-                    // tabPositions[selectedTabIndex] during layout; when the set shrinks (a network
-                    // disconnects, a buffer closes) that cached index can momentarily point one past the
-                    // new, shorter list and throw IndexOutOfBounds. A fresh identity per set discards the
-                    // stale layout state and sidesteps the crash.
-                    key(allTabKeys) {
-                    PersonalArea(ThemeRole.TABS) {
-                    SecondaryScrollableTabRow(
-                        selectedTabIndex = barSelIdx,
-                        edgePadding = 0.dp,
-                        containerColor = personalColors.color(ThemeRole.TABS, Color.Transparent),
-                        contentColor = personalColors.text(ThemeRole.UI_TEXT, personalColors.color(ThemeRole.TABS, MaterialTheme.colorScheme.surface), MaterialTheme.colorScheme.onSurface),
-                    ) {
-                        allTabKeys.forEachIndexed { i, key ->
-                            val (keyNet, keyName) = splitKey(key)
-                            val isServerTab = keyName == "*server*"
-                            // server tab shows the network name; channel/PM tabs show the buffer name
-                            // (channels already carry their #/& sigil, so PMs read as bare nicks).
-                            val label = if (isServerTab) netName(keyNet) else bufferLabel(key, state.networks)
-                            val con = state.connections[keyNet]
-                            val dot = when {
-                                con?.connected == true  -> MaterialTheme.colorScheme.primary
-                                con?.connecting == true -> Color(0xFFE0A030)
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            }
-                            val b = state.buffers[key]
-                            val unread = b?.unread ?: 0
-                            val hi = b?.highlights ?: 0
-                            Tab(
-                                selected = i == barSelIdx,
-                                onClick = { selectConversation(key) },
-                                modifier = Modifier.focusHighlight().testTag("conversation-tab:$key"),
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        // The connection dot rides each network's server tab; the
-                                        // conversation tabs under it are named alone.
-                                        if (isServerTab) {
-                                            Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
-                                            networkIconOf(keyNet)?.let { iconUrl ->
-                                                var sbmp by remember(iconUrl) { mutableStateOf(RemoteImage.cached(iconUrl)) }
-                                                LaunchedEffect(iconUrl) { if (sbmp == null) sbmp = RemoteImage.fetch(iconUrl) }
-                                                sbmp?.let {
-                                                    Image(
-                                                        bitmap = it,
-                                                        contentDescription = null,
-                                                        filterQuality = FilterQuality.High,
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)),
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        // Keep the label's hit area separate from Close's minimum touch target.
-                                        Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.widthIn(min = 64.dp))
-                                        if (unread > 0) {
-                                            Badge(
-                                                containerColor = if (hi > 0) MaterialTheme.colorScheme.error
-                                                                 else MaterialTheme.colorScheme.secondary
-                                            ) { Text(if (unread > 99) "99+" else "$unread") }
-                                        }
-                                        // Close button on conversation tabs.
-                                        if (!isServerTab) {
-                                            IconButton(
-                                                onClick = { onSend("/closekey $key") },
-                                                modifier = Modifier.size(40.dp)
-                                                    .focusHighlight(CircleShape)
-                                                    .testTag("conversation-tab-close:$key"),
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Close,
-                                                    contentDescription = stringResource(R.string.chat_cd_close_label, label),
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                                    modifier = Modifier.size(16.dp),
-                                                )
-                                            }
-                                        }
-                                    }
-                                },
-                            )
-                        }
-                    }
-                    } // personal tab palette
-                    }
-                }
-            }
             // Priority: nick hints > subcommand hints > command hints. Nick hints
             // win on channels (user is mid-@mention). Subcommand hints win when
             // we're past the parent-command space. Command hints are the baseline.
@@ -3417,14 +3324,13 @@ fun ChatScreen(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (isChannel || isPrivateMessage) {
-                    ComposerNavigationButton(
-                        onClick = { completeNick(backwards = false); onTypingChanged(input.text) },
-                        enabled = completionNicks.isNotEmpty(),
-                        description = stringResource(R.string.chat_complete_nick),
-                        modifier = Modifier.testTag("nick-tab-button"),
-                    )
-                }
+                ComposerNavigationButton(
+                    onClick = { completeNick(backwards = false); onTypingChanged(input.text) },
+                    enabled = completionNicks.isNotEmpty(),
+                    description = stringResource(R.string.chat_complete_nick),
+                    label = "Tab",
+                    modifier = Modifier.testTag("nick-tab-button"),
+                )
 
                 // E2E lock badge at the start of the input row when the buffer has a key; tapping
                 // it opens the EncryptionDialog. Re-derived from state.e2eKeyVersion.
@@ -3941,7 +3847,26 @@ fun ChatScreen(
                         WindowInsetsSides.Horizontal
                     )
                 ),
-            topBar = topBar,
+            topBar = {
+                Column {
+                    topBar()
+                    // The persisted key keeps compatibility with older backups; the strip is now on top.
+                    if (state.settings.networkTabsAtBottom) {
+                        CompactConversationTabs(
+                            tabs = conversationTabKeys.map { key ->
+                                val (network, name) = splitKey(key)
+                                val meta = state.buffers[key]
+                                ConversationTab(key,
+                                    if (name == "*server*") netName(network) else bufferLabel(key, state.networks),
+                                    meta?.unread ?: 0, (meta?.highlights ?: 0) > 0, name == "*server*")
+                            },
+                            selected = selected,
+                            onSelect = ::selectConversation,
+                            onClose = { onSend("/closekey $it") },
+                        )
+                    }
+                }
+            },
             bottomBar = bottomBar,
             snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
             contentWindowInsets = WindowInsets(0),

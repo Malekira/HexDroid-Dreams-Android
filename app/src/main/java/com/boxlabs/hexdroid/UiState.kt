@@ -208,8 +208,8 @@ data class UiSettings(
     // Which networks appear is controlled per-network by NetworkProfile.showInSidebar,
     // not a global setting.
     val networkTabs: Boolean = false,
-    // Pin a network quick-switcher bar at the bottom of the chat, just above the message input,
-    // independent of the drawer's tree/tabs mode. Tapping a network jumps to it.
+    // Legacy persisted name: enables the compact conversation strip at the TOP of the chat.
+    // It coexists with the independent room/private trees in the drawer.
     val networkTabsAtBottom: Boolean = true,
     val showTimestamps: Boolean = true,
     val timestampFormat: String = "HH:mm:ss",

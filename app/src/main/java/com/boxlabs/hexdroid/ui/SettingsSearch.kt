@@ -91,7 +91,7 @@ val SETTINGS_SEARCH_INDEX: List<SettingsSearchEntry> = listOf(
     SettingsSearchEntry(R.string.setting_network_tabs, SettingsCategory.APPEARANCE,
         descRes = R.string.setting_network_tabs_desc, keywords = "tabs"),
     SettingsSearchEntry(R.string.setting_network_tabs_bottom, SettingsCategory.APPEARANCE,
-        descRes = R.string.setting_network_tabs_bottom_desc, keywords = "tabs bottom"),
+        descRes = R.string.setting_network_tabs_bottom_desc, keywords = "tabs top compact rooms private salas privados pestañas arriba"),
     SettingsSearchEntry(R.string.setting_font_size_label, SettingsCategory.APPEARANCE,
         keywords = "text size scale zoom bigger smaller"),
     SettingsSearchEntry(R.string.setting_line_spacing_label, SettingsCategory.APPEARANCE,

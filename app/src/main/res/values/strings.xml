@@ -93,8 +93,8 @@
     <string name="setting_compact_mode">Compact mode</string>
     <string name="setting_network_tabs">Network tabs</string>
     <string name="setting_network_tabs_desc">Show networks as tabs instead of a tree.</string>
-    <string name="setting_network_tabs_bottom">Network bar above input</string>
-    <string name="setting_network_tabs_bottom_desc">Show channel switcher at the bottom of the chat.</string>
+    <string name="setting_network_tabs_bottom">Compact conversation tabs at top</string>
+    <string name="setting_network_tabs_bottom_desc">Show rooms and private chats above the messages, keeping the room/private trees.</string>
     <string name="setting_portrait_nicklist_overlay">Side pane nicklist</string>
     <string name="setting_portrait_nicklist_overlay_desc">Show the nicklist as a resizable side pane instead of a popup. When enabled, the nicklist toggle acts as a persistent show/hide.</string>
     <string name="setting_ignore_list">Ignore list</string>
