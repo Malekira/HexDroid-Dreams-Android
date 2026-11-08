@@ -864,7 +864,10 @@ fun NetworkEditScreen(
                     if (connection?.connected == true) onRequestAvatarMetadata(n0.id, previewNick)
                 }
                 ProfileAvatarField(avatarUrl, { avatarUrl = it },
-                    source = com.boxlabs.hexdroid.profileAvatarSource(avatarUrl, metadata, host, connection?.serverNetworkName, previewNick),
+                    source = com.boxlabs.hexdroid.profileAvatarSource(avatarUrl, metadata, host, connection?.serverNetworkName, previewNick,
+                        legacyUrl = connection?.legacyAvatarUrls?.get(previewNick.lowercase()),
+                        metadataKnown = connection?.avatarUrls?.containsKey(previewNick.lowercase()) == true,
+                        legacyKnown = connection?.legacyAvatarUrls?.containsKey(previewNick.lowercase()) == true),
                     nick = previewNick, downloadsAllowed = downloadsAllowed, proxied = proxyType != ProxyType.NONE)
             }
 

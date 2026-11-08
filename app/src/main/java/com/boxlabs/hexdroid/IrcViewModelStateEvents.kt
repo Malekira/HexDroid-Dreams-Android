@@ -46,7 +46,7 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
         }
 
         // The protocol layer still emits SETNAME; real-name changes stay silent in chat.
-        is IrcEvent.Setname -> Unit
+        is IrcEvent.Setname -> if (!ev.isHistory) noteWebPhoto(netId, ev.nick, ev.newRealname)
 
         // Incoming channel invite.
         is IrcEvent.InviteReceived -> {
@@ -341,6 +341,7 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
         }
 
         is IrcEvent.WhoxReply -> {
+            ev.realname?.let { noteWebPhoto(netId, ev.nick, it) }
             // WHOX 354 reply: update away status from flags field.
             val fold = casefoldText(netId, ev.nick)
 
@@ -421,14 +422,17 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
                             if (clean == null) st.displayNames - mdKey
                             else st.displayNames + (mdKey to clean))
                     }
-                    "avatar" -> setNetConn(netId) { st ->
-                        // Only https URLs are retained; the renderer additionally
-                        // gates on the image-previews opt-in and an unproxied profile.
-                        val url = sanitizeMetadataValue(ev.value, maxLen = 512)
-                            ?.takeIf { it.isNotBlank() && validAvatarUrl(it) }
-                        st.copy(avatarUrls =
-                            if (url == null) st.avatarUrls - mdKey
-                            else st.avatarUrls + (mdKey to url))
+                    "avatar", "avatar-url" -> {
+                        val old = _state.value.connections[netId]?.avatarUrls?.get(mdKey)
+                        old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it) }
+                        val url = normalizeWebPhotoUrl(sanitizeMetadataValue(ev.value, maxLen = 2048))
+                        url?.let { RemoteBitmaps.invalidate(it) }
+                        setNetConn(netId) { st ->
+                            if (ev.key == "avatar-url" && mdKey in st.primaryAvatarNicks) st
+                            else st.copy(avatarUrls = st.avatarUrls + (mdKey to (url ?: "")),
+                                primaryAvatarNicks = if (ev.key == "avatar") st.primaryAvatarNicks + mdKey else st.primaryAvatarNicks,
+                                avatarRevision = st.avatarRevision + 1)
+                        }
                     }
                     "color" -> setNetConn(netId) { st ->
                         // Registry format is exactly 6 hex digits (no leading #).

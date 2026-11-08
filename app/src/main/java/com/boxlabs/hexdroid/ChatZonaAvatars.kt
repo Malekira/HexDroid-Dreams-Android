@@ -5,7 +5,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 
-internal const val CHATZONA_AVATAR_REFRESH_MS = 5 * 60 * 1000L
+internal const val CHATZONA_AVATAR_REFRESH_MS = 60 * 1000L
 
 /** Match network identity, never a user-editable display name or a substring/lookalike domain. */
 internal fun isChatZonaNetwork(host: String, advertisedNetwork: String? = null): Boolean {
@@ -22,9 +22,14 @@ internal fun chatZonaAvatarUrl(host: String, advertisedNetwork: String?, nick: S
 }
 
 /** Resolve a profile without downloading or persisting a nick-derived URL. */
-internal fun profileAvatarSource(explicitUrl: String?, metadataUrl: String?, host: String, network: String?, nick: String): String? =
-    sequenceOf(explicitUrl, metadataUrl).mapNotNull { it?.trim()?.takeIf { value -> value.isNotEmpty() && validAvatarUrl(value) } }.firstOrNull()
-        ?: chatZonaAvatarUrl(host, network, nick)
+internal fun profileAvatarSource(explicitUrl: String?, metadataUrl: String?, host: String, network: String?, nick: String,
+                                 legacyUrl: String? = null, metadataKnown: Boolean = false, legacyKnown: Boolean = false): String? {
+    explicitUrl?.trim()?.takeIf { it.isNotEmpty() }?.let { normalizeWebPhotoUrl(it)?.let { value -> return value } }
+    if (metadataKnown) return normalizeWebPhotoUrl(metadataUrl)
+    normalizeWebPhotoUrl(metadataUrl)?.let { return it }
+    if (legacyKnown) return normalizeWebPhotoUrl(legacyUrl)
+    return normalizeWebPhotoUrl(legacyUrl) ?: chatZonaAvatarUrl(host, network, nick)
+}
 
 /** An untouched empty field must not publish METADATA DEL or erase a web avatar. */
 internal fun profileAvatarChanged(previous: String?, edited: String?): Boolean = previous.orEmpty().trim() != edited.orEmpty().trim()

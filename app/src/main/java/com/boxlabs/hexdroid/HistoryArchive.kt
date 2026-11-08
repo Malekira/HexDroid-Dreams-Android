@@ -39,7 +39,6 @@ internal fun safeHistoryText(buffer: String, text: String): String? {
 }
 
 data class HistoryConversation(val path: String, val bytes: Long)
-data class HistoryPage(val lines: List<String>, val next: Long?)
 
 /** Streaming utilities: history size never sets a scrollback or retention limit. */
 internal object HistoryFiles {
@@ -51,22 +50,8 @@ internal object HistoryFiles {
     }
     fun list(root: File): List<HistoryConversation> = root.walkTopDown().filter { it.isFile && it.extension == "txt" && it.relativeTo(root).invariantSeparatorsPath.split('/').size == 2 }
         .map { HistoryConversation(it.relativeTo(root).invariantSeparatorsPath, it.length()) }.sortedBy { it.path }.toList()
-    fun page(root: File, path: String, query: String, offset: Long, size: Int = 100): HistoryPage {
-        val terms = query.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
-        val result = mutableListOf<String>()
-        var count = 0L
-        var next: Long? = null
-        resolve(root, path).bufferedReader(Charsets.UTF_8).useLines { lines ->
-            val it = lines.iterator()
-            while (it.hasNext()) {
-                val line = it.next(); val pos = count++
-                if (pos < offset || !terms.all { line.contains(it, true) }) continue
-                if (result.size == size) { next = pos; break }
-                result += line
-            }
-        }
-        return HistoryPage(result, next)
-    }
+    fun page(root: File, path: String, query: String, offset: Long, size: Int = 100): HistoryPage =
+        readLogPage(resolve(root, path).reader(Charsets.UTF_8), query, offset, size)
     fun export(root: File, paths: Set<String>, out: OutputStream) {
         ZipOutputStream(out.buffered()).use { z ->
             paths.sorted().forEach { path ->

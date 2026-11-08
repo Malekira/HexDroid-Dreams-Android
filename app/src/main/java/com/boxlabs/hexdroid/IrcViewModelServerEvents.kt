@@ -98,6 +98,8 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         }
                     }
                     is IrcEvent.Disconnected -> {
+                        setNetConn(netId) { it.copy(avatarUrls = emptyMap(), legacyAvatarUrls = emptyMap(),
+                            primaryAvatarNicks = emptySet(), avatarRevision = it.avatarRevision + 1) }
                         sessionPrivateAccepted.removeAll { id -> privateRequestNetworkKeys[netId]?.contains(id) == true }
                         _state.update { it.copy(callerIdNetworks = it.callerIdNetworks - netId) }
                         whoisBlockTimeouts.keys.filter { it.first == netId }.toList().forEach { (_, id) -> flushWhoisBlock(netId, id) }
@@ -474,6 +476,10 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                     }
                     is IrcEvent.ServerText -> {
                         val code = ev.code
+                        if (code == "311") {
+                            val who = ev.whoisNick ?: ev.whoisParams.getOrNull(1)
+                            if (who != null && ev.whoisTrailing != null) noteWebPhoto(netId, who, ev.whoisTrailing)
+                        }
                         val rt = runtimes[netId]
                         val motdCodes = setOf("375","372","376","422")
                         val hideMotd = _state.value.settings.hideMotdOnConnect

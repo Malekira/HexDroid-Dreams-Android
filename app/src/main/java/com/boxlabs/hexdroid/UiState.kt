@@ -481,6 +481,10 @@ data class NetConnState(
     val displayNames: Map<String, String> = emptyMap(),
     /** draft/metadata-2 avatar URLs, keyed by lowercased nick or channel. */
     val avatarUrls: Map<String, String> = emptyMap(),
+    /** Empty values mean explicit removal, not an invitation to use an old fallback photo. */
+    val legacyAvatarUrls: Map<String, String> = emptyMap(),
+    val primaryAvatarNicks: Set<String> = emptySet(),
+    val avatarRevision: Int = 0,
     /**
      * draft/metadata-2 `color` values (6 hex digits, no leading #), keyed by
      * lowercased nick. Applied as the nick colour, below a manual own-nick override.
