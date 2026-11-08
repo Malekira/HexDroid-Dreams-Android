@@ -92,11 +92,13 @@ internal fun IrcViewModel.dropMetadataForNick(netId: String, nick: String) {
     val key = nick.lowercase()
     setNetConn(netId) { st ->
         if (key !in st.displayNames && key !in st.avatarUrls && key !in st.nickColors &&
-            key !in st.statuses && key !in st.extraMetadata
+            key !in st.statuses && key !in st.extraMetadata && key !in st.legacyAvatarUrls && key !in st.primaryAvatarNicks
         ) return@setNetConn st
         st.copy(
             displayNames = st.displayNames - key,
             avatarUrls = st.avatarUrls - key,
+            legacyAvatarUrls = st.legacyAvatarUrls - key,
+            primaryAvatarNicks = st.primaryAvatarNicks - key,
             nickColors = st.nickColors - key,
             statuses = st.statuses - key,
             extraMetadata = st.extraMetadata - key,
@@ -115,13 +117,15 @@ internal fun IrcViewModel.withMetadataMovedForNick(st: NetConnState, from: Strin
     val b = to.lowercase()
     if (a == b) return st
     if (a !in st.displayNames && a !in st.avatarUrls && a !in st.nickColors &&
-        a !in st.statuses && a !in st.extraMetadata
+        a !in st.statuses && a !in st.extraMetadata && a !in st.legacyAvatarUrls && a !in st.primaryAvatarNicks
     ) return st
     fun <V> move(m: Map<String, V>): Map<String, V> =
         m[a]?.let { (m - a) + (b to it) } ?: (m - a)
     return st.copy(
         displayNames = move(st.displayNames),
         avatarUrls = move(st.avatarUrls),
+        legacyAvatarUrls = move(st.legacyAvatarUrls),
+        primaryAvatarNicks = if (a in st.primaryAvatarNicks) (st.primaryAvatarNicks - a) + b else st.primaryAvatarNicks,
         nickColors = move(st.nickColors),
         statuses = move(st.statuses),
         extraMetadata = move(st.extraMetadata),
@@ -414,4 +418,18 @@ internal fun IrcViewModel.sanitizeMetadataValue(raw: String?, maxLen: Int): Stri
     }.trim()
     if (cleaned.isEmpty()) return null
     return if (cleaned.length > maxLen) cleaned.take(maxLen) else cleaned
+}
+
+/** Consume only the public photo field of the web GECOS, preserving explicit no-photo values. */
+internal fun IrcViewModel.noteWebPhoto(netId: String, nick: String, realname: String) {
+    val key = nick.lowercase()
+    if (key.isBlank()) return
+    val value = webPhotoFromGecos(realname)
+    val old = _state.value.connections[netId]?.legacyAvatarUrls?.get(key)
+    val next = value?.url ?: if (value != null) "" else null
+    if (old == next) return
+    old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it) }
+    next?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it) }
+    setNetConn(netId) { st -> st.copy(legacyAvatarUrls = if (next == null) st.legacyAvatarUrls - key
+        else st.legacyAvatarUrls + (key to next), avatarRevision = st.avatarRevision + 1) }
 }

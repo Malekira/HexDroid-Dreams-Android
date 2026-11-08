@@ -57,7 +57,7 @@ fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, re
 
 @Composable
 fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
-                 load: suspend (String, Boolean) -> ImageBitmap? = { source, retry -> RemoteImage.fetchFull(source, retry) }) {
+                 load: suspend (String, Boolean) -> ImageBitmap? = { source, retry -> RemoteImage.fetchFull(source, true) }) {
     var attempt by remember(url) { mutableIntStateOf(0) }
     var loading by remember(url) { mutableStateOf(true) }
     var image by remember(url) { mutableStateOf<ImageBitmap?>(null) }
@@ -87,10 +87,10 @@ fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
 }
 
 @Composable
-internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, onOpen: () -> Unit, content: @Composable () -> Unit) {
+internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, refreshToken: Int = 0, onOpen: () -> Unit, content: @Composable () -> Unit) {
     if (url == null) content()
     else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshEveryMs = refreshEveryMs, onOpen = onOpen)
+        AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshToken = refreshToken, refreshEveryMs = refreshEveryMs, onOpen = onOpen)
         Box(Modifier.weight(1f)) { content() }
     }
 }

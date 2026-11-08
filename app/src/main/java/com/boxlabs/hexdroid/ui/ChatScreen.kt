@@ -311,6 +311,7 @@ fun ChatScreen(
     onOpenList: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenScripts: () -> Unit = {},
+    onOpenLogViewer: (() -> Unit)? = null,
     scriptLaunchers: List<Pair<String, String>> = emptyList(),
     onRunLauncher: (command: String) -> Unit = {},
     onOpenNetworks: () -> Unit,
@@ -760,9 +761,13 @@ fun ChatScreen(
             if (own.isNullOrBlank()) urls else urls + (myNick.lowercase() to own)
         }
     } else emptyMap()
-    fun avatarFor(nick: String): String? = metadataAvatars[baseNick(nick).lowercase()]
-        ?: if (automaticChatZona && avatarDownloadsAllowed)
-            com.boxlabs.hexdroid.chatZonaAvatarUrl(avatarProfile!!.host, selConn?.serverNetworkName, baseNick(nick)) else null
+    fun avatarFor(nick: String): String? {
+        if (!avatarDownloadsAllowed || avatarProfile == null) return null
+        val key = baseNick(nick).lowercase()
+        return com.boxlabs.hexdroid.profileAvatarSource(null, metadataAvatars[key], avatarProfile.host,
+            selConn?.serverNetworkName, baseNick(nick), legacyUrl = selConn?.legacyAvatarUrls?.get(key),
+            metadataKnown = metadataAvatars.containsKey(key), legacyKnown = selConn?.legacyAvatarUrls?.containsKey(key) == true)
+    }
     LaunchedEffect(selNetId, myNick, automaticChatZona, selConn?.hasUserMetadata) {
         if (automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, myNick)
     }
@@ -900,6 +905,9 @@ fun ChatScreen(
     var showMetadataEditor by remember(selNetId) { mutableStateOf(false) }
     var expandedAvatar by remember(selNetId) { mutableStateOf<Pair<String, String>?>(null) }
     var avatarRefresh by remember(selNetId) { mutableIntStateOf(0) }
+    LaunchedEffect(selNetId, selConn?.avatarRevision) {
+        if ((selConn?.avatarRevision ?: 0) > 0) avatarRefresh++
+    }
     var showRegistration by remember(selNetId) { mutableStateOf(false) }
     var topicExpanded by remember(selected, topic) { mutableStateOf(false) }
     var topicHasOverflow by remember(selected, topic) { mutableStateOf(false) }
@@ -2338,6 +2346,7 @@ fun ChatScreen(
                                 })
                                 add(MenuEntry(stringResource(R.string.menu_channel_list)) { overflowExpanded = false; onOpenList() })
                                 add(MenuEntry(stringResource(R.string.menu_file_transfers)) { overflowExpanded = false; onOpenTransfers() })
+                                if (onOpenLogViewer != null) add(MenuEntry("Visor de logs") { overflowExpanded = false; onOpenLogViewer() })
                                 if (viewModel != null) {
                                     add(MenuEntry(stringResource(R.string.menu_search_logs)) { overflowExpanded = false; showLogSearch = true })
                                 }
@@ -2796,7 +2805,7 @@ fun ChatScreen(
                         val readByPeer = peerReadAtMs != null && !isChannel && m.timeMs <= peerReadAtMs &&
                             !m.failed && !m.pending && m.from != null && m.from.equals(myNick, ignoreCase = true)
                         val messageAvatar = if (state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from != null && m.from != "ERROR") avatarFor(m.from) else null
-                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarRefreshInterval,
+                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarRefreshInterval, refreshToken = avatarRefresh,
                             onOpen = { if (messageAvatar != null) expandedAvatar = messageAvatar to m.from.orEmpty() }) {
                         SingleMessageItem(
                             m = m,

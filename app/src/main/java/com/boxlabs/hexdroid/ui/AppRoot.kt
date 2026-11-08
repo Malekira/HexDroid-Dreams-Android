@@ -335,6 +335,7 @@ fun AppRoot(
                     onOpenList = { vm.goTo(AppScreen.LIST) },
                     onOpenSettings = { vm.goTo(AppScreen.SETTINGS) },
                     onOpenScripts = { vm.goTo(AppScreen.SCRIPTS) },
+                    onOpenLogViewer = { vm.goTo(AppScreen.PERSONAL_HISTORY) },
                     scriptLaunchers = scriptLaunchers.map { it.label to it.command },
                     onRunLauncher = vm::runScriptLauncher,
                     onOpenNetworks = { vm.goTo(AppScreen.NETWORKS) },

@@ -2,6 +2,10 @@
 package com.boxlabs.hexdroid.ui
 
 import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -26,9 +30,21 @@ internal fun PersonalHistoryScreen(archive: HistoryArchive, back: () -> Unit, ne
     var files by remember { mutableStateOf<List<HistoryConversation>>(emptyList()) }
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     var conversation by remember { mutableStateOf<String?>(null) }
-    var query by remember { mutableStateOf("") }
-    var page by remember { mutableStateOf(HistoryPage(emptyList(), null)) }
-    var offset by remember { mutableLongStateOf(0) }
+    var external by rememberSaveable { mutableStateOf<String?>(null) }
+    var externalName by rememberSaveable { mutableStateOf("Log externo") }
+    fun backToFiles() { conversation = null; external = null }
+    BackHandler(enabled = conversation != null || external != null) { backToFiles() }
+    val openLog = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            externalName = runCatching {
+                ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                    if (it.moveToFirst()) it.getString(0) else null
+                }
+            }.getOrNull() ?: "Log externo"
+            conversation = null
+            external = uri.toString()
+        }
+    }
     var status by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Set<String>?>(null) }
@@ -56,18 +72,17 @@ internal fun PersonalHistoryScreen(archive: HistoryArchive, back: () -> Unit, ne
         }
     }
     LaunchedEffect(Unit) { refresh() }
-    LaunchedEffect(conversation, query, offset) {
-        val path = conversation ?: return@LaunchedEffect
-        delay(200)
-        page = withContext(Dispatchers.IO) { archive.page(path, query, offset) }
-    }
-    Scaffold(topBar = { PersonalTopAppBar(title = { Text("Historial permanente") }, navigationIcon = { TextButton(onClick = { if (conversation != null) { conversation = null; query = ""; offset = 0 } else back() }) { Text("Volver") } }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Scaffold(topBar = { PersonalTopAppBar(title = { Text("Visor de logs") }, navigationIcon = { TextButton(onClick = { if (conversation != null || external != null) backToFiles() else back() }) { Text("Volver") } }) }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).imePadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (conversation == null && external == null) {
             Text("Almacenamiento privado: ${files.sumOf { it.bytes }} bytes · ${files.size} conversaciones")
             Text("Los TXT y ZIP exportados pueden contener información privada y mensajes descifrados. Guardalos en un lugar seguro.")
+            }
             if (status.isNotBlank()) SelectionContainer { Text(status) }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if (conversation == null) {
+            if (conversation == null && external == null) {
+                TextButton(onClick = { openLog.launch(arrayOf("text/*", "application/octet-stream")) },
+                    modifier = Modifier.testTag("open-log-document")) { Text("Abrir archivo TXT / LOG") }
                 Row {
                     TextButton(onClick = { exportPaths = selected.ifEmpty { files.map { it.path }.toSet() }; zip.launch("HexDroid-Personal-historial.zip") }, enabled = !busy && files.isNotEmpty()) { Text("Exportar ZIP") }
                     TextButton(onClick = { restore.launch(arrayOf("application/zip", "application/octet-stream")) }, enabled = !busy) { Text("Restaurar ZIP") }
@@ -80,18 +95,24 @@ internal fun PersonalHistoryScreen(archive: HistoryArchive, back: () -> Unit, ne
                     items(files, key = { it.path }) { file ->
                         ListItem(headlineContent = { Text(label(file.path)) }, supportingContent = { Text("${file.bytes} bytes") }, leadingContent = {
                             Checkbox(file.path in selected, { selected = if (file.path in selected) selected - file.path else selected + file.path })
-                        }, modifier = Modifier.clickable { conversation = file.path; offset = 0 })
+                        }, modifier = Modifier.clickable { conversation = file.path })
                     }
                 }
             } else {
-                Text(label(conversation!!), style = MaterialTheme.typography.titleMedium)
-                OutlinedTextField(query, { query = it; offset = 0 }, label = { Text("Buscar palabra, nick o fecha (AAAA-MM-DD)") }, modifier = Modifier.fillMaxWidth())
-                Row {
-                    TextButton(onClick = { exportPath = conversation; txt.launch(conversation!!.substringAfterLast('/')) }, enabled = !busy) { Text("Exportar TXT") }
-                    TextButton(onClick = { offset = 0 }) { Text("Inicio") }
-                    TextButton(onClick = { page.next?.let { offset = it } }, enabled = page.next != null) { Text("Siguiente") }
+                val document = external
+                val path = conversation
+                key(document ?: path) {
+                    SearchableLogContent(
+                        title = if (document != null) externalName else label(requireNotNull(path)),
+                        readPage = { query, offset ->
+                            if (document != null) readLogPage(
+                                requireNotNull(ctx.contentResolver.openInputStream(Uri.parse(document))) { "Archivo no disponible" }.reader(Charsets.UTF_8), query, offset)
+                            else archive.page(requireNotNull(path), query, offset)
+                        },
+                        onExport = if (path == null) null else ({ exportPath = path; txt.launch(path.substringAfterLast('/')) }),
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                LazyColumn(Modifier.weight(1f)) { items(page.lines.size) { i -> SelectionContainer { Text(page.lines[i], Modifier.fillMaxWidth().padding(vertical = 6.dp)) } } }
             }
         }
     }

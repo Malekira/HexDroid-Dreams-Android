@@ -495,7 +495,7 @@ internal fun IrcClient.buildNumericHandlers(
             // Bot Mode: the flags field also carries the BOT mode letter for bots.
             val isBot = botModeChar?.let { bc -> flags?.contains(bc) == true } ?: false
             noteUser(nick, ident, host, account ?: "*")
-            send(IrcEvent.WhoxReply(nick = nick, ident = ident, host = host, account = account, isAway = isAway, isBot = isBot))
+            send(IrcEvent.WhoxReply(nick = nick, ident = ident, host = host, account = account, isAway = isAway, isBot = isBot, realname = msg.trailing))
         },
 
         // RPL_WHOREPLY (352): the plain WHO reply, for servers without WHOX.
@@ -511,7 +511,7 @@ internal fun IrcClient.buildNumericHandlers(
             val isAway = flags?.firstOrNull { it == 'H' || it == 'G' }?.let { it == 'G' }
             val isBot = botModeChar?.let { bc -> flags?.contains(bc) == true } ?: false
             noteUser(nick, ident, host)
-            send(IrcEvent.WhoxReply(nick = nick, ident = ident, host = host, account = null, isAway = isAway, isBot = isBot))
+            send(IrcEvent.WhoxReply(nick = nick, ident = ident, host = host, account = null, isAway = isAway, isBot = isBot, realname = msg.trailing?.substringAfter(' ', "")))
             val chan = msg.params.getOrNull(1) ?: "*"
             val buffer = currentWho(chan.takeIf { isChannelName(it) })?.buffer ?: return@handler
             val server = msg.params.getOrNull(4)?.let { " ($it)" } ?: ""

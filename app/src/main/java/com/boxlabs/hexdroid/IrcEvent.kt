@@ -655,7 +655,8 @@ data class Notice(
          */
         val isAway: Boolean? = null,
         /** Bot Mode: true when the WHOX flags field carries the BOT ISUPPORT mode letter. */
-        val isBot: Boolean = false
+        val isBot: Boolean = false,
+        val realname: String? = null,
     ) : IrcEvent()
 
     /**

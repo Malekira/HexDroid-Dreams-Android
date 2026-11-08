@@ -109,6 +109,7 @@ internal fun IrcViewModel.handleChannelEvent(netId: String, ev: IrcEvent) {
         }
 
         is IrcEvent.Joined -> {
+            if (!ev.isHistory) ev.realname?.let { noteWebPhoto(netId, ev.nick, it) }
             if (!ev.isHistory) scriptEvent(
                 "JOIN", netId, ev.channel, ev.nick, isMe = isMyNick(netId, ev.nick),
                 fields = mapOf("account" to (ev.account ?: "")),
