@@ -77,7 +77,7 @@ class PhotoLogAndroidTest {
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/current.jpg"))
                 val revision=vm.state.value.connections[net]!!.avatarRevision
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/current.jpg"))
-                assertTrue(vm.state.value.connections[net]!!.avatarRevision>revision)
+                assertEquals(revision,vm.state.value.connections[net]!!.avatarRevision)
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*",null))
                 val state=vm.state.value.connections[net]!!
                 assertTrue(state.avatarUrls.containsKey("alice"))
@@ -196,6 +196,24 @@ class PhotoLogAndroidTest {
         compose.runOnIdle { token.intValue++ }
         compose.waitUntil(5000) { calls.get()==2 }
         compose.onNodeWithTag("avatar-full-image").assertIsDisplayed()
+    }
+    @Test fun firstMetadataAnnouncementDoesNotCancelTheSamePhotoAlreadyDownloading() = runBlocking {
+        val instrumentation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        val context=instrumentation.targetContext;val store=androidx.lifecycle.ViewModelStore()
+        val original=RemoteBitmaps.connectionFactory;val entered=CountDownLatch(1);val gate=CountDownLatch(1)
+        val net="first-photo-${System.nanoTime()}";val url="https://chat-avatars.chateagratis.net/avatar/Chat/Alice.png"
+        lateinit var vm:IrcViewModel
+        fun main(block:()->Unit)=instrumentation.runOnMainSync(block)
+        main { vm=IrcViewModel(com.boxlabs.hexdroid.data.SettingsRepository(context),context);store.put("photos",vm) }
+        RemoteBitmaps.connectionFactory={ target -> Connection(target,png(Color.GREEN),gate).also { entered.countDown() } }
+        try {
+            withTimeout(10000) { while(!vm.state.value.settingsLoaded)delay(25) }
+            val pending=async(Dispatchers.IO) { RemoteBitmaps.fetch(url,scope=net) }
+            assertTrue(entered.await(5000,TimeUnit.MILLISECONDS))
+            main { vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*",url)) }
+            gate.countDown();assertNotNull(pending.await())
+            assertNotNull(RemoteBitmaps.cached(url,scope=net))
+        } finally { gate.countDown();RemoteBitmaps.connectionFactory=original;RemoteBitmaps.invalidateScope(net);main { store.clear() } }
     }
     @Test fun viewerSearchesMultipleWordsAndShowsNoMatches() {
         val log="ALICIA llegó a sala\nBob privado\nalicia SALA dos"

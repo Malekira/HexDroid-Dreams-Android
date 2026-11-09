@@ -21,7 +21,7 @@ class CompactTopNavigationTest {
     private var state by mutableStateOf(UiState())
     private val commands = mutableListOf<String>()
 
-    private fun start() {
+    private fun start(tabs:Boolean=true) {
         val profile = SettingsRepository(context).defaultNetworks().first()
             .copy(id = network, name = "Red de prueba", host = "irc.example.invalid", autoConnect = false)
         state = UiState(networks = listOf(profile), selectedBuffer = room, activeNetworkId = network,
@@ -29,7 +29,7 @@ class CompactTopNavigationTest {
                 room to UiBuffer("#one"), pv to UiBuffer("DemoNick01")),
             connections = mapOf(network to NetConnState(myNick = "OwnDemoNick")),
             nicklists = mapOf(room to listOf("@DemoNick01", "DemoNick02")),
-            settings = UiSettings(networkTabsAtBottom = true), showBufferList = false, showNickList = false)
+            settings = UiSettings(networkTabsAtBottom = tabs), showBufferList = false, showNickList = false)
         compose.setContent {
             HexDroidIRCTheme {
                 ChatScreen(state, onSelectBuffer = { state = state.copy(selectedBuffer = it) },
@@ -42,6 +42,18 @@ class CompactTopNavigationTest {
                     onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {})
             }
         }
+    }
+
+    @Test fun defaultChatHasNoConversationTabsButKeepsTabCompletionAndBothTrees() {
+        start(tabs=UiSettings().networkTabsAtBottom)
+        compose.onNodeWithTag("conversation-tabs").assertDoesNotExist()
+        compose.onNodeWithTag("nick-tab-button").assertIsDisplayed().assertTextContains("Tab")
+        compose.onNodeWithTag("buffer-tree-button").performClick()
+        compose.waitUntil(5000) { runCatching { compose.onNodeWithTag("sidebar-group-$network-rooms").assertIsDisplayed();true }.getOrDefault(false) }
+        compose.onNodeWithTag("sidebar-group-$network-rooms").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar-group-$network-privates").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar-buffer-$room").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar-buffer-$pv").assertIsDisplayed()
     }
 
     @Test fun compactTabsAreAboveMessagesAndTabAndBothTreesRemainAvailable() {

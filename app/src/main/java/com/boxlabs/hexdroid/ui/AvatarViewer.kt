@@ -21,11 +21,6 @@ import androidx.compose.ui.unit.dp
 import com.boxlabs.hexdroid.R
 import com.boxlabs.hexdroid.RemoteBitmaps
 import androidx.compose.ui.graphics.asImageBitmap
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /** Shared loader boundary keeps UI behavior testable while production uses the bounded HTTPS cache. */
 internal val DefaultAvatarLoader: suspend (String, Long) -> ImageBitmap? = { url, age -> RemoteBitmaps.fetchFresh(url, if(age>0) age else 60_000L)?.asImageBitmap() }
@@ -44,17 +39,12 @@ internal fun avatarLoader(scope: String, configuredHost: String?, wifiOnly: Bool
 @Composable
 fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, refreshToken: Int = 0, refreshEveryMs: Long = 0L, scope: String = "", configuredHost: String? = null, wifiOnly: Boolean = false, onOpen: () -> Unit) {
     val loader = avatarLoader(scope,configuredHost,wifiOnly)
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var image by remember(url, refreshToken, scope) { mutableStateOf(RemoteBitmaps.cached(url,scope=scope)?.asImageBitmap()) }
-    LaunchedEffect(url, refreshToken, refreshEveryMs, loader, lifecycle) {
-        if (refreshEveryMs <= 0L) { if (image == null) image = loader(url, 0L) }
-        else lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (isActive) {
-                val loaded = loader(url, refreshEveryMs)
-                image = loaded
-                delay(if (loaded == null) minOf(refreshEveryMs, 30_000L) else refreshEveryMs)
-            }
-        }
+    // Retain the displayed bitmap during refresh, and never poll on a timer.
+    // The legacy refreshEveryMs argument is only a cache-age budget now.
+    var image by remember(url,scope) { mutableStateOf(RemoteBitmaps.cached(url,scope=scope)?.asImageBitmap()) }
+    LaunchedEffect(url,scope,refreshToken,loader) {
+        val loaded=loader(url,if(refreshEveryMs>0L) refreshEveryMs else 60_000L)
+        if(loaded!=null) image=loaded
     }
     Box(modifier.clip(CircleShape).clickable(onClick = onOpen).testTag("avatar-$nick"), contentAlignment = Alignment.Center) {
         image?.let {
