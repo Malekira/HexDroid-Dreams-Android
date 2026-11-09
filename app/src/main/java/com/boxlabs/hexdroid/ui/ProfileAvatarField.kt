@@ -23,7 +23,7 @@ import com.boxlabs.hexdroid.validAvatarUrl
 @Composable
 internal fun ProfileAvatarField(url: String, onChange: (String) -> Unit,
                                 source: String? = url.trim().takeIf { it.isNotEmpty() && validAvatarUrl(it) },
-                                nick: String = "", downloadsAllowed: Boolean = false, proxied: Boolean = false, scope: String = "", configuredHost: String? = null, wifiOnly: Boolean = false) {
+                                nick: String = "", downloadsAllowed: Boolean = false, proxied: Boolean = false, scope: String = "", configuredHost: String? = null, wifiOnly: Boolean = false, refreshToken: Int = 0) {
     val valid = validAvatarUrl(url.trim())
     val mayLoad = downloadsAllowed && !proxied
     val automaticLoader = avatarLoader(scope,configuredHost,wifiOnly)
@@ -33,12 +33,12 @@ internal fun ProfileAvatarField(url: String, onChange: (String) -> Unit,
             RemoteBitmaps.fetch(source,fullSize=true,retry=age==0L,scope=scope)?.asImageBitmap()
         } else automaticLoader
     }
-    var attempt by remember(source) { mutableIntStateOf(0) }
-    var loading by remember(source, mayLoad, valid) { mutableStateOf(mayLoad && source != null && valid) }
-    var image by remember(source) { mutableStateOf<ImageBitmap?>(null) }
-    var failure by remember(source) { mutableStateOf<com.boxlabs.hexdroid.AvatarFailure?>(null) }
-    var expanded by remember(source) { mutableStateOf(false) }
-    LaunchedEffect(source, mayLoad, valid, attempt, loader) {
+    var attempt by remember(source,scope) { mutableIntStateOf(0) }
+    var loading by remember(source,scope, mayLoad, valid) { mutableStateOf(mayLoad && source != null && valid) }
+    var image by remember(source,scope) { mutableStateOf<ImageBitmap?>(null) }
+    var failure by remember(source,scope) { mutableStateOf<com.boxlabs.hexdroid.AvatarFailure?>(null) }
+    var expanded by remember(source,scope) { mutableStateOf(false) }
+    LaunchedEffect(source,scope,refreshToken, mayLoad, valid, attempt, loader) {
         image = null; failure = null; loading = false
         if (source == null || !valid || !mayLoad) return@LaunchedEffect
         loading = true
@@ -80,5 +80,5 @@ internal fun ProfileAvatarField(url: String, onChange: (String) -> Unit,
         Text(stringResource(R.string.dreams_avatar_profile_help), style = MaterialTheme.typography.bodySmall)
         Text(stringResource(R.string.dreams_avatar_privacy), style = MaterialTheme.typography.bodySmall)
     }
-    if (expanded && source != null && mayLoad) AvatarViewer(source, nick, onDismiss = { expanded = false; attempt++ }, scope=scope)
+    if (expanded && source != null && mayLoad) AvatarViewer(source, nick, onDismiss = { expanded = false; attempt++ }, scope=scope,refreshToken=refreshToken)
 }

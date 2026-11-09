@@ -869,7 +869,7 @@ fun NetworkEditScreen(
                         metadataKnown = connection?.avatarUrls?.containsKey(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459")) == true,
                         legacyKnown = connection?.legacyAvatarUrls?.containsKey(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459")) == true,
                         aliasUrl=connection?.avatarAliasUrls?.get(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459")), aliasKnown=connection?.avatarAliasUrls?.containsKey(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459"))==true,template=state.settings.avatarTemplate),
-                    nick = previewNick, downloadsAllowed = downloadsAllowed, proxied = proxyType != ProxyType.NONE, scope=n0.id,configuredHost=com.boxlabs.hexdroid.avatarTemplateHost(state.settings.avatarTemplate),wifiOnly=state.settings.imagePreviewsWifiOnly)
+                    nick = previewNick, downloadsAllowed = downloadsAllowed, proxied = proxyType != ProxyType.NONE, scope=n0.id,configuredHost=com.boxlabs.hexdroid.avatarTemplateHost(state.settings.avatarTemplate),wifiOnly=state.settings.imagePreviewsWifiOnly,refreshToken=connection?.avatarRevision ?: 0)
             }
 
             CardSection(stringResource(R.string.network_section_autoconnect), visible = shown(NetEditSection.AUTOCONNECT)) {

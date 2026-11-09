@@ -4885,7 +4885,7 @@ fun ChatScreen(
 
     expandedAvatar?.let { (url, nick) ->
         // Closing the viewer leaves the room and any nick sheet open behind it.
-        if (avatarFor(nick) == url) AvatarViewer(url, nick, onDismiss = { expandedAvatar = null; avatarRefresh++ }, scope=selNetId)
+        if (avatarFor(nick) == url) AvatarViewer(url, nick, onDismiss = { expandedAvatar = null; avatarRefresh++ }, scope=selNetId,refreshToken=avatarRefresh)
     }
     if (showMetadataEditor && viewModel != null && selNetId.isNotBlank()) {
         MetadataEditorDialog(

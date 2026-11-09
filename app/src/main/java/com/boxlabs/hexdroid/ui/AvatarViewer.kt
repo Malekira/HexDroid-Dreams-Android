@@ -66,11 +66,11 @@ fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, re
 
 @Composable
 fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
-                 load: (suspend (String, Boolean) -> ImageBitmap?)? = null, scope: String = "") {
-    var attempt by remember(url) { mutableIntStateOf(0) }
-    var loading by remember(url) { mutableStateOf(true) }
-    var image by remember(url) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(url, attempt) {
+                 load: (suspend (String, Boolean) -> ImageBitmap?)? = null, scope: String = "", refreshToken: Int = 0) {
+    var attempt by remember(url,scope) { mutableIntStateOf(0) }
+    var loading by remember(url,scope,refreshToken) { mutableStateOf(true) }
+    var image by remember(url,scope,refreshToken) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(url, scope, refreshToken, attempt) {
         loading = true
         image = if(load!=null) load(url, attempt > 0) else RemoteBitmaps.fetch(url,fullSize=true,retry=true,scope=scope)?.asImageBitmap()
         loading = false

@@ -2,6 +2,7 @@ package com.boxlabs.hexdroid
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.boxlabs.hexdroid.ui.SearchableLogContent
@@ -180,6 +181,20 @@ class PhotoLogAndroidTest {
             assertNull(RemoteBitmaps.fetch(url,fullSize=true))
             assertEquals(AvatarFailure.NOT_IMAGE,RemoteBitmaps.failure(url,fullSize=true))
         } finally { RemoteBitmaps.connectionFactory=original }
+    }
+    @Test fun openPhotoViewerReloadsWhenMetadataRevisionChangesAtTheSameUrl() {
+        val token=androidx.compose.runtime.mutableIntStateOf(0)
+        val calls=java.util.concurrent.atomic.AtomicInteger()
+        val bitmap=Bitmap.createBitmap(8,8,Bitmap.Config.ARGB_8888)
+        val image=bitmap.asImageBitmap()
+        compose.setContent { HexDroidIRCTheme {
+            com.boxlabs.hexdroid.ui.AvatarViewer("https://chat-avatars.chateagratis.net/same.png","Nick",{},
+                load={ _,_->calls.incrementAndGet();image },refreshToken=token.intValue)
+        } }
+        compose.waitUntil(5000) { calls.get()==1 }
+        compose.runOnIdle { token.intValue++ }
+        compose.waitUntil(5000) { calls.get()==2 }
+        compose.onNodeWithTag("avatar-full-image").assertIsDisplayed()
     }
     @Test fun viewerSearchesMultipleWordsAndShowsNoMatches() {
         val log="ALICIA llegó a sala\nBob privado\nalicia SALA dos"
