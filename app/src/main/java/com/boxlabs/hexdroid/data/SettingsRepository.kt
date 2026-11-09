@@ -733,6 +733,8 @@ class SettingsRepository(private val ctx: Context) {
                         bouncerNetworkId = o.optString("bouncerNetworkId", "").takeIf { it.isNotBlank() },
                         bouncerClientId = o.optString("bouncerClientId", "").takeIf { it.isNotBlank() },
                         tlsTofuFingerprint = o.optString("tlsTofuFingerprint", "").takeIf { it.isNotBlank() },
+                        tlsApprovalHost = o.optString("tlsApprovalHost", "").takeIf { it.isNotBlank() },
+                        tlsApprovalPort = o.optInt("tlsApprovalPort",0).takeIf { it in 1..65535 },
                         tlsAcceptedIdentities = run {
                             val arr = o.optJSONArray("tlsAcceptedIdentities") ?: return@run emptySet()
                             buildSet { for (i in 0 until arr.length()) arr.optString(i)?.takeIf { it.isNotBlank() }?.let { add(it) } }
@@ -859,6 +861,7 @@ class SettingsRepository(private val ctx: Context) {
             if (!n.bouncerNetworkId.isNullOrBlank()) o.put("bouncerNetworkId", n.bouncerNetworkId)
             if (!n.bouncerClientId.isNullOrBlank()) o.put("bouncerClientId", n.bouncerClientId)
             if (n.tlsTofuFingerprint != null) o.put("tlsTofuFingerprint", n.tlsTofuFingerprint)
+            n.tlsApprovalHost?.let { o.put("tlsApprovalHost",it) };n.tlsApprovalPort?.let { o.put("tlsApprovalPort",it) }
             o.put("tlsHostnameGrace", n.tlsHostnameGrace)
             if (n.tlsAcceptedIdentities.isNotEmpty()) {
                 val arr = org.json.JSONArray()
@@ -1588,6 +1591,8 @@ data class NetworkProfile(
      * With [tlsTofuFingerprints] it forms the accepted set.
      */
     val tlsTofuFingerprint: String? = null,
+    val tlsApprovalHost: String? = null,
+    val tlsApprovalPort: Int? = null,
     /**
      * Additional accepted TOFU fingerprints, for round-robin hosts where each server has its own
      * certificate. Filled by "Trust this server too"; "Reset & re-pin" replaces the primary and
@@ -1636,7 +1641,7 @@ data class NetworkProfile(
             host = host,
             port = port,
             useTls = useTls,
-            allowInvalidCerts = allowInvalidCerts,
+            allowInvalidCerts = allowInvalidCerts && (tlsApprovalHost==null || (tlsApprovalHost.equals(host.trim(),true) && tlsApprovalPort==port)),
             nick = nick,
             altNick = altNick,
             username = username,

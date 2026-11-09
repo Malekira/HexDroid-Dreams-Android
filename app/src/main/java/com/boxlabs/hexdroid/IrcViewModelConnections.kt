@@ -699,6 +699,7 @@ internal fun IrcViewModel.resetConnStatusDedup(netId: String) {
 }
 
 internal suspend fun IrcViewModel.connectNetworkInternal(netId: String, force: Boolean = false) {
+    setNetConn(netId) { it.copy(certificateApproval=null) }
     if (!force) {
         val c = _state.value.connections[netId]
         if (c?.connected == true || c?.connecting == true) return
@@ -836,11 +837,11 @@ internal suspend fun IrcViewModel.connectNetworkInternal(netId: String, force: B
         ?.takeIf { it.isActive(System.currentTimeMillis()) }
     val cfg = when {
         stsUpgradePort != null ->
-            cfgBase.copy(useTls = true, port = stsUpgradePort, allowInvalidCerts = false)
+            cfgBase.copy(useTls = true, port = stsUpgradePort, allowInvalidCerts = false, certificateApprovalAllowed = false)
         stsPolicy != null && !cfgBase.useTls ->
-            cfgBase.copy(useTls = true, port = stsPolicy.port ?: 6697, allowInvalidCerts = false)
+            cfgBase.copy(useTls = true, port = stsPolicy.port ?: 6697, allowInvalidCerts = false, certificateApprovalAllowed = false)
         stsPolicy != null ->
-            cfgBase.copy(allowInvalidCerts = false)
+            cfgBase.copy(allowInvalidCerts = false, certificateApprovalAllowed = false)
         else -> cfgBase
     }
 

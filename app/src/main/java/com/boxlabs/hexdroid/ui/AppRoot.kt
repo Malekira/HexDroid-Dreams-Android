@@ -66,6 +66,8 @@ import androidx.compose.ui.graphics.toArgb
 import com.boxlabs.hexdroid.AppScreen
 import com.boxlabs.hexdroid.ui.script.ScriptsScreen
 import com.boxlabs.hexdroid.ui.script.ScriptViewHost
+import com.boxlabs.hexdroid.approveCertificate
+import com.boxlabs.hexdroid.rejectCertificate
 import com.boxlabs.hexdroid.IrcViewModel
 import com.boxlabs.hexdroid.data.ThemeMode
 import com.boxlabs.hexdroid.ui.theme.HexDroidIRCTheme
@@ -89,6 +91,10 @@ fun AppRoot(
 ) {
     val mainActivity = LocalContext.current as? com.boxlabs.hexdroid.MainActivity
     val state by vm.state.collectAsStateWithLifecycle()
+    state.connections.entries.firstOrNull { it.value.certificateApproval!=null }?.let { (netId,conn) ->
+        conn.certificateApproval?.let { request -> CertificateApprovalDialog(request,
+            onAccept={ vm.approveCertificate(netId,request.id) },onReject={ vm.rejectCertificate(netId,request.id) }) }
+    }
     val scriptLaunchers by vm.scriptLaunchers.collectAsState()
     val mountedScriptView by vm.scriptView.collectAsState()
     val scriptFilePick by vm.scriptFilePick.collectAsState()

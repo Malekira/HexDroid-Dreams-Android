@@ -237,6 +237,7 @@ data class IrcConfig(
      * the ViewModel match its onLost callback to this connection.
      */
     val pinnedNetwork: android.net.Network? = null
+    val certificateApprovalAllowed: Boolean = true,
 ) {
     /**
      * The authentication identity for this connection, with the bouncer network name and client id

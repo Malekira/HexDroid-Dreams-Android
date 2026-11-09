@@ -35,6 +35,7 @@ sealed class IrcEvent {
      * The server's certificate fingerprint differs from the stored TOFU pin; the connection is
      * refused. Could be a legitimate rotation or an interception.
      */
+    data class CertificateApprovalRequired(val request:TlsCertificateApproval):IrcEvent()
     data class TlsFingerprintChanged(val stored: String, val actual: String) : IrcEvent()
     /**
      * Emitted on the first TLS connection when no TOFU fingerprint was stored yet.
