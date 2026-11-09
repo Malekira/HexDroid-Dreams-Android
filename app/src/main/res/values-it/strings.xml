@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">HexDroid Dreams</string>
+    <string name="app_name">HexDreams IRC</string>
 
     <!-- Welcome / Setup Screen -->
-    <string name="welcome_title">Benvenuto in HexDroid Dreams</string>
+    <string name="welcome_title">Benvenuto in HexDreams IRC</string>
     <string name="welcome_subtitle">Configuriamo tutto prima di iniziare.</string>
     <string name="welcome_language_label">Lingua</string>
     <string name="welcome_nick_label">Nickname</string>

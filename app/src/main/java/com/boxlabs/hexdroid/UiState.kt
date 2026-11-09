@@ -329,6 +329,7 @@ data class UiSettings(
     val logFolderUri: String? = null,
     val chatZonaAvatarsEnabled: Boolean = true,
     val chatZonaAvatarsInMessages: Boolean = false,
+    val avatarTemplate: String = DEFAULT_AVATAR_TEMPLATE,
     val logDailyFiles: Boolean = false,
     val logCombineConversations: Boolean = false,
     val maxScrollbackLines: Int = 800,
@@ -481,6 +482,8 @@ data class NetConnState(
     val displayNames: Map<String, String> = emptyMap(),
     /** draft/metadata-2 avatar URLs, keyed by lowercased nick or channel. */
     val avatarUrls: Map<String, String> = emptyMap(),
+    val avatarAliasUrls: Map<String, String> = emptyMap(),
+    val avatarCaseMapping: String = "rfc1459",
     /** Empty values mean explicit removal, not an invitation to use an old fallback photo. */
     val legacyAvatarUrls: Map<String, String> = emptyMap(),
     val primaryAvatarNicks: Set<String> = emptySet(),

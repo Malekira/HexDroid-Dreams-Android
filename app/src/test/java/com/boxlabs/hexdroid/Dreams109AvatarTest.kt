@@ -14,8 +14,8 @@ class Dreams109AvatarTest {
     }
 
     @Test fun nickPrefixesAndSpecialCharactersAreEncodedAsOneSafeUrlSegment() {
-        assertEquals("https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01", chatZonaAvatarUrl("irc.chatzona.org", null, "@+DemoNick01"))
-        assertEquals("https://chat-avatars.chateagratis.net/avatar/Chat/Demo%5BNick%5D", chatZonaAvatarUrl("irc.chatzona.org", null, "Demo[Nick]"))
+        assertEquals("https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01.png", chatZonaAvatarUrl("irc.chatzona.org", null, "@+DemoNick01"))
+        assertEquals("https://chat-avatars.chateagratis.net/avatar/Chat/Demo%5BNick%5D.png", chatZonaAvatarUrl("irc.chatzona.org", null, "Demo[Nick]"))
         for (nick in listOf("", "..", "#demo", "*server*", "bad\r\nname", "two words")) assertNull(chatZonaAvatarUrl("irc.chatzona.org", null, nick))
     }
 

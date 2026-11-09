@@ -859,16 +859,17 @@ fun NetworkEditScreen(
                 val metadata = connection?.avatarUrls?.entries?.firstOrNull { it.key.equals(previewNick, true) }?.value
                 val chatZona = com.boxlabs.hexdroid.isChatZonaNetwork(host, connection?.serverNetworkName)
                 val downloadsAllowed = proxyType == ProxyType.NONE &&
-                    (if (chatZona) state.settings.chatZonaAvatarsEnabled else state.settings.imagePreviewsEnabled)
+                    state.settings.imagePreviewsEnabled && state.settings.chatZonaAvatarsEnabled && (!state.settings.imagePreviewsWifiOnly || isOnWifi(androidx.compose.ui.platform.LocalContext.current))
                 LaunchedEffect(n0.id, previewNick, connection?.connected, connection?.hasUserMetadata) {
                     if (connection?.connected == true) onRequestAvatarMetadata(n0.id, previewNick)
                 }
                 ProfileAvatarField(avatarUrl, { avatarUrl = it },
                     source = com.boxlabs.hexdroid.profileAvatarSource(avatarUrl, metadata, host, connection?.serverNetworkName, previewNick,
-                        legacyUrl = connection?.legacyAvatarUrls?.get(previewNick.lowercase()),
-                        metadataKnown = connection?.avatarUrls?.containsKey(previewNick.lowercase()) == true,
-                        legacyKnown = connection?.legacyAvatarUrls?.containsKey(previewNick.lowercase()) == true),
-                    nick = previewNick, downloadsAllowed = downloadsAllowed, proxied = proxyType != ProxyType.NONE)
+                        legacyUrl = connection?.legacyAvatarUrls?.get(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459")),
+                        metadataKnown = connection?.avatarUrls?.containsKey(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459")) == true,
+                        legacyKnown = connection?.legacyAvatarUrls?.containsKey(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459")) == true,
+                        aliasUrl=connection?.avatarAliasUrls?.get(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459")), aliasKnown=connection?.avatarAliasUrls?.containsKey(com.boxlabs.hexdroid.ircCasefold(previewNick,connection?.avatarCaseMapping ?: "rfc1459"))==true,template=state.settings.avatarTemplate),
+                    nick = previewNick, downloadsAllowed = downloadsAllowed, proxied = proxyType != ProxyType.NONE, scope=n0.id,configuredHost=com.boxlabs.hexdroid.avatarTemplateHost(state.settings.avatarTemplate))
             }
 
             CardSection(stringResource(R.string.network_section_autoconnect), visible = shown(NetEditSection.AUTOCONNECT)) {

@@ -635,12 +635,13 @@ class NotificationHelper(private val ctx: Context) {
 
     /** Fetch the avatars [urls] in the background, reposting [tag]'s conversation as each arrives. */
     private fun fetchAvatars(tag: String, urls: Set<String>) {
+        val networkId=synchronized(postLock) { lastPosts[tag]?.networkId } ?: return
         val now = System.currentTimeMillis()
         if (avatarFetches.size > 256) avatarFetches.clear()
         for (url in urls) {
             val last = avatarFetches.put("$tag\u0000$url", now)
             if (last != null && now - last < AVATAR_FETCH_GAP_MS) continue
-            RemoteBitmaps.load(url) { refreshConversation(tag) }
+            RemoteBitmaps.load(url,scope=networkId,configuredHost=Avatars.configuredHost(networkId)) { refreshConversation(tag) }
         }
     }
 
@@ -661,7 +662,7 @@ class NotificationHelper(private val ctx: Context) {
      */
     private fun avatarFor(networkId: String, nick: String, missing: MutableSet<String>): android.graphics.Bitmap {
         val url = Avatars.urlFor(networkId, nick) ?: return Avatars.letterAvatar(nick)
-        val photo = RemoteBitmaps.cached(url)
+        val photo = RemoteBitmaps.cached(url,scope=networkId)
         if (photo == null) {
             missing += url
             return Avatars.letterAvatar(nick)
@@ -672,7 +673,7 @@ class NotificationHelper(private val ctx: Context) {
     /** The conversation icon for [name]: its metadata avatar once fetched, else a lettered one. */
     private fun conversationIcon(networkId: String, name: String, missing: MutableSet<String>): ConversationIcon {
         val url = Avatars.urlFor(networkId, name)
-        val photo = url?.let { RemoteBitmaps.cached(it) }
+        val photo = url?.let { RemoteBitmaps.cached(it,scope=networkId) }
         if (url != null && photo != null) {
             return ConversationIcon("url:$url", IconCompat.createWithAdaptiveBitmap(Avatars.adaptivePhoto(url, photo)))
         }

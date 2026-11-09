@@ -135,7 +135,7 @@ internal fun IrcClient.buildNumericHandlers(
             // takeMetadataSubLine() self-guards, so this is a no-op when it already went out.
             sessionRef?.markRegistered()
             if (sessionRef?.sojuMetadata != true || bouncerNetId != null) {
-                sessionRef?.takeMetadataSubLine()?.let { writeLine(it) }
+                sessionRef?.takeMetadataSubLine()?.let { writeLine(it); if (sessionRef?.sojuMetadata != true) writeLine("METADATA * GET avatar avatar-url") }
             }
             // Stored away message: already sent during registration under draft/pre-away, else now.
             if (sessionRef?.preAwaySent != true) {
@@ -320,7 +320,7 @@ internal fun IrcClient.buildNumericHandlers(
             ))
             // soju lists per-target metadata only once the connection is bound, which
             // BOUNCER_NETID announces after RPL_WELCOME.
-            if (registered && bouncerNetId != null) sessionRef?.takeMetadataSubLine()?.let { writeLine(it) }
+            if (registered && bouncerNetId != null) sessionRef?.takeMetadataSubLine()?.let { writeLine(it); if (sessionRef?.sojuMetadata != true) writeLine("METADATA * GET avatar avatar-url") }
             if (vapidBecameReady) {
                 vapidBecameReady = false
                 vapidPublicKey?.let { send(IrcEvent.WebPushVapidReady(it)) }
@@ -515,7 +515,7 @@ internal fun IrcClient.buildNumericHandlers(
             val chan = msg.params.getOrNull(1) ?: "*"
             val buffer = currentWho(chan.takeIf { isChannelName(it) })?.buffer ?: return@handler
             val server = msg.params.getOrNull(4)?.let { " ($it)" } ?: ""
-            val realname = msg.trailing?.let { stripIrcFormatting(it.substringAfter(' ', "")) }.orEmpty()
+            val realname = msg.trailing?.let { displayRealname(stripIrcFormatting(it.substringAfter(' ', ""))) }.orEmpty()
             send(IrcEvent.ServerText(
                 "$chan $nick ${flags.orEmpty()} $ident@$host$server $realname".trimEnd(),
                 code = "352",

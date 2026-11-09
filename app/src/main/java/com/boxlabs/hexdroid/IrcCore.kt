@@ -2713,7 +2713,12 @@ class IrcClient(val config: IrcConfig) {
 					emptyList()
 				}
 				for (a in hsActions) when (a) {
-					is IrcAction.Send -> writeLine(a.line)
+					is IrcAction.Send -> {
+                        writeLine(a.line)
+                        if (a.line.startsWith("METADATA * SUB ") && irc.sojuMetadata != true) {
+                            joinedChannelCases.values.toList().forEach { writeLine("METADATA $it SYNC") }
+                        }
+                    }
 					is IrcAction.EmitStatus -> send(IrcEvent.Status(a.text))
 					is IrcAction.EmitError -> send(IrcEvent.Error(a.text))
 					is IrcAction.EmitCapNew -> send(IrcEvent.CapNew(a.caps))

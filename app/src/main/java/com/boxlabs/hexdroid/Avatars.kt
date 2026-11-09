@@ -58,13 +58,17 @@ object Avatars {
     }
 
     /** Replace the avatar URLs notifications may use. */
-    fun setAllowedUrls(urls: Map<String, Map<String, String>>) {
+    @Volatile private var configuredHosts: Map<String,String?> = emptyMap()
+    @Volatile private var caseMappings: Map<String,String> = emptyMap()
+    fun configuredHost(networkId:String):String? = configuredHosts[networkId]
+    fun setAllowedUrls(urls: Map<String, Map<String, String>>, hosts: Map<String,String?> = emptyMap(), mappings: Map<String,String> = emptyMap()) {
+        configuredHosts=hosts;caseMappings=mappings
         allowedUrls = urls
     }
 
     /** The metadata avatar URL notifications may use for [nick] on [networkId], if any. */
     fun urlFor(networkId: String, nick: String): String? =
-        allowedUrls[networkId]?.get(nick.trim().lowercase())
+        allowedUrls[networkId]?.get(ircCasefold(nick.trim(),caseMappings[networkId] ?: "rfc1459"))
 
     /** The first letter or digit of [name], ignoring channel and status prefixes. */
     fun initialOf(name: String): String {

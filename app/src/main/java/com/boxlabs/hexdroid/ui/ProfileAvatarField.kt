@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -22,10 +23,16 @@ import com.boxlabs.hexdroid.validAvatarUrl
 @Composable
 internal fun ProfileAvatarField(url: String, onChange: (String) -> Unit,
                                 source: String? = url.trim().takeIf { it.isNotEmpty() && validAvatarUrl(it) },
-                                nick: String = "", downloadsAllowed: Boolean = false, proxied: Boolean = false) {
+                                nick: String = "", downloadsAllowed: Boolean = false, proxied: Boolean = false, scope: String = "", configuredHost: String? = null) {
     val valid = validAvatarUrl(url.trim())
     val mayLoad = downloadsAllowed && !proxied
-    val loader = LocalAvatarLoader.current
+    val automaticLoader = avatarLoader(scope,configuredHost)
+    val injected=LocalAvatarLoader.current
+    val loader: suspend (String,Long)->ImageBitmap? = remember(automaticLoader,injected,url,scope) {
+        if(url.isNotBlank() && injected === DefaultAvatarLoader) { source: String, age: Long ->
+            RemoteBitmaps.fetch(source,fullSize=true,retry=age==0L,scope=scope)?.asImageBitmap()
+        } else automaticLoader
+    }
     var attempt by remember(source) { mutableIntStateOf(0) }
     var loading by remember(source, mayLoad, valid) { mutableStateOf(mayLoad && source != null && valid) }
     var image by remember(source) { mutableStateOf<ImageBitmap?>(null) }
@@ -37,9 +44,9 @@ internal fun ProfileAvatarField(url: String, onChange: (String) -> Unit,
         loading = true
         try {
             if (attempt == 0) kotlinx.coroutines.delay(350)
-            if (attempt > 0) RemoteBitmaps.invalidate(source)
+            if (attempt > 0) RemoteBitmaps.invalidate(source,scope)
             image = loader(source, if (attempt > 0) 0L else com.boxlabs.hexdroid.CHATZONA_AVATAR_REFRESH_MS)
-            if (image == null) failure = RemoteBitmaps.failure(source)
+            if (image == null) failure = RemoteBitmaps.failure(source,scope=scope)
         } finally { loading = false }
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -73,5 +80,5 @@ internal fun ProfileAvatarField(url: String, onChange: (String) -> Unit,
         Text(stringResource(R.string.dreams_avatar_profile_help), style = MaterialTheme.typography.bodySmall)
         Text(stringResource(R.string.dreams_avatar_privacy), style = MaterialTheme.typography.bodySmall)
     }
-    if (expanded && source != null && mayLoad) AvatarViewer(source, nick, onDismiss = { expanded = false; attempt++ })
+    if (expanded && source != null && mayLoad) AvatarViewer(source, nick, onDismiss = { expanded = false; attempt++ }, scope=scope)
 }

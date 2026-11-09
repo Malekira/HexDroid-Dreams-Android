@@ -32,10 +32,10 @@ class Dreams111AvatarUiTest {
         var saved:com.boxlabs.hexdroid.data.NetworkProfile?=null
         val loader:suspend(String,Long)->androidx.compose.ui.graphics.ImageBitmap?={url,_->urls+=url;bitmap}
         compose.setContent { CompositionLocalProvider(LocalAvatarLoader provides loader) { HexDroidIRCTheme {
-            NetworkEditScreen(UiState(settings=UiSettings(settingsOnePage=true,chatZonaAvatarsEnabled=true),editingNetwork=net),onCancel={},onSave={p,_,_->saved=p})
+            NetworkEditScreen(UiState(settings=UiSettings(settingsOnePage=true,chatZonaAvatarsEnabled=true,imagePreviewsEnabled=true,imagePreviewsWifiOnly=false),editingNetwork=net),onCancel={},onSave={p,_,_->saved=p})
         } } }
         awaitTag("profile-avatar-preview").performScrollTo().assertIsDisplayed().assertHasClickAction()
-        val expected="https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01"
+        val expected="https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01.png"
         compose.waitUntil(5_000){urls.contains(expected)}
         compose.onNodeWithTag("profile-avatar-source").assertTextEquals(expected)
         compose.onNodeWithTag("profile-avatar-use-source").performScrollTo().performClick()
@@ -75,7 +75,7 @@ class Dreams111AvatarUiTest {
         var saved:com.boxlabs.hexdroid.data.NetworkProfile?=null
         val loader:suspend(String,Long)->androidx.compose.ui.graphics.ImageBitmap?={url,_->calls+=url;bitmap}
         compose.setContent { CompositionLocalProvider(LocalAvatarLoader provides loader) { HexDroidIRCTheme {
-            NetworkEditScreen(UiState(settings=UiSettings(settingsOnePage=true,chatZonaAvatarsEnabled=true),editingNetwork=net,
+            NetworkEditScreen(UiState(settings=UiSettings(settingsOnePage=true,chatZonaAvatarsEnabled=true,imagePreviewsEnabled=true,imagePreviewsWifiOnly=false),editingNetwork=net,
                 connections=mapOf(net.id to NetConnState(myNick="DemoNick01",connected=true,hasUserMetadata=true,avatarUrls=mapOf("demonick01" to metadata)))),
                 onCancel={},onSave={p,_,_->saved=p},onRequestAvatarMetadata={_,_->requests++})
         } } }
@@ -93,7 +93,7 @@ class Dreams111AvatarUiTest {
         val state=UiState(networks=listOf(net),activeNetworkId=id,selectedBuffer=key,
             buffers=mapOf(key to UiBuffer("#demo",log=BufferLog(messages=kotlinx.collections.immutable.persistentListOf(UiMessage(1,System.currentTimeMillis(),nick,"Mensaje propio de prueba"))))),
             connections=mapOf(id to NetConnState(myNick=nick,avatarUrls=mapOf(nick.lowercase() to metadata))),profileAvatarUrls=mapOf(id to ""),
-            settings=UiSettings(chatZonaAvatarsEnabled=true,chatZonaAvatarsInMessages=true,imagePreviewsEnabled=false),showBufferList=false,showNickList=false)
+            settings=UiSettings(chatZonaAvatarsEnabled=true,chatZonaAvatarsInMessages=true,imagePreviewsEnabled=true,imagePreviewsWifiOnly=false),showBufferList=false,showNickList=false)
         compose.setContent { CompositionLocalProvider(LocalAvatarLoader provides loader) { HexDroidIRCTheme {
             ChatScreen(state,onSelectBuffer={},onSend={},onDisconnect={},onReconnect={},onExit={},
                 onToggleBufferList={},onToggleNickList={},onToggleChannelsOnly={},onWhois={},onIgnoreNick={_,_->},onUnignoreNick={_,_->},

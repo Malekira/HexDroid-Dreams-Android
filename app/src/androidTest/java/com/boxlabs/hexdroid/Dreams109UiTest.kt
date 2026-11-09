@@ -73,13 +73,13 @@ class Dreams109UiTest {
         var state by mutableStateOf(UiState(networks = listOf(profile), activeNetworkId = id, selectedBuffer = key,
             buffers = mapOf(key to UiBuffer("DemoNick01", log = BufferLog(messages = persistentListOf(msg)))),
             connections = mapOf(id to NetConnState(myNick = "OwnDemoNick")), showBufferList = false, showNickList = false,
-            settings = UiSettings(chatZonaAvatarsEnabled = true, chatZonaAvatarsInMessages = true, imagePreviewsEnabled = false)))
+            settings = UiSettings(chatZonaAvatarsEnabled = true, chatZonaAvatarsInMessages = true, imagePreviewsEnabled = true, imagePreviewsWifiOnly = false)))
         val urls = CopyOnWriteArrayList<String>()
         val image = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).asImageBitmap()
         val loader: suspend (String, Long) -> androidx.compose.ui.graphics.ImageBitmap? = { url, _ -> urls += url; image }
         compose.setContent { CompositionLocalProvider(LocalAvatarLoader provides loader) { HexDroidIRCTheme { Chat(state) } } }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(2)
-        compose.waitUntil(5_000) { urls.any { it == "https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01" } }
+        compose.waitUntil(5_000) { urls.any { it == "https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01.png" } }
         compose.runOnIdle { state = state.copy(settings = state.settings.copy(chatZonaAvatarsInMessages = false)) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(1)
         val custom = "https://images.example.invalid/custom.jpg"
@@ -88,7 +88,7 @@ class Dreams109UiTest {
         compose.runOnIdle { state = state.copy(settings = state.settings.copy(chatZonaAvatarsEnabled = false, imagePreviewsEnabled = true)) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)
         compose.runOnIdle { state = state.copy(settings = state.settings.copy(chatZonaAvatarsEnabled = true), networks = listOf(profile.copy(host = "irc.other.invalid"))) }
-        compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)
+        compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(1)
         compose.runOnIdle { state = state.copy(networks = listOf(profile.copy(proxyType = ProxyType.SOCKS5))) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)
     }

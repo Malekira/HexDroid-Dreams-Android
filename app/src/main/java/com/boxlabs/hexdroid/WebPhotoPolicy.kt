@@ -5,16 +5,16 @@ import java.net.URI
 import java.util.Base64
 import java.util.Locale
 
-private val photoHosts = setOf("images.chateagratis.net", "chat-avatars.chateagratis.net")
+internal val photoHosts = setOf("images.chateagratis.net", "chat-avatars.chateagratis.net")
 internal data class WebPhoto(val url: String?)
 
 /** Web v92 stores avatar|gender|age|photo in Base64 GECOS; only the photo is used. */
 internal fun webPhotoFromGecos(value: String?): WebPhoto? = runCatching {
     if (value.isNullOrEmpty() || value.length > 4096 || !value.matches(Regex("[A-Za-z0-9+/]+={0,2}"))) return null
-    val decoded = Base64.getDecoder().decode(value).toString(Charsets.UTF_8)
-    if (decoded.any { it == '\uFFFD' || it.isISOControl() }) return null
+    val decoded = Charsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(Base64.getDecoder().decode(value))).toString()
+    if (decoded.any { it.isISOControl() }) return null
     val parts = decoded.split('|')
-    if (parts.size != 4) return null
+    if (parts.size < 4) return null
     WebPhoto(normalizeWebPhotoUrl(parts[3], legacy = true))
 }.getOrNull()
 
@@ -47,4 +47,34 @@ internal fun avatarRequestUrl(source: String, nowMs: Long, refresh: Boolean): St
     val remaining = query.filterNot { it.substringBefore('=') == "v" || it.isEmpty() }
     val version = if (refresh) nowMs else nowMs / 60_000L
     return normalized.substringBefore('?') + "?" + (remaining + "v=$version").joinToString("&")
+}
+
+/** A web payload carries no displayable real name. Ordinary real names are untouched. */
+internal fun displayRealname(value: String): String = if (webPhotoFromGecos(value) != null) "" else value
+
+internal const val DEFAULT_AVATAR_TEMPLATE = "https://chat-avatars.chateagratis.net/avatar/Chat/{nick}.png"
+internal fun templateAvatarUrl(template: String, nick: String, prefixes: String = "~&@%+"): String? {
+    val bare = nick.trimStart { it in prefixes }
+    if (bare.isBlank() || bare.length > 128 || bare.any { it.isWhitespace() || it.isISOControl() } || bare in listOf(".", "..") || bare.startsWith('#') || bare.startsWith('*')) return null
+    fun encode(s: String) = java.net.URLEncoder.encode(s, "UTF-8").replace("+", "%20")
+    if (listOf("{nick}", "{nickLower}", "%nick%", "%s").none { it in template }) return null
+    val url = template.replace("{nickLower}", encode(bare.lowercase(Locale.ROOT)))
+        .replace("{nick}", encode(bare)).replace("%nick%", encode(bare)).replace("%s", encode(bare))
+    return normalizeWebPhotoUrl(url)
+}
+internal fun avatarTemplateHost(template: String): String? = templateAvatarUrl(template, "AvatarProbe")?.let { URI(it).host?.lowercase(Locale.ROOT) }
+
+internal fun automaticAvatarAllowed(url: String, configuredHost: String?): Boolean = runCatching {
+    validAvatarUrl(url) && URI(url).host.lowercase(Locale.ROOT).let { it in photoHosts || it == configuredHost?.lowercase(Locale.ROOT) }
+}.getOrDefault(false)
+
+internal fun publicAvatarAddress(address: java.net.InetAddress): Boolean {
+    if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress || address.isMulticastAddress) return false
+    val b=address.address.map { it.toInt() and 255 }
+    if (b.size==4) return !(b[0]==0 || b[0]>=224 || b[0]==127 || b[0]==10 ||
+        (b[0]==100 && b[1] in 64..127) || (b[0]==169 && b[1]==254) ||
+        (b[0]==172 && b[1] in 16..31) || (b[0]==192 && (b[1]==168 || b[1]==0)) ||
+        (b[0]==198 && b[1] in 18..19))
+    // Only globally routable unicast IPv6; excludes ULA, mapped, NAT64 and local ranges.
+    return b.size==16 && (b[0] and 0xe0)==0x20 && !(b[0]==0x20 && b[1]==0x01 && b[2]==0x0d && b[3]==0xb8)
 }

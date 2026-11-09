@@ -1036,9 +1036,10 @@ fun SettingsScreen(
 
             if (onePage || current == SettingsCategory.MEDIA) {
             if (onePage) item(key = "hdr_MEDIA") { OnePageHeader(SettingsCategory.MEDIA) }
-            item { FullWidthSettingToggle("Avatares automáticos de ChatZona", s.chatZonaAvatarsEnabled) { onUpdate { copy(chatZonaAvatarsEnabled = !chatZonaAvatarsEnabled) } } }
-            item { Text("Usa la foto del perfil o los metadatos y, cuando faltan, busca la foto pública de ChatZona. No se aplica a otras redes ni a conexiones con proxy.", style = MaterialTheme.typography.bodySmall) }
-            item { FullWidthSettingToggle("Avatares de ChatZona junto a los mensajes", s.chatZonaAvatarsInMessages) { onUpdate { copy(chatZonaAvatarsInMessages = !chatZonaAvatarsInMessages) } } }
+            item { OutlinedTextField(s.avatarTemplate, { value -> onUpdate { copy(avatarTemplate = value) } }, label = { Text("Plantilla de avatares HTTPS") }, supportingText = { Text("{nick}, {nickLower}, %nick% o %s · vacío desactiva el respaldo") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+            item { FullWidthSettingToggle("Carga automática de avatares", s.chatZonaAvatarsEnabled) { onUpdate { copy(chatZonaAvatarsEnabled = !chatZonaAvatarsEnabled) } } }
+            item { Text("Usa METADATA, la foto del chat web o la plantilla. Respeta multimedia y solo Wi-Fi; las conexiones con proxy no descargan avatares.", style = MaterialTheme.typography.bodySmall) }
+            item { FullWidthSettingToggle("Avatares junto a los mensajes", s.chatZonaAvatarsInMessages) { onUpdate { copy(chatZonaAvatarsInMessages = !chatZonaAvatarsInMessages) } } }
 
 
 

@@ -1397,6 +1397,7 @@ class IrcViewModel(
         // Apply immediately; DataStore confirms shortly after.
         val st = _state.value
         val next = st.settings.update()
+        if (st.settings.avatarTemplate != next.avatarTemplate || st.settings.chatZonaAvatarsEnabled != next.chatZonaAvatarsEnabled || st.settings.imagePreviewsEnabled != next.imagePreviewsEnabled) st.connections.keys.forEach { RemoteBitmaps.invalidateScope(it) }
         _state.value = st.copy(settings = next)
 
         viewModelScope.launch {
@@ -3546,7 +3547,7 @@ fun startAddNetwork() {
         if (avatarMetadataRequestedAt[key]?.let { now - it < 60_000 } == true) return
         if (avatarMetadataRequestedAt.size > 512) avatarMetadataRequestedAt.clear()
         avatarMetadataRequestedAt[key] = now
-        viewModelScope.launch { runCatching { runtimes[netId]?.client?.sendMetadata(nick, "GET", "avatar") } }
+        viewModelScope.launch { runCatching { runtimes[netId]?.client?.sendMetadata(nick, "GET", "avatar avatar-url") } }
     }
 
     /** True when the connected server keeps metadata for users (soju keeps only its own per-target keys). */

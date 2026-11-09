@@ -18,17 +18,19 @@ internal fun chatZonaAvatarUrl(host: String, advertisedNetwork: String?, nick: S
     if (!isChatZonaNetwork(host, advertisedNetwork)) return null
     val bare = nick.trimStart('~', '&', '@', '%', '+')
     if (bare.isBlank() || bare.length > 128 || bare in setOf(".", "..") || bare.any { it.isWhitespace() || it.isISOControl() } || bare.startsWith('#') || bare.startsWith('*')) return null
-    return "https://chat-avatars.chateagratis.net/avatar/Chat/" + URLEncoder.encode(bare, StandardCharsets.UTF_8.name()).replace("+", "%20")
+    return "https://chat-avatars.chateagratis.net/avatar/Chat/" + URLEncoder.encode(bare, StandardCharsets.UTF_8.name()).replace("+", "%20") + ".png"
 }
 
 /** Resolve a profile without downloading or persisting a nick-derived URL. */
 internal fun profileAvatarSource(explicitUrl: String?, metadataUrl: String?, host: String, network: String?, nick: String,
-                                 legacyUrl: String? = null, metadataKnown: Boolean = false, legacyKnown: Boolean = false): String? {
+                                 legacyUrl: String? = null, metadataKnown: Boolean = false, legacyKnown: Boolean = false,
+                                 aliasUrl: String? = null, aliasKnown: Boolean = false, template: String = DEFAULT_AVATAR_TEMPLATE): String? {
     explicitUrl?.trim()?.takeIf { it.isNotEmpty() }?.let { normalizeWebPhotoUrl(it)?.let { value -> return value } }
     if (metadataKnown) return normalizeWebPhotoUrl(metadataUrl)
     normalizeWebPhotoUrl(metadataUrl)?.let { return it }
+    if (aliasKnown) return normalizeWebPhotoUrl(aliasUrl)
     if (legacyKnown) return normalizeWebPhotoUrl(legacyUrl)
-    return normalizeWebPhotoUrl(legacyUrl) ?: chatZonaAvatarUrl(host, network, nick)
+    return normalizeWebPhotoUrl(legacyUrl) ?: templateAvatarUrl(template, nick)
 }
 
 /** An untouched empty field must not publish METADATA DEL or erase a web avatar. */
@@ -41,15 +43,15 @@ internal enum class AvatarFailure { TOO_LARGE, HTTP, NOT_IMAGE, TIMEOUT, CONNECT
 internal const val AVATAR_MAX_BYTES = 2 * 1024 * 1024
 
 internal class AvatarTooLargeException : java.io.IOException()
-internal fun readAvatarBytes(input: java.io.InputStream, declaredSize: Long = -1L): ByteArray {
-    if (declaredSize > AVATAR_MAX_BYTES) throw AvatarTooLargeException()
+internal fun readAvatarBytes(input: java.io.InputStream, declaredSize: Long = -1L, maxBytes: Int = AVATAR_MAX_BYTES): ByteArray {
+    if (declaredSize > maxBytes) throw AvatarTooLargeException()
     val out = java.io.ByteArrayOutputStream()
     val chunk = ByteArray(16 * 1024)
     while (true) {
-        val count = input.read(chunk, 0, minOf(chunk.size, AVATAR_MAX_BYTES - out.size() + 1))
+        val count = input.read(chunk, 0, minOf(chunk.size, maxBytes - out.size() + 1))
         if (count < 0) break
         if (count == 0) continue
-        if (out.size() + count > AVATAR_MAX_BYTES) throw AvatarTooLargeException()
+        if (out.size() + count > maxBytes) throw AvatarTooLargeException()
         out.write(chunk, 0, count)
     }
     return out.toByteArray()

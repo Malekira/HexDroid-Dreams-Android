@@ -81,10 +81,47 @@ class PhotoLogAndroidTest {
                 val moved=vm.withMetadataMovedForNick(state,"Alice","Bob")
                 assertFalse(moved.avatarUrls.containsKey("alice"));assertEquals("",moved.avatarUrls["bob"])
                 assertTrue("bob" in moved.primaryAvatarNicks)
+                vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar-url","*","https://example.org/alias.png"))
+                assertEquals("",vm.state.value.connections[net]!!.avatarUrls["alice"])
+                assertEquals("https://example.org/alias.png",vm.state.value.connections[net]!!.avatarAliasUrls["alice"])
+                val other=net+"-other"
+                vm.handleStateEvent(other,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/other.png"))
+                assertEquals("https://example.org/other.png",vm.state.value.connections[other]!!.avatarUrls["alice"])
+                vm.handleStateEvent(net,IrcEvent.MetadataChanged("N[ick]","avatar","*","https://example.org/special.png"))
+                assertEquals("https://example.org/special.png",vm.state.value.connections[net]!!.avatarUrls["n{ick}"])
                 vm.dropMetadataForNick(net,"Alice")
                 assertFalse(vm.state.value.connections[net]!!.legacyAvatarUrls.containsKey("alice"))
             }
         } finally { main { store.clear() } }
+    }
+    @Test fun networkCachesAndInvalidationAreIsolatedAndThumbnailsStayWithin96Pixels() = runBlocking {
+        val original=RemoteBitmaps.connectionFactory
+        val url="https://chat-avatars.chateagratis.net/scoped-${System.nanoTime()}.png"
+        var calls=0
+        val bytes=ByteArrayOutputStream().also { Bitmap.createBitmap(500,200,Bitmap.Config.ARGB_8888).apply { eraseColor(Color.GREEN) }.compress(Bitmap.CompressFormat.PNG,100,it) }.toByteArray()
+        RemoteBitmaps.connectionFactory={ target -> calls++;Connection(target,bytes) }
+        try {
+            val first=RemoteBitmaps.fetchFresh(url,60000,scope="network-a")!!
+            assertTrue(first.width<=96 && first.height<=96)
+            assertEquals(2.5,first.width.toDouble()/first.height,0.1)
+            assertNull(RemoteBitmaps.cached(url,scope="network-b"))
+            RemoteBitmaps.fetchFresh(url,60000,scope="network-a");assertEquals(1,calls)
+            RemoteBitmaps.fetchFresh(url,60000,scope="network-b");assertEquals(2,calls)
+            RemoteBitmaps.invalidateScope("network-a")
+            assertNull(RemoteBitmaps.cached(url,scope="network-a"));assertNotNull(RemoteBitmaps.cached(url,scope="network-b"))
+            RemoteBitmaps.fetchFresh(url,60000,scope="network-a");assertEquals(3,calls)
+            RemoteBitmaps.fetchFresh(url,0,scope="network-a");assertEquals(4,calls)
+        } finally { RemoteBitmaps.connectionFactory=original;RemoteBitmaps.invalidateScope("network-a");RemoteBitmaps.invalidateScope("network-b") }
+    }
+    @Test fun automaticDownloadRejectsUnconfiguredHostsBeforeOpeningAConnection() = runBlocking {
+        val original=RemoteBitmaps.connectionFactory
+        var opened=false
+        RemoteBitmaps.connectionFactory={ target -> opened=true;Connection(target,png(Color.RED)) }
+        try {
+            val url="https://unconfigured.example/${System.nanoTime()}.png"
+            assertNull(RemoteBitmaps.fetch(url));assertFalse(opened)
+            assertNotNull(RemoteBitmaps.fetch(url,configuredHost="unconfigured.example"));assertTrue(opened)
+        } finally { RemoteBitmaps.connectionFactory=original }
     }
     @Test fun viewerSearchesMultipleWordsAndShowsNoMatches() {
         val log="ALICIA llegó a sala\nBob privado\nalicia SALA dos"

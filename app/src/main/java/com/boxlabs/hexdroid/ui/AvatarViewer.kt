@@ -28,15 +28,23 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /** Shared loader boundary keeps UI behavior testable while production uses the bounded HTTPS cache. */
-internal val LocalAvatarLoader = staticCompositionLocalOf<suspend (String, Long) -> ImageBitmap?> {
-    { url, maxAge -> if (maxAge > 0L) RemoteBitmaps.fetchFresh(url, maxAge)?.asImageBitmap() else RemoteImage.fetch(url) }
+internal val DefaultAvatarLoader: suspend (String, Long) -> ImageBitmap? = { url, age -> RemoteBitmaps.fetchFresh(url, if(age>0) age else 60_000L)?.asImageBitmap() }
+internal val LocalAvatarLoader = staticCompositionLocalOf { DefaultAvatarLoader }
+@Composable
+internal fun avatarLoader(scope: String, configuredHost: String?): suspend (String,Long)->ImageBitmap? {
+    val injected=LocalAvatarLoader.current
+    return remember<suspend (String,Long)->ImageBitmap?>(injected,scope,configuredHost) {
+        if(injected !== DefaultAvatarLoader) injected else { url: String, age: Long ->
+            RemoteBitmaps.fetchFresh(url,if(age>0) age else 60_000L,scope,configuredHost)?.asImageBitmap()
+        }
+    }
 }
 
 @Composable
-fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, refreshToken: Int = 0, refreshEveryMs: Long = 0L, onOpen: () -> Unit) {
-    val loader = LocalAvatarLoader.current
+fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, refreshToken: Int = 0, refreshEveryMs: Long = 0L, scope: String = "", configuredHost: String? = null, onOpen: () -> Unit) {
+    val loader = avatarLoader(scope,configuredHost)
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var image by remember(url, refreshToken) { mutableStateOf(RemoteImage.cached(url)) }
+    var image by remember(url, refreshToken, scope) { mutableStateOf(RemoteBitmaps.cached(url,scope=scope)?.asImageBitmap()) }
     LaunchedEffect(url, refreshToken, refreshEveryMs, loader, lifecycle) {
         if (refreshEveryMs <= 0L) { if (image == null) image = loader(url, 0L) }
         else lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -51,19 +59,19 @@ fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, re
         image?.let {
             Image(it, stringResource(R.string.dreams_expand_avatar, nick), contentScale = ContentScale.Crop,
                 filterQuality = FilterQuality.High, modifier = Modifier.fillMaxSize())
-        } ?: Icon(Icons.Default.Person, stringResource(R.string.dreams_expand_avatar, nick), Modifier.fillMaxSize())
+        } ?: Text(nick.trimStart('~','&','@','%','+').take(2).uppercase(), style = MaterialTheme.typography.labelSmall)
     }
 }
 
 @Composable
 fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
-                 load: suspend (String, Boolean) -> ImageBitmap? = { source, retry -> RemoteImage.fetchFull(source, true) }) {
+                 load: (suspend (String, Boolean) -> ImageBitmap?)? = null, scope: String = "") {
     var attempt by remember(url) { mutableIntStateOf(0) }
     var loading by remember(url) { mutableStateOf(true) }
     var image by remember(url) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(url, attempt) {
         loading = true
-        image = load(url, attempt > 0)
+        image = if(load!=null) load(url, attempt > 0) else RemoteBitmaps.fetch(url,fullSize=true,retry=true,scope=scope)?.asImageBitmap()
         loading = false
     }
     AlertDialog(onDismissRequest = onDismiss, modifier = Modifier.testTag("avatar-viewer"),
@@ -76,7 +84,8 @@ fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
                         contentScale = ContentScale.Fit, filterQuality = FilterQuality.High,
                         modifier = Modifier.fillMaxSize().testTag("avatar-full-image"))
                     else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(avatarFailureText(RemoteBitmaps.failure(url, fullSize = true))))
+                        Text(nick.trimStart('~','&','@','%','+').take(2).uppercase(),style=MaterialTheme.typography.headlineMedium)
+                        Text(stringResource(avatarFailureText(RemoteBitmaps.failure(url, fullSize = true,scope=scope))))
                         TextButton(onClick = { attempt++ }, modifier = Modifier.testTag("avatar-retry")) { Text(stringResource(R.string.dreams_retry)) }
                     }
                 }
@@ -87,10 +96,10 @@ fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
 }
 
 @Composable
-internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, refreshToken: Int = 0, onOpen: () -> Unit, content: @Composable () -> Unit) {
+internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, refreshToken: Int = 0, scope: String = "", configuredHost: String? = null, onOpen: () -> Unit, content: @Composable () -> Unit) {
     if (url == null) content()
     else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshToken = refreshToken, refreshEveryMs = refreshEveryMs, onOpen = onOpen)
+        AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshToken = refreshToken, refreshEveryMs = refreshEveryMs, scope=scope, configuredHost=configuredHost, onOpen = onOpen)
         Box(Modifier.weight(1f)) { content() }
     }
 }
