@@ -752,26 +752,33 @@ fun ChatScreen(
     // (same rule as filehost uploads). Notifications apply the same rule.
     val avatarProfile = state.networks.firstOrNull { it.id == selNetId }
     val isChatZona = avatarProfile != null && com.boxlabs.hexdroid.isChatZonaNetwork(avatarProfile.host, selConn?.serverNetworkName)
-    val automaticChatZona = state.settings.chatZonaAvatarsEnabled && isChatZona
+    val automaticChatZona = state.settings.chatZonaAvatarsEnabled
     val avatarDownloadsAllowed = avatarProfile?.proxyType == com.boxlabs.hexdroid.connection.ProxyType.NONE &&
-        (if (isChatZona) state.settings.chatZonaAvatarsEnabled else state.settings.imagePreviewsEnabled)
+        state.settings.imagePreviewsEnabled && state.settings.chatZonaAvatarsEnabled &&
+        (!state.settings.imagePreviewsWifiOnly || isOnWifi(androidx.compose.ui.platform.LocalContext.current))
     val metadataAvatars: Map<String, String> = if (avatarDownloadsAllowed) {
         (selConn?.avatarUrls ?: emptyMap()).let { urls ->
             val own = state.profileAvatarUrls[selNetId] ?: avatarProfile?.avatarUrl
-            if (own.isNullOrBlank()) urls else urls + (myNick.lowercase() to own)
+            if (own.isNullOrBlank()) urls else urls + (com.boxlabs.hexdroid.ircCasefold(myNick,selConn?.avatarCaseMapping ?: "rfc1459") to own)
         }
     } else emptyMap()
     fun avatarFor(nick: String): String? {
         if (!avatarDownloadsAllowed || avatarProfile == null) return null
-        val key = baseNick(nick).lowercase()
+        val key = com.boxlabs.hexdroid.ircCasefold(baseNick(nick),selConn?.avatarCaseMapping ?: "rfc1459")
         return com.boxlabs.hexdroid.profileAvatarSource(null, metadataAvatars[key], avatarProfile.host,
             selConn?.serverNetworkName, baseNick(nick), legacyUrl = selConn?.legacyAvatarUrls?.get(key),
-            metadataKnown = metadataAvatars.containsKey(key), legacyKnown = selConn?.legacyAvatarUrls?.containsKey(key) == true)
+            metadataKnown = metadataAvatars.containsKey(key), legacyKnown = selConn?.legacyAvatarUrls?.containsKey(key) == true,
+            aliasUrl = selConn?.avatarAliasUrls?.get(key), aliasKnown = selConn?.avatarAliasUrls?.containsKey(key)==true, template=state.settings.avatarTemplate)
     }
     LaunchedEffect(selNetId, myNick, automaticChatZona, selConn?.hasUserMetadata) {
         if (automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, myNick)
     }
-    val avatarRefreshInterval = if (automaticChatZona) com.boxlabs.hexdroid.CHATZONA_AVATAR_REFRESH_MS else 0L
+    val avatarRefreshInterval = com.boxlabs.hexdroid.CHATZONA_AVATAR_REFRESH_MS
+    val configuredAvatarHost = com.boxlabs.hexdroid.avatarTemplateHost(state.settings.avatarTemplate)
+    androidx.compose.runtime.DisposableEffect(selNetId, state.settings.avatarTemplate,selConn?.connected) {
+        com.boxlabs.hexdroid.RemoteBitmaps.invalidateScope(selNetId)
+        onDispose { com.boxlabs.hexdroid.RemoteBitmaps.invalidateScope(selNetId) }
+    }
     LaunchedEffect(selNetId, selBufName, isPrivateMessage, automaticChatZona, selConn?.hasUserMetadata) {
         if (isPrivateMessage && automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, selBufName)
     }
@@ -1596,7 +1603,7 @@ fun ChatScreen(
                         ?.takeIf { !it.equals(cleaned, ignoreCase = true) }
                     val isAway = awayNicks.contains(cleaned.lowercase())
                     val isBot = botNicks.contains(cleaned.lowercase())
-                    val nickAvatar = avatarFor(cleaned)
+                    val nickAvatar = if(state.settings.showNickIcons) avatarFor(cleaned) else null
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -1626,26 +1633,12 @@ fun ChatScreen(
                         val avatarGap = (nickFontSp * 0.3f).dp
                         if (nickAvatar != null) {
                             AvatarThumbnail(nickAvatar, cleaned,
-                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefresh, refreshEveryMs = avatarRefreshInterval) {
+                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarRefreshInterval) {
                                 expandedAvatar = nickAvatar to cleaned
                             }
                         } else if (state.settings.showNickIcons) {
-                            // No avatar, so the slot carries presence instead of standing
-                            // empty: red for away, green for here.
-                            Box(
-                                modifier = Modifier
-                                    .padding(end = avatarGap)
-                                    .size(avatarSize),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Box(
-                                    Modifier
-                                        .size(avatarSize * 0.5f)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isAway) Color(0xFFD05A5A) else Color(0xFF5AB77B)
-                                        )
-                                )
+                            Box(Modifier.padding(end=avatarGap).size(avatarSize),contentAlignment=Alignment.Center) {
+                                Text(cleaned.take(2).uppercase(),style=MaterialTheme.typography.labelSmall)
                             }
                         } else if (metadataAvatars.isNotEmpty() || automaticChatZona) {
                             Spacer(Modifier.width(avatarSize + avatarGap))
@@ -2140,7 +2133,7 @@ fun ChatScreen(
 
                     if (isPrivateMessage && automaticChatZona) avatarFor(selBufName)?.let { url ->
                         AvatarThumbnail(url, selBufName, Modifier.size(32.dp), avatarRefresh,
-                            refreshEveryMs = avatarRefreshInterval) { expandedAvatar = url to selBufName }
+                            scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarRefreshInterval) { expandedAvatar = url to selBufName }
                     }
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -2805,7 +2798,7 @@ fun ChatScreen(
                         val readByPeer = peerReadAtMs != null && !isChannel && m.timeMs <= peerReadAtMs &&
                             !m.failed && !m.pending && m.from != null && m.from.equals(myNick, ignoreCase = true)
                         val messageAvatar = if (state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from != null && m.from != "ERROR") avatarFor(m.from) else null
-                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarRefreshInterval, refreshToken = avatarRefresh,
+                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarRefreshInterval, showAvatar=state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from!=null && m.from!="ERROR", refreshToken = avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly,
                             onOpen = { if (messageAvatar != null) expandedAvatar = messageAvatar to m.from.orEmpty() }) {
                         SingleMessageItem(
                             m = m,
@@ -4892,7 +4885,7 @@ fun ChatScreen(
 
     expandedAvatar?.let { (url, nick) ->
         // Closing the viewer leaves the room and any nick sheet open behind it.
-        if (avatarFor(nick) == url) AvatarViewer(url, nick, onDismiss = { expandedAvatar = null; avatarRefresh++ })
+        if (avatarFor(nick) == url) AvatarViewer(url, nick, onDismiss = { expandedAvatar = null; avatarRefresh++ }, scope=selNetId,refreshToken=avatarRefresh)
     }
     if (showMetadataEditor && viewModel != null && selNetId.isNotBlank()) {
         MetadataEditorDialog(
@@ -5277,7 +5270,7 @@ fun ChatScreen(
                         // Avatar (draft/metadata-2), gated identically to the message rows:
                         // only when image previews are on and this profile is unproxied.
                         if (sheetAvatar != null) {
-                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefresh, refreshEveryMs = avatarRefreshInterval) {
+                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarRefreshInterval) {
                                 expandedAvatar = sheetAvatar to selectedNick
                             }
                         }

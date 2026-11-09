@@ -543,6 +543,7 @@ internal suspend fun IrcClient.handleMessageCommand(
                     if (nickEquals(nick, currentNick) && !chanHist && serverTimeMs != null) {
                         selfJoinServerMs[casefold(chan)] = serverTimeMs
                     }
+                    if (nickEquals(nick, currentNick) && !chanHist && irc.hasCap("draft/metadata-2") && sessionRef?.sojuMetadata != true) sendMetadata(chan,"SYNC")
                     val joinKey = if (nickEquals(nick, currentNick) && !chanHist) joinKeys.remove(casefold(chan)) else null
                     send(
                         IrcEvent.Joined(

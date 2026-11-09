@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">HexDroid Dreams</string>
+    <string name="app_name">HexDreams IRC</string>
 
     <!-- Welcome / Setup Screen -->
-    <string name="welcome_title">Üdvözöl a HexDroid Dreams</string>
+    <string name="welcome_title">Üdvözöl a HexDreams IRC</string>
     <string name="welcome_subtitle">Mielőtt belevágnánk, lássuk a beállításokat.</string>
     <string name="welcome_language_label">Nyelv</string>
     <string name="welcome_nick_label">Becenév</string>

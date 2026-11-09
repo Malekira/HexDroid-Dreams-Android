@@ -1,4 +1,4 @@
-name: HexDroid Dreams - APK
+name: HexDreams IRC - APK
 
 on:
   push:
@@ -18,6 +18,7 @@ on:
       - feat/dreams-1.0.12-chat-navigation
       - feat/dreams-1.0.13-top-tabs
       - feat/dreams-1.0.14-photos-log-viewer
+      - feat/hexdreams-1.0.15-avatar-compat
   workflow_dispatch:
 
 permissions:
@@ -74,7 +75,7 @@ jobs:
           fi
 
       - name: Build debug APK and run unit tests
-        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --max-workers=2 --no-configuration-cache
+        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest --no-daemon --max-workers=2 --no-configuration-cache
 
       - name: Check stable signing with disposable test keys
         if: github.ref == 'refs/heads/feat/hexdroid-dreams-release'
@@ -135,7 +136,7 @@ jobs:
                   for case in cases:
                       identity = case.get('classname', '') + '.' + case.get('name', '')
                       discovered.append(identity)
-                      if any(suite in case.get('classname', '') for suite in ('PersonalPhase3', 'Dreams104', 'ConversationBackup', 'Dreams106', 'ComposerRecallTest', 'ChannelTopicTest', 'Dreams107', 'Dreams108', 'Dreams109', 'Dreams110', 'Dreams111', 'ChatBackRegression', 'ChatHistoryRegression', 'ChatNavigationRegression', 'ConversationNavigationTest', 'CompactTopNavigationTest', 'PhotoLogPolicyTest', 'PhotoLogAndroidTest')) and case.find('skipped') is None and case.find('failure') is None and case.find('error') is None:
+                      if any(suite in case.get('classname', '') for suite in ('PersonalPhase3', 'Dreams104', 'ConversationBackup', 'Dreams106', 'ComposerRecallTest', 'ChannelTopicTest', 'Dreams107', 'Dreams108', 'Dreams109', 'Dreams110', 'Dreams111', 'ChatBackRegression', 'ChatHistoryRegression', 'ChatNavigationRegression', 'ConversationNavigationTest', 'CompactTopNavigationTest', 'PhotoLogPolicyTest', 'PhotoLogAndroidTest', 'HexDreamsAvatar')) and case.find('skipped') is None and case.find('failure') is None and case.find('error') is None:
                           phase3_passed.add(identity)
                       if expected in case.get('name', '') and case.find('skipped') is None and case.find('failure') is None and case.find('error') is None:
                           overlay_executed = True
@@ -143,40 +144,42 @@ jobs:
                           out.write(f"\n```text\n{identity}: {(failure.text or failure.get('message', ''))[:6000]}\n```\n")
                           diagnostic = identity + ': ' + (failure.text or failure.get('message', ''))[:4000]
                           print('::error::' + diagnostic.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
-          if os.environ.get('GITHUB_REF_NAME') in ('feat/personal-phase3', 'feat/hexdroid-dreams-release', 'feat/dreams-1.0.4', 'fix/dreams-history-backup', 'feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+          if os.environ.get('GITHUB_REF_NAME') in ('feat/personal-phase3', 'feat/hexdroid-dreams-release', 'feat/dreams-1.0.4', 'fix/dreams-history-backup', 'feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
               sources = [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/PersonalPhase3Test.kt')]
               sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid', name) for name in ['PersonalPhase3StorageTest.kt', 'PersonalPhase3UiTest.kt', 'PersonalPhase3PrivateFlowTest.kt']]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.4', 'fix/dreams-history-backup', 'feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.4', 'fix/dreams-history-backup', 'feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/Dreams104Test.kt')]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid', name) for name in ['Dreams104AndroidTest.kt', 'Dreams104UiTest.kt']]
-              if os.environ.get('GITHUB_REF_NAME') in ('fix/dreams-history-backup', 'feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('fix/dreams-history-backup', 'feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/ConversationBackupTest.kt')]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid', name) for name in ['ConversationBackupAndroidTest.kt', 'ConversationBackupUiTest.kt']]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.6', 'feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid', name) for name in ['ComposerRecallTest.kt', 'ChannelTopicTest.kt']]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid', name) for name in ['Dreams106InputTest.kt', 'Dreams106TopicUiTest.kt']]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.7', 'feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/Dreams107FormatTest.kt')]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid', name) for name in ['Dreams107UiTest.kt', 'Dreams107StorageTest.kt']]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.8', 'feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/Dreams108FormatTest.kt')]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid/Dreams108UiTest.kt')]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.9', 'feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid/Dreams109DisconnectTest.kt')]
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid', name) for name in ['Dreams109HistoryLayoutTest.kt', 'Dreams109AvatarTest.kt']]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid', name) for name in ['Dreams109HistoryTest.kt', 'Dreams109UiTest.kt']]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.10', 'feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid/Dreams110SidebarTest.kt')]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.11', 'feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/Dreams111AvatarTest.kt')]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid/Dreams111AvatarUiTest.kt')]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.12-chat-navigation', 'feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/ui/ConversationNavigationTest.kt')]
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid', name) for name in ['ChatBackRegressionTest.kt', 'ChatHistoryRegressionTest.kt', 'ChatNavigationRegressionTest.kt']]
-              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer'):
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.13-top-tabs', 'feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid/CompactTopNavigationTest.kt')]
-              if os.environ.get('GITHUB_REF_NAME') == 'feat/dreams-1.0.14-photos-log-viewer':
+              if os.environ.get('GITHUB_REF_NAME') in ('feat/dreams-1.0.14-photos-log-viewer', 'feat/hexdreams-1.0.15-avatar-compat'):
                   sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid/PhotoLogPolicyTest.kt'), pathlib.Path('app/src/androidTest/java/com/boxlabs/hexdroid/PhotoLogAndroidTest.kt')]
+              if os.environ.get('GITHUB_REF_NAME') == 'feat/hexdreams-1.0.15-avatar-compat':
+                  sources += [pathlib.Path('app/src/test/java/com/boxlabs/hexdroid', name) for name in ['HexDreamsAvatarPolicyTest.kt','HexDreamsAvatarProtocolTest.kt']]
               for source in sources:
                   methods = re.findall(r'@Test\s+fun\s+(\w+)\s*\(', source.read_text())
                   if not methods:
@@ -213,16 +216,16 @@ jobs:
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs "$apk"
           "$ANDROID_HOME/build-tools/37.0.0/aapt2" dump badging "$apk" > "$RUNNER_TEMP/apk-badging.txt"
           grep -F "package: name='com.malekira.hexdroid.personal.debug'" "$RUNNER_TEMP/apk-badging.txt"
-          grep -F "application-label:'HexDroid Dreams'" "$RUNNER_TEMP/apk-badging.txt"
+          grep -F "application-label:'HexDreams IRC'" "$RUNNER_TEMP/apk-badging.txt"
           mkdir -p apk-download
-          cp "$apk" apk-download/HexDroid-Dreams-debug.apk
-          (cd apk-download && sha256sum HexDroid-Dreams-debug.apk > SHA256SUMS.txt)
+          cp "$apk" apk-download/HexDreams-IRC-debug.apk
+          (cd apk-download && sha256sum HexDreams-IRC-debug.apk > SHA256SUMS.txt)
 
       - name: Upload APK for download from Android
         id: apk
         uses: actions/upload-artifact@v4
         with:
-          name: HexDroid-Dreams-debug
+          name: HexDreams-IRC-debug
           path: apk-download/
           if-no-files-found: error
           retention-days: 30
@@ -237,12 +240,12 @@ jobs:
           ARTIFACT_URL: ${{ steps.apk.outputs.artifact-url }}
         run: |
           {
-            echo '## HexDroid Dreams — descarga de prueba para Android'
+            echo '## HexDreams IRC — descarga de prueba para Android'
             echo
             echo "[Descargar APK debug (ZIP)]($ARTIFACT_URL)"
             echo
             echo 'Inicia sesión en GitHub, descarga el ZIP y extráelo con Mis archivos de Samsung.'
-            echo 'Abre HexDroid-Dreams-debug.apk y autoriza la instalación desde esa fuente si Android lo solicita.'
+            echo 'Abre HexDreams-IRC-debug.apk y autoriza la instalación desde esa fuente si Android lo solicita.'
             echo 'La APK usa com.malekira.hexdroid.personal.debug y convive con HexDroid oficial.'
             echo "Código compilado: $GITHUB_SHA"
             echo 'El archivo estará disponible durante 30 días. No se publica ninguna clave privada.'
@@ -282,7 +285,7 @@ jobs:
               out.write('ready=' + str(ready).lower() + '\n')
               out.write('mode=' + mode + '\n')
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
-              out.write('## Firma de HexDroid Dreams\n')
+              out.write('## Firma de HexDreams IRC\n')
               out.write('Firma estable configurada; la APK final requiere que las pruebas aprueben.\n' if ready else 'APK final pendiente: agregá DREAMS_SIGNING_PASSWORD en GitHub Secrets. No requiere instalar aplicaciones. Ver docs/DREAMS_SIGNING_SIMPLE.md.\n')
           if not ready:
               print('::warning::APK final pendiente de firma estable. No se publicará una APK release sin firma ni con la clave debug temporal.')
@@ -350,18 +353,18 @@ jobs:
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs "$apk" > dreams-release-download/SIGNATURE.txt
           "$ANDROID_HOME/build-tools/37.0.0/aapt2" dump badging "$apk" > "$RUNNER_TEMP/dreams-release-badging.txt"
           grep -F "package: name='com.malekira.hexdroid.personal'" "$RUNNER_TEMP/dreams-release-badging.txt"
-          grep -F "application-label:'HexDroid Dreams'" "$RUNNER_TEMP/dreams-release-badging.txt"
+          grep -F "application-label:'HexDreams IRC'" "$RUNNER_TEMP/dreams-release-badging.txt"
           if grep -q 'application-debuggable' "$RUNNER_TEMP/dreams-release-badging.txt"; then
             echo '::error::La APK final no debe ser depurable.'
             exit 1
           fi
-          cp "$apk" dreams-release-download/HexDroid-Dreams-release.apk
-          (cd dreams-release-download && sha256sum HexDroid-Dreams-release.apk > SHA256SUMS.txt)
+          cp "$apk" dreams-release-download/HexDreams-IRC-release.apk
+          (cd dreams-release-download && sha256sum HexDreams-IRC-release.apk > SHA256SUMS.txt)
       - name: Upload final APK
         id: final-apk
         uses: actions/upload-artifact@v4
         with:
-          name: HexDroid-Dreams-release
+          name: HexDreams-IRC-release
           path: dreams-release-download/
           if-no-files-found: error
           retention-days: 30
@@ -377,9 +380,9 @@ jobs:
         shell: bash
         run: |
           {
-            echo '## HexDroid Dreams — APK final firmada'
+            echo '## HexDreams IRC — APK final firmada'
             echo "[Descargar APK final (ZIP)]($ARTIFACT_URL)"
-            echo 'Abrí el ZIP en Mis archivos de Samsung y luego HexDroid-Dreams-release.apk.'
+            echo 'Abrí el ZIP en Mis archivos de Samsung y luego HexDreams-IRC-release.apk.'
             echo 'Paquete: com.malekira.hexdroid.personal. Se instala junto a la prueba .debug; exportá e importá los datos que quieras trasladar.'
             echo 'No es una publicación en GitHub Releases ni un merge. El artifact dura 30 días.'
           } >> "$GITHUB_STEP_SUMMARY"

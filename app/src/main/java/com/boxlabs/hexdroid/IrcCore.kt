@@ -146,7 +146,7 @@ class IrcClient(val config: IrcConfig) {
     }
 
     /** One WHO on the wire. [buffer] is where replies are printed; null for the client's own queries. */
-    internal class WhoRequest(val maskFold: String, val buffer: String?, val forChannel: Boolean)
+    internal class WhoRequest(val maskFold: String, val buffer: String?, val forChannel: Boolean) { var photoFields: WhoxPhotoFields? = null }
 
     /** WHO requests in the order they were written, so replies can be matched to them. Guarded by itself. */
     private val whoRequests = ArrayDeque<WhoRequest>()
@@ -169,6 +169,10 @@ class IrcClient(val config: IrcConfig) {
     internal fun currentWho(channel: String? = null): WhoRequest? = synchronized(whoRequests) {
         val fold = channel?.let { casefold(it) }
         whoRequests.firstOrNull { fold == null || !it.forChannel || it.maskFold == fold }
+    }
+
+    internal fun currentWhox(parameters: List<String>): WhoRequest? = synchronized(whoRequests) {
+        whoRequests.firstOrNull { it.photoFields?.values(parameters)!=null }
     }
 
     /** Completes the WHO for [mask], also dropping any earlier request the server never ended. */
@@ -2405,7 +2409,7 @@ class IrcClient(val config: IrcConfig) {
                         floodClock += cost
                     }
                     // Recorded before writing, so a reply can never arrive ahead of its record.
-                    unit.who?.let { trackWho(it) }
+                    unit.who?.let { it.photoFields=unit.lines.firstOrNull()?.let { line -> WhoxPhotoFields.fromLine(line) };trackWho(it) }
                     noteSendsWritten(unit.sends)
                     for (line in unit.lines) {
                         noteModeQuery(line, unit.silentModeQuery)
@@ -2713,7 +2717,12 @@ class IrcClient(val config: IrcConfig) {
 					emptyList()
 				}
 				for (a in hsActions) when (a) {
-					is IrcAction.Send -> writeLine(a.line)
+					is IrcAction.Send -> {
+                        writeLine(a.line)
+                        if (a.line.startsWith("METADATA * SUB ") && irc.sojuMetadata != true) {
+                            joinedChannelCases.values.toList().forEach { writeLine("METADATA $it SYNC") }
+                        }
+                    }
 					is IrcAction.EmitStatus -> send(IrcEvent.Status(a.text))
 					is IrcAction.EmitError -> send(IrcEvent.Error(a.text))
 					is IrcAction.EmitCapNew -> send(IrcEvent.CapNew(a.caps))

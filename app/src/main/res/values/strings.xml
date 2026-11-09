@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">HexDroid Dreams</string>
+    <string name="app_name">HexDreams IRC</string>
 
     <!-- Welcome / Setup Screen -->
-    <string name="welcome_title">Welcome to HexDroid Dreams</string>
+    <string name="welcome_title">Welcome to HexDreams IRC</string>
     <string name="welcome_subtitle">Let\'s get you set up before we start.</string>
     <string name="welcome_language_label">Language</string>
     <string name="welcome_nick_label">Nickname</string>
@@ -1952,7 +1952,7 @@
     <string name="dreams_welcome_thanks">Thank you to the original authors, contributors and open source libraries.</string>
     <string name="dreams_welcome_license">Free software under GPLv3 or later. Original credits are preserved.</string>
 
-    <!-- HexDroid Dreams 1.0.4 -->
+    <!-- HexDreams IRC 1.0.4 -->
     <string name="dreams_visible_sound">Sound for mentions while viewing the room</string>
     <string name="dreams_visible_sound_hint">Uses the same Android notification as other mentions, once per message. Enable notifications and mention alerts. Android volume, notification channels and Do Not Disturb still apply.</string>
     <string name="dreams_private_controls">Private messages per network</string>

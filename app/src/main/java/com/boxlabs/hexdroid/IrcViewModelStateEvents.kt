@@ -413,7 +413,7 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
             // draft/metadata-2. Only the keys this client actually renders are
             // stored: an unbounded key-value store per nick would grow without
             // limit on a busy network, and nothing else reads it.
-            val mdKey = ev.target.trim().lowercase()
+            val mdKey = if (ev.key in setOf("avatar","avatar-url")) casefoldText(netId, ev.target.trim()) else ev.target.trim().lowercase()
             if (mdKey.isNotEmpty()) {
                 when (ev.key) {
                     "display-name" -> setNetConn(netId) { st ->
@@ -423,16 +423,20 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
                             else st.displayNames + (mdKey to clean))
                     }
                     "avatar", "avatar-url" -> {
-                        val old = _state.value.connections[netId]?.avatarUrls?.get(mdKey)
-                        old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it) }
+                        val st = _state.value.connections[netId]
+                        val old = if (ev.key == "avatar") st?.avatarUrls?.get(mdKey) else st?.avatarAliasUrls?.get(mdKey)
+                        // A first GET can answer KEYNOTSET: no published key exists yet, so
+                        // GECOS/template remain eligible. A previously announced key disappearing
+                        // is a removal, and an existing removal tombstone remains authoritative.
+                        if (ev.absent && old == null) return
+                        old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it,netId) }
                         val url = normalizeWebPhotoUrl(sanitizeMetadataValue(ev.value, maxLen = 2048))
-                        url?.let { RemoteBitmaps.invalidate(it) }
-                        setNetConn(netId) { st ->
-                            if (ev.key == "avatar-url" && mdKey in st.primaryAvatarNicks) st
-                            else st.copy(avatarUrls = st.avatarUrls + (mdKey to (url ?: "")),
-                                primaryAvatarNicks = if (ev.key == "avatar") st.primaryAvatarNicks + mdKey else st.primaryAvatarNicks,
-                                avatarRevision = st.avatarRevision + 1)
-                        }
+                        url?.let { RemoteBitmaps.invalidate(it,netId) }
+                        setNetConn(netId) { conn -> conn.copy(
+                            avatarUrls = if (ev.key == "avatar") conn.avatarUrls + (mdKey to (url ?: "")) else conn.avatarUrls,
+                            avatarAliasUrls = if (ev.key == "avatar-url") conn.avatarAliasUrls + (mdKey to (url ?: "")) else conn.avatarAliasUrls,
+                            primaryAvatarNicks = if (ev.key == "avatar") conn.primaryAvatarNicks + mdKey else conn.primaryAvatarNicks,
+                            avatarRevision = conn.avatarRevision + 1) }
                     }
                     "color" -> setNetConn(netId) { st ->
                         // Registry format is exactly 6 hex digits (no leading #).

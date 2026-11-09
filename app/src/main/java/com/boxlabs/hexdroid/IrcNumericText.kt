@@ -123,7 +123,7 @@ internal fun IrcClient.formatNumeric(msg: IrcMessage): String? {
             val nick = p(1) ?: return null
             val user = p(2) ?: "?"
             val host = p(3) ?: "?"
-            val real = t ?: ""
+            val real = displayRealname(t ?: "")
             "$nick is $user@$host ${if (real.isBlank()) "" else "($real)"}"
         }
         "312" -> {

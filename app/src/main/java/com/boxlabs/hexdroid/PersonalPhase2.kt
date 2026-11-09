@@ -85,5 +85,5 @@ internal fun whoisServerOutput(text: String, message: IrcMessage, modeBuffer: St
         whoisNick = if (request != null) message.params.getOrNull(1) else null,
         whoisRequestId = request?.id,
         whoisParams = message.params,
-        whoisTrailing = if (request != null) message.trailing else null,
+        whoisTrailing = if (request != null || message.command == "311") message.trailing else null,
     )

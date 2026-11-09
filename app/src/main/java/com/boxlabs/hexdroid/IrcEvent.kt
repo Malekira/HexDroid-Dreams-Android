@@ -523,7 +523,7 @@ data class Notice(
      * [value] is null when the key was removed / is not set. [visibility] is "*" for
      * keys everyone can see, or an implementation-defined string.
      */
-    data class MetadataChanged(val target: String, val key: String, val visibility: String?, val value: String?) : IrcEvent()
+    data class MetadataChanged(val target: String, val key: String, val visibility: String?, val value: String?, val absent: Boolean = false) : IrcEvent()
 
     /**
      * draft/account-registration progress, surfaced structurally so a guided

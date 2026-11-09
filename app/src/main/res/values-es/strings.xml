@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">HexDroid Dreams</string>
+    <string name="app_name">HexDreams IRC</string>
 
     <!-- Welcome / Setup Screen -->
-    <string name="welcome_title">Bienvenido a HexDroid Dreams</string>
+    <string name="welcome_title">Bienvenido a HexDreams IRC</string>
     <string name="welcome_subtitle">Vamos a configurarte antes de empezar.</string>
     <string name="welcome_language_label">Idioma</string>
     <string name="welcome_nick_label">Apodo</string>
@@ -1950,7 +1950,7 @@
     <string name="dreams_welcome_thanks">Gracias a los autores originales, colaboradores y bibliotecas de software libre.</string>
     <string name="dreams_welcome_license">Software libre bajo GPLv3 o posterior. Se conservan los créditos originales.</string>
 
-    <!-- HexDroid Dreams 1.0.4 -->
+    <!-- HexDreams IRC 1.0.4 -->
     <string name="dreams_visible_sound">Sonar al mencionarme en la sala visible</string>
     <string name="dreams_visible_sound_hint">Usa la misma notificación Android que las demás menciones, una sola vez por mensaje. Activá las notificaciones y los avisos de menciones. Respeta volumen, canales de Android y No molestar.</string>
     <string name="dreams_private_controls">Privados por red</string>

@@ -413,6 +413,7 @@ class SettingsRepository(private val ctx: Context) {
                 logFolderUri = o.optString("logFolderUri", "").takeIf { it.isNotBlank() },
                 chatZonaAvatarsEnabled = o.optBoolean("chatZonaAvatarsEnabled", true),
                 chatZonaAvatarsInMessages = o.optBoolean("chatZonaAvatarsInMessages", false),
+                avatarTemplate = o.optString("avatarTemplate", com.boxlabs.hexdroid.DEFAULT_AVATAR_TEMPLATE),
                 logDailyFiles = o.optBoolean("logDailyFiles", false),
                 logCombineConversations = o.optBoolean("logCombineConversations", false),
 
@@ -547,6 +548,7 @@ class SettingsRepository(private val ctx: Context) {
         o.put("logFolderUri", s.logFolderUri ?: "")
         o.put("chatZonaAvatarsEnabled", s.chatZonaAvatarsEnabled)
         o.put("chatZonaAvatarsInMessages", s.chatZonaAvatarsInMessages)
+        o.put("avatarTemplate", s.avatarTemplate)
         o.put("logDailyFiles", s.logDailyFiles)
         o.put("logCombineConversations", s.logCombineConversations)
 

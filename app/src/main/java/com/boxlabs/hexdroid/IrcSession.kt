@@ -156,7 +156,7 @@ class IrcSession(private val config: IrcConfig, private val rng: SecureRandom) {
         // max-subs limit, so the most visible keys lead: display-name and avatar,
         // then colour and status, then the tap-sheet extras. bio trails since it's
         // the largest and least essential.
-        return "METADATA * SUB display-name avatar color status pronouns homepage bio"
+        return "METADATA * SUB avatar avatar-url display-name color status pronouns homepage bio"
     }
 
     /**
@@ -326,7 +326,7 @@ class IrcSession(private val config: IrcConfig, private val rng: SecureRandom) {
             // soju's subscription waits for its binding instead (see [sojuMetadata]).
             // "*" is the required self-target before a nick has been assigned.
             if (!sojuMetadata && (metadataBeforeConnect() || registered)) {
-                takeMetadataSubLine()?.let { out += IrcAction.Send(it) }
+                takeMetadataSubLine()?.let { out += IrcAction.Send(it); out += IrcAction.Send("METADATA * GET avatar avatar-url") }
             }
 
             if (wantSasl && enabledCaps.contains("sasl") && !saslInProgress && !saslDone) {
