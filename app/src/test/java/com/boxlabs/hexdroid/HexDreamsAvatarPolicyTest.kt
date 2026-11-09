@@ -37,12 +37,21 @@ class HexDreamsAvatarPolicyTest {
         assertEquals("a{b}~",ircCasefold("A[B]^","rfc1459"))
         assertEquals("a[b]^",ircCasefold("A[B]^","ascii"))
     }
+    @Test fun whoxFieldsFollowWireOrderAndRejectMismatchedTokens() {
+        val spec=WhoxPhotoFields.fromLine("WHO #room %nrt,77")!!
+        assertEquals("tnr",spec.fields)
+        assertEquals("Name with spaces",spec.values(listOf("77","Nick","Name with spaces"))!!['r'])
+        assertNull(spec.values(listOf("42","Nick","Name")))
+        assertNull(spec.values(listOf("77","Nick")))
+    }
     @Test fun automaticDownloadsOnlyUseOfficialOrConfiguredHostsAndPublicAddresses() {
         assertTrue(automaticAvatarAllowed("https://images.chateagratis.net/x",null))
         assertTrue(automaticAvatarAllowed("https://photos.example/x","photos.example"))
         assertFalse(automaticAvatarAllowed("https://photos.example.evil/x","photos.example"))
         for(ip in listOf("127.0.0.1","10.1.2.3","172.16.1.2","192.168.1.1","169.254.1.2","100.64.0.1","0.0.0.0","::1","fc00::1","fe80::1","::ffff:192.168.0.1"))
             assertFalse(ip,publicAvatarAddress(InetAddress.getByName(ip)))
+        for(url in listOf("https://127.0.0.1/a","https://[::1]/a","https://192.168.1.2/a")) assertFalse(publicAvatarLiteral(url))
+        assertTrue(publicAvatarLiteral("https://8.8.8.8/a"))
         assertTrue(publicAvatarAddress(InetAddress.getByName("8.8.8.8")))
         assertTrue(publicAvatarAddress(InetAddress.getByName("2606:4700:4700::1111")))
     }

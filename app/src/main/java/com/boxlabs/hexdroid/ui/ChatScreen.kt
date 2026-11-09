@@ -775,7 +775,7 @@ fun ChatScreen(
     }
     val avatarRefreshInterval = com.boxlabs.hexdroid.CHATZONA_AVATAR_REFRESH_MS
     val configuredAvatarHost = com.boxlabs.hexdroid.avatarTemplateHost(state.settings.avatarTemplate)
-    DisposableEffect(selNetId, state.settings.avatarTemplate,selConn?.connected) {
+    androidx.compose.runtime.DisposableEffect(selNetId, state.settings.avatarTemplate,selConn?.connected) {
         com.boxlabs.hexdroid.RemoteBitmaps.invalidateScope(selNetId)
         onDispose { com.boxlabs.hexdroid.RemoteBitmaps.invalidateScope(selNetId) }
     }
@@ -1633,7 +1633,7 @@ fun ChatScreen(
                         val avatarGap = (nickFontSp * 0.3f).dp
                         if (nickAvatar != null) {
                             AvatarThumbnail(nickAvatar, cleaned,
-                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, refreshEveryMs = avatarRefreshInterval) {
+                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarRefreshInterval) {
                                 expandedAvatar = nickAvatar to cleaned
                             }
                         } else if (state.settings.showNickIcons) {
@@ -2133,7 +2133,7 @@ fun ChatScreen(
 
                     if (isPrivateMessage && automaticChatZona) avatarFor(selBufName)?.let { url ->
                         AvatarThumbnail(url, selBufName, Modifier.size(32.dp), avatarRefresh,
-                            scope=selNetId, configuredHost=configuredAvatarHost, refreshEveryMs = avatarRefreshInterval) { expandedAvatar = url to selBufName }
+                            scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarRefreshInterval) { expandedAvatar = url to selBufName }
                     }
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -2798,7 +2798,7 @@ fun ChatScreen(
                         val readByPeer = peerReadAtMs != null && !isChannel && m.timeMs <= peerReadAtMs &&
                             !m.failed && !m.pending && m.from != null && m.from.equals(myNick, ignoreCase = true)
                         val messageAvatar = if (state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from != null && m.from != "ERROR") avatarFor(m.from) else null
-                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarRefreshInterval, refreshToken = avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost,
+                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarRefreshInterval, showAvatar=state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from!=null && m.from!="ERROR", refreshToken = avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly,
                             onOpen = { if (messageAvatar != null) expandedAvatar = messageAvatar to m.from.orEmpty() }) {
                         SingleMessageItem(
                             m = m,
@@ -5270,7 +5270,7 @@ fun ChatScreen(
                         // Avatar (draft/metadata-2), gated identically to the message rows:
                         // only when image previews are on and this profile is unproxied.
                         if (sheetAvatar != null) {
-                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, refreshEveryMs = avatarRefreshInterval) {
+                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefresh, scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarRefreshInterval) {
                                 expandedAvatar = sheetAvatar to selectedNick
                             }
                         }

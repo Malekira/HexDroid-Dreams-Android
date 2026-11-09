@@ -31,18 +31,19 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 internal val DefaultAvatarLoader: suspend (String, Long) -> ImageBitmap? = { url, age -> RemoteBitmaps.fetchFresh(url, if(age>0) age else 60_000L)?.asImageBitmap() }
 internal val LocalAvatarLoader = staticCompositionLocalOf { DefaultAvatarLoader }
 @Composable
-internal fun avatarLoader(scope: String, configuredHost: String?): suspend (String,Long)->ImageBitmap? {
+internal fun avatarLoader(scope: String, configuredHost: String?, wifiOnly: Boolean = false): suspend (String,Long)->ImageBitmap? {
     val injected=LocalAvatarLoader.current
-    return remember<suspend (String,Long)->ImageBitmap?>(injected,scope,configuredHost) {
+    val context=androidx.compose.ui.platform.LocalContext.current
+    return remember<suspend (String,Long)->ImageBitmap?>(injected,scope,configuredHost,wifiOnly,context) {
         if(injected !== DefaultAvatarLoader) injected else { url: String, age: Long ->
-            RemoteBitmaps.fetchFresh(url,if(age>0) age else 60_000L,scope,configuredHost)?.asImageBitmap()
+            if(wifiOnly && !isOnWifi(context)) null else RemoteBitmaps.fetchFresh(url,if(age>0) age else 60_000L,scope,configuredHost)?.asImageBitmap()
         }
     }
 }
 
 @Composable
-fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, refreshToken: Int = 0, refreshEveryMs: Long = 0L, scope: String = "", configuredHost: String? = null, onOpen: () -> Unit) {
-    val loader = avatarLoader(scope,configuredHost)
+fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, refreshToken: Int = 0, refreshEveryMs: Long = 0L, scope: String = "", configuredHost: String? = null, wifiOnly: Boolean = false, onOpen: () -> Unit) {
+    val loader = avatarLoader(scope,configuredHost,wifiOnly)
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var image by remember(url, refreshToken, scope) { mutableStateOf(RemoteBitmaps.cached(url,scope=scope)?.asImageBitmap()) }
     LaunchedEffect(url, refreshToken, refreshEveryMs, loader, lifecycle) {
@@ -96,10 +97,11 @@ fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
 }
 
 @Composable
-internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, refreshToken: Int = 0, scope: String = "", configuredHost: String? = null, onOpen: () -> Unit, content: @Composable () -> Unit) {
-    if (url == null) content()
+internal fun AvatarMessageRow(url: String?, nick: String, refreshEveryMs: Long, refreshToken: Int = 0, scope: String = "", configuredHost: String? = null, wifiOnly: Boolean = false, showAvatar: Boolean = url != null, onOpen: () -> Unit, content: @Composable () -> Unit) {
+    if (!showAvatar) content()
     else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshToken = refreshToken, refreshEveryMs = refreshEveryMs, scope=scope, configuredHost=configuredHost, onOpen = onOpen)
+        if(url==null) Box(Modifier.padding(end=6.dp).size(28.dp),contentAlignment=Alignment.Center) { Text(nick.trimStart('~','&','@','%','+').take(2).uppercase(),style=MaterialTheme.typography.labelSmall) }
+        else AvatarThumbnail(url, nick, Modifier.padding(end = 6.dp).size(28.dp), refreshToken = refreshToken, refreshEveryMs = refreshEveryMs, scope=scope, configuredHost=configuredHost, wifiOnly=wifiOnly, onOpen = onOpen)
         Box(Modifier.weight(1f)) { content() }
     }
 }

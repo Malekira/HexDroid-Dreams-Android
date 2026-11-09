@@ -23,10 +23,10 @@ import com.boxlabs.hexdroid.validAvatarUrl
 @Composable
 internal fun ProfileAvatarField(url: String, onChange: (String) -> Unit,
                                 source: String? = url.trim().takeIf { it.isNotEmpty() && validAvatarUrl(it) },
-                                nick: String = "", downloadsAllowed: Boolean = false, proxied: Boolean = false, scope: String = "", configuredHost: String? = null) {
+                                nick: String = "", downloadsAllowed: Boolean = false, proxied: Boolean = false, scope: String = "", configuredHost: String? = null, wifiOnly: Boolean = false) {
     val valid = validAvatarUrl(url.trim())
     val mayLoad = downloadsAllowed && !proxied
-    val automaticLoader = avatarLoader(scope,configuredHost)
+    val automaticLoader = avatarLoader(scope,configuredHost,wifiOnly)
     val injected=LocalAvatarLoader.current
     val loader: suspend (String,Long)->ImageBitmap? = remember(automaticLoader,injected,url,scope) {
         if(url.isNotBlank() && injected === DefaultAvatarLoader) { source: String, age: Long ->

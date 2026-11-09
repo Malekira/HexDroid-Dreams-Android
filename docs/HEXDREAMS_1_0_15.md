@@ -4,7 +4,7 @@ Nombre y logo actualizados. El hexágono conserva el diseño aportado y transpar
 
 Resolución: consulta explícita, METADATA avatar (incluida retirada vacía), avatar-url, cuarto campo del GECOS Base64 UTF-8 y plantilla HTTPS configurable. Acepta campos adicionales de GECOS y oculta el bloque codificado en los nombres reales de WHO/WHOIS. No inventa nombres reales.
 
-Fuentes IRC: WHO 352, WHOX 354 para la consulta conocida %tuhsnfar,42, WHOIS 311, JOIN extendido, SETNAME, METADATA y 761. Suscripción/GET/SYNC exclusivamente cuando se negocia draft/metadata-2; se conserva el tratamiento especial de soju. La recuperación de fotos no abre ventanas ni inicia WHO/WHOIS adicionales.
+Fuentes IRC: WHO 352, WHOX 354 según los campos de la consulta enviada y su token (incluido %tuhsnfar,42), WHOIS 311, JOIN extendido, SETNAME, METADATA y 761. Suscripción/GET/SYNC exclusivamente cuando se negocia draft/metadata-2; se conserva el tratamiento especial de soju. La recuperación de fotos no abre ventanas ni inicia WHO/WHOIS adicionales.
 
 Plantilla en Ajustes → Multimedia: {nick}, {nickLower}, %nick% y %s. Predeterminada: https://chat-avatars.chateagratis.net/avatar/Chat/{nick}.png. El nick se codifica como componente UTF-8 después de quitar rangos. Estado y caché por red; identidad con CASEMAPPING.
 

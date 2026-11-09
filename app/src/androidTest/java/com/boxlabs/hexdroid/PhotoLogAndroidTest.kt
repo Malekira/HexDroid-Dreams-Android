@@ -123,6 +123,37 @@ class PhotoLogAndroidTest {
             assertNotNull(RemoteBitmaps.fetch(url,configuredHost="unconfigured.example"));assertTrue(opened)
         } finally { RemoteBitmaps.connectionFactory=original }
     }
+    @Test fun downloadsAllowThreeWorkersAndKeepTheRestQueued() = runBlocking {
+        val original=RemoteBitmaps.connectionFactory
+        val gate=CountDownLatch(1);val entered=CountDownLatch(3)
+        val count=java.util.concurrent.atomic.AtomicInteger()
+        val bytes=png(Color.GREEN)
+        val prefix="https://chat-avatars.chateagratis.net/workers-${System.nanoTime()}"
+        RemoteBitmaps.connectionFactory={ target -> count.incrementAndGet();entered.countDown();Connection(target,bytes,gate) }
+        try {
+            val jobs=(1..6).map { async(Dispatchers.IO) { RemoteBitmaps.fetch("$prefix-$it.png",scope="workers") } }
+            assertTrue(entered.await(5000,TimeUnit.MILLISECONDS));assertEquals(3,count.get())
+            gate.countDown()
+            jobs.forEach { assertNotNull(it.await()) };assertEquals(6,count.get())
+        } finally { gate.countDown();RemoteBitmaps.connectionFactory=original;RemoteBitmaps.invalidateScope("workers") }
+    }
+    @Test fun automaticAndManualByteLimitsDifferAndInvalidContentIsRejected() = runBlocking {
+        val original=RemoteBitmaps.connectionFactory
+        val prefix="https://chat-avatars.chateagratis.net/limits-${System.nanoTime()}"
+        var bytes=png(Color.BLUE).copyOf(2*1024*1024+1)
+        RemoteBitmaps.connectionFactory={ target -> Connection(target,bytes) }
+        try {
+            assertNull(RemoteBitmaps.fetch("$prefix-auto.png"))
+            assertEquals(AvatarFailure.TOO_LARGE,RemoteBitmaps.failure("$prefix-auto.png"))
+            assertNotNull(RemoteBitmaps.fetch("$prefix-manual.png",fullSize=true))
+            bytes=ByteArray(5*1024*1024+1)
+            assertNull(RemoteBitmaps.fetch("$prefix-too-large.png",fullSize=true))
+            assertEquals(AvatarFailure.TOO_LARGE,RemoteBitmaps.failure("$prefix-too-large.png",fullSize=true))
+            bytes="This is HTML, not an image".toByteArray()
+            assertNull(RemoteBitmaps.fetch("$prefix-not-image.png"))
+            assertEquals(AvatarFailure.NOT_IMAGE,RemoteBitmaps.failure("$prefix-not-image.png"))
+        } finally { RemoteBitmaps.connectionFactory=original }
+    }
     @Test fun viewerSearchesMultipleWordsAndShowsNoMatches() {
         val log="ALICIA llegó a sala\nBob privado\nalicia SALA dos"
         compose.setContent { HexDroidIRCTheme { SearchableLogContent("Prueba.log", { query,offset -> readLogPage(StringReader(log),query,offset) }) } }

@@ -83,6 +83,7 @@ object RemoteBitmaps {
         if (url.isBlank() || !validAvatarUrl(url) || (!full && !automaticAvatarAllowed(url, configuredHost))) return null
         val cacheId=scoped(url,scope)
         val request = synchronized(lock) {
+            if(!full && downloadedAt[key(cacheId,false)]?.let { System.currentTimeMillis()-it>=60_000L }==true) invalidateKey(cacheId)
             (if (full) largeCache else cache)[cacheId]?.let { return it }
             val k = key(cacheId, full)
             if (failedAt[k]?.let { System.currentTimeMillis() - it < RETRY_AFTER_MS } == true) return null
@@ -129,7 +130,7 @@ object RemoteBitmaps {
 
     private fun download(source: String, full: Boolean, refresh: Boolean, configuredHost: String?, redirects: Int = 0): Pair<Bitmap?, AvatarFailure?> = try {
         val requestUrl = avatarRequestUrl(source, System.currentTimeMillis(), refresh)
-        if (!validAvatarUrl(requestUrl) || (!full && !automaticAvatarAllowed(requestUrl,configuredHost))) null to AvatarFailure.REDIRECT else {
+        if (!validAvatarUrl(requestUrl) || !publicAvatarLiteral(requestUrl) || (!full && !automaticAvatarAllowed(requestUrl,configuredHost))) null to AvatarFailure.REDIRECT else {
             fun redirect(location: String?): Pair<Bitmap?,AvatarFailure?> {
                 val target=location?.let { normalizeWebPhotoUrl(URL(URL(requestUrl),it).toString()) }
                 return if (redirects>=3 || target==null) null to AvatarFailure.REDIRECT else download(target,full,refresh,configuredHost,redirects+1)

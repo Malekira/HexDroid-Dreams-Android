@@ -35,6 +35,16 @@ class HexDreamsAvatarProtocolTest {
             h.server.expect { it=="METADATA #room SYNC" }
         } finally { h.close() }
     }
+    @Test fun customWhoxQueryUsesProtocolFieldOrderAndKeepsRealnameSpaces() {
+        val h=IrcTestHarness("echo-message")
+        try {
+            h.run { h.client.handleSlashCommand("who #room %nrt,77","*server*") }
+            h.server.expect { it=="WHO #room %nrt,77" }
+            h.server.send(":srv 354 me 77 Eve :Real name with spaces")
+            assertEquals("Real name with spaces",h.await<IrcEvent.WhoxReply> { it.nick=="Eve" }.realname)
+            assertTrue(h.await<IrcEvent.ServerText> { it.code=="354" }.text.contains("Real name with spaces"))
+        } finally { h.close() }
+    }
     @Test fun serverWithoutMetadataCapabilityStillEmitsGecosAndSendsNoMetadataCommands() {
         val h=IrcTestHarness("echo-message")
         try {

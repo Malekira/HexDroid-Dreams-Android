@@ -704,6 +704,10 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         }
                     }
                     is IrcEvent.ISupport -> {
+                        if (_state.value.connections[netId]?.avatarCaseMapping?.let { it != ev.caseMapping } == true) {
+                            RemoteBitmaps.invalidateScope(netId)
+                            setNetConn(netId) { it.copy(avatarUrls=emptyMap(),avatarAliasUrls=emptyMap(),legacyAvatarUrls=emptyMap(),primaryAvatarNicks=emptySet(),avatarRevision=it.avatarRevision+1) }
+                        }
                         setNetConn(netId) { conn -> conn.copy(avatarCaseMapping = ev.caseMapping) }
                         if (ev.networkName != null) setNetConn(netId) { it.copy(serverNetworkName = ev.networkName.take(128)) }
                         _state.update { it.copy(callerIdNetworks = if (ev.callerIdMode == "g") it.callerIdNetworks + netId else it.callerIdNetworks - netId) }

@@ -478,24 +478,25 @@ internal fun IrcClient.buildNumericHandlers(
         //   <me> 42 <ident> <host> <server> <nick> <flags> <account> :<realname>
         //   The query type (42) is in params[1]; we skip this numeric if it doesn't match ours.
         "354" to handler@{ msg, _, _, _ ->
-            // Query type 42 marks the client's own member refresh; any other answers a WHO the user typed.
-            if (msg.params.getOrNull(1) != "42") {
-                val buffer = currentWho()?.buffer ?: return@handler
-                val fields = msg.allParams.drop(1).joinToString(" ") { stripIrcFormatting(it) }
-                send(IrcEvent.ServerText(fields, code = "354", bufferName = buffer))
-                return@handler
+            val parameters=msg.allParams.drop(1)
+            val request=currentWhox(parameters)
+            val spec=request?.photoFields ?: if(parameters.firstOrNull()=="42") WhoxPhotoFields.fromLine("WHO * %tuhsnfar,42") else null
+            val fields=spec?.values(parameters)
+            val nick=fields?.get('n')
+            if(nick!=null && fields!=null) {
+                val ident=fields['u'].orEmpty();val host=fields['h'].orEmpty();val flags=fields['f']
+                val account=fields['a']?.takeIf { it!="0" && it!="*" }
+                if(ident.isNotBlank() && host.isNotBlank()) noteUser(nick,ident,host,account ?: "*")
+                send(IrcEvent.WhoxReply(nick,ident,host,account,
+                    flags?.firstOrNull { it=='H' || it=='G' }?.let { it=='G' },
+                    botModeChar?.let { flags?.contains(it)==true } ?: false,fields['r']))
             }
-            val ident   = msg.params.getOrNull(2) ?: return@handler
-            val host    = msg.params.getOrNull(3) ?: return@handler
-            val nick    = msg.params.getOrNull(5) ?: return@handler
-            // flags field (params[6]): 'H'=Here (present), 'G'=Gone (away). May have extra flags like '*'=oper.
-            val flags   = msg.params.getOrNull(6)
-            val isAway  = flags?.firstOrNull { it == 'H' || it == 'G' }?.let { it == 'G' }
-            val account = msg.params.getOrNull(7)?.takeIf { it != "0" }  // "0" = not logged in
-            // Bot Mode: the flags field also carries the BOT mode letter for bots.
-            val isBot = botModeChar?.let { bc -> flags?.contains(bc) == true } ?: false
-            noteUser(nick, ident, host, account ?: "*")
-            send(IrcEvent.WhoxReply(nick = nick, ident = ident, host = host, account = account, isAway = isAway, isBot = isBot, realname = msg.trailing))
+            val buffer=request?.buffer ?: if(spec==null) currentWho()?.buffer else null
+            if(buffer!=null) {
+                val text=parameters.mapIndexed { i,value -> if(spec?.fields?.getOrNull(i)=='r' || spec==null) displayRealname(stripIrcFormatting(value)) else stripIrcFormatting(value) }.filter { it.isNotEmpty() }.joinToString(" ")
+                send(IrcEvent.ServerText(text,code="354",bufferName=buffer))
+            }
+
         },
 
         // RPL_WHOREPLY (352): the plain WHO reply, for servers without WHOX.

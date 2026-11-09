@@ -78,3 +78,9 @@ internal fun publicAvatarAddress(address: java.net.InetAddress): Boolean {
     // Only globally routable unicast IPv6; excludes ULA, mapped, NAT64 and local ranges.
     return b.size==16 && (b[0] and 0xe0)==0x20 && !(b[0]==0x20 && b[1]==0x01 && b[2]==0x0d && b[3]==0xb8)
 }
+
+/** OkHttp may bypass custom DNS for literal IPs, so validate those before opening a socket. */
+internal fun publicAvatarLiteral(url: String): Boolean = runCatching {
+    val host=URI(url).host ?: return false
+    if (host.contains(':') || host.matches(Regex("[0-9.]+"))) publicAvatarAddress(java.net.InetAddress.getByName(host)) else true
+}.getOrDefault(false)

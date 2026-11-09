@@ -91,6 +91,10 @@ internal fun IrcViewModel.clearAwayNicksInState(netId: String) {
 internal fun IrcViewModel.dropMetadataForNick(netId: String, nick: String) {
     val key=nick.lowercase()
     val photoKey=casefoldText(netId,nick)
+    _state.value.connections[netId]?.let { conn ->
+        listOfNotNull(conn.avatarUrls[photoKey],conn.avatarAliasUrls[photoKey],conn.legacyAvatarUrls[photoKey],templateAvatarUrl(_state.value.settings.avatarTemplate,nick))
+            .filter { it.isNotBlank() }.forEach { RemoteBitmaps.invalidate(it,netId) }
+    }
     setNetConn(netId) { st -> st.copy(
         displayNames=st.displayNames-key, nickColors=st.nickColors-key,statuses=st.statuses-key,extraMetadata=st.extraMetadata-key,
         avatarUrls=st.avatarUrls-photoKey,avatarAliasUrls=st.avatarAliasUrls-photoKey,
