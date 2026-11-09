@@ -38,7 +38,7 @@ object RemoteBitmaps {
         } }).build()
     private fun scoped(url: String, scope: String) = scope + "\u0000" + url
     fun invalidateScope(scope: String) = synchronized(lock) {
-        versions.keys.filter { it.startsWith(scope + "\u0000") }.toList().forEach { invalidateKey(it) }
+        (versions.keys + cache.keys + largeCache.keys).filter { it.startsWith(scope + "\u0000") }.toSet().forEach { invalidateKey(it) }
     }
     private fun invalidateKey(id: String) {
         if (versions.containsKey(id)) refreshRequired[id] = true

@@ -159,6 +159,28 @@ class PhotoLogAndroidTest {
             assertEquals(AvatarFailure.NOT_IMAGE,RemoteBitmaps.failure("$prefix-not-image.png"))
         } finally { RemoteBitmaps.connectionFactory=original }
     }
+    @Test fun brandUsesHexDreamsNameAndTransparentLogoExterior() {
+        val context=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        assertEquals("HexDreams IRC",context.getString(R.string.personal_app_name))
+        val logo=android.graphics.BitmapFactory.decodeResource(context.resources,R.drawable.hexdroid_logo)
+        assertTrue(logo.hasAlpha());assertEquals(0,Color.alpha(logo.getPixel(0,0)))
+        assertTrue(Color.alpha(logo.getPixel(logo.width/2,logo.height/2))>0)
+    }
+    @Test fun imageDimensionsAreCheckedBeforeAllocatingTheDecodedBitmap() = runBlocking {
+        val original=RemoteBitmaps.connectionFactory
+        val bytes=png(Color.BLUE)
+        // PNG IHDR reports 64 million pixels, beyond the 32-million-pixel ceiling.
+        val buffer=java.nio.ByteBuffer.wrap(bytes)
+        buffer.putInt(16,8000);buffer.putInt(20,8000)
+        val crc=java.util.zip.CRC32().apply { update(bytes,12,17) }
+        buffer.putInt(29,crc.value.toInt())
+        val url="https://chat-avatars.chateagratis.net/dimensions-${System.nanoTime()}.png"
+        RemoteBitmaps.connectionFactory={ target -> Connection(target,bytes) }
+        try {
+            assertNull(RemoteBitmaps.fetch(url,fullSize=true))
+            assertEquals(AvatarFailure.NOT_IMAGE,RemoteBitmaps.failure(url,fullSize=true))
+        } finally { RemoteBitmaps.connectionFactory=original }
+    }
     @Test fun viewerSearchesMultipleWordsAndShowsNoMatches() {
         val log="ALICIA llegó a sala\nBob privado\nalicia SALA dos"
         compose.setContent { HexDroidIRCTheme { SearchableLogContent("Prueba.log", { query,offset -> readLogPage(StringReader(log),query,offset) }) } }

@@ -89,6 +89,9 @@ class Dreams109UiTest {
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)
         compose.runOnIdle { state = state.copy(settings = state.settings.copy(chatZonaAvatarsEnabled = true), networks = listOf(profile.copy(host = "irc.other.invalid"))) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(1)
+        compose.runOnIdle { state = state.copy(settings=state.settings.copy(imagePreviewsEnabled=false)) }
+        compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)
+        compose.runOnIdle { state = state.copy(settings=state.settings.copy(imagePreviewsEnabled=true)) }
         compose.runOnIdle { state = state.copy(networks = listOf(profile.copy(proxyType = ProxyType.SOCKS5))) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)
     }

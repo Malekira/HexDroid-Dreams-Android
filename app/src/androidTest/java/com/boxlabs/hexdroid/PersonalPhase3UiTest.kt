@@ -277,7 +277,7 @@ class PersonalPhase3UiTest {
 
     @Test fun dreamsWelcomeShowsBrandOriginalCreditsAndLicense() {
         compose.setContent { MaterialTheme { WelcomeScreen { _, _ -> } } }
-        compose.onNodeWithText("HexDroid Dreams", substring = true).assertExists()
+        compose.onNodeWithText("HexDreams IRC", substring = true).assertExists()
         compose.onNodeWithText("boxlabs", substring = true).assertExists()
         compose.onNodeWithText("eck", substring = true).assertExists()
         compose.onNodeWithText("cyberdyne-sys", substring = true).assertExists()

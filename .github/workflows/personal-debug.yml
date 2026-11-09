@@ -218,14 +218,14 @@ jobs:
           grep -F "package: name='com.malekira.hexdroid.personal.debug'" "$RUNNER_TEMP/apk-badging.txt"
           grep -F "application-label:'HexDreams IRC'" "$RUNNER_TEMP/apk-badging.txt"
           mkdir -p apk-download
-          cp "$apk" apk-download/HexDroid-Dreams-debug.apk
-          (cd apk-download && sha256sum HexDroid-Dreams-debug.apk > SHA256SUMS.txt)
+          cp "$apk" apk-download/HexDreams-IRC-debug.apk
+          (cd apk-download && sha256sum HexDreams-IRC-debug.apk > SHA256SUMS.txt)
 
       - name: Upload APK for download from Android
         id: apk
         uses: actions/upload-artifact@v4
         with:
-          name: HexDroid-Dreams-debug
+          name: HexDreams-IRC-debug
           path: apk-download/
           if-no-files-found: error
           retention-days: 30
@@ -245,7 +245,7 @@ jobs:
             echo "[Descargar APK debug (ZIP)]($ARTIFACT_URL)"
             echo
             echo 'Inicia sesión en GitHub, descarga el ZIP y extráelo con Mis archivos de Samsung.'
-            echo 'Abre HexDroid-Dreams-debug.apk y autoriza la instalación desde esa fuente si Android lo solicita.'
+            echo 'Abre HexDreams-IRC-debug.apk y autoriza la instalación desde esa fuente si Android lo solicita.'
             echo 'La APK usa com.malekira.hexdroid.personal.debug y convive con HexDroid oficial.'
             echo "Código compilado: $GITHUB_SHA"
             echo 'El archivo estará disponible durante 30 días. No se publica ninguna clave privada.'
@@ -358,13 +358,13 @@ jobs:
             echo '::error::La APK final no debe ser depurable.'
             exit 1
           fi
-          cp "$apk" dreams-release-download/HexDroid-Dreams-release.apk
-          (cd dreams-release-download && sha256sum HexDroid-Dreams-release.apk > SHA256SUMS.txt)
+          cp "$apk" dreams-release-download/HexDreams-IRC-release.apk
+          (cd dreams-release-download && sha256sum HexDreams-IRC-release.apk > SHA256SUMS.txt)
       - name: Upload final APK
         id: final-apk
         uses: actions/upload-artifact@v4
         with:
-          name: HexDroid-Dreams-release
+          name: HexDreams-IRC-release
           path: dreams-release-download/
           if-no-files-found: error
           retention-days: 30
@@ -382,7 +382,7 @@ jobs:
           {
             echo '## HexDreams IRC — APK final firmada'
             echo "[Descargar APK final (ZIP)]($ARTIFACT_URL)"
-            echo 'Abrí el ZIP en Mis archivos de Samsung y luego HexDroid-Dreams-release.apk.'
+            echo 'Abrí el ZIP en Mis archivos de Samsung y luego HexDreams-IRC-release.apk.'
             echo 'Paquete: com.malekira.hexdroid.personal. Se instala junto a la prueba .debug; exportá e importá los datos que quieras trasladar.'
             echo 'No es una publicación en GitHub Releases ni un merge. El artifact dura 30 días.'
           } >> "$GITHUB_STEP_SUMMARY"
