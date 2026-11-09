@@ -165,6 +165,7 @@ class PhotoLogAndroidTest {
         assertEquals("HexDreams IRC",context.getString(R.string.personal_app_name))
         val logo=android.graphics.BitmapFactory.decodeResource(context.resources,R.drawable.hexdroid_logo)
         assertTrue(logo.hasAlpha());assertEquals(0,Color.alpha(logo.getPixel(0,0)))
+        assertEquals(0,Color.alpha(context.getColor(R.color.ic_launcher_background)))
         assertTrue(Color.alpha(logo.getPixel(logo.width/2,logo.height/2))>0)
     }
     @Test fun imageDimensionsAreCheckedBeforeAllocatingTheDecodedBitmap() = runBlocking {
