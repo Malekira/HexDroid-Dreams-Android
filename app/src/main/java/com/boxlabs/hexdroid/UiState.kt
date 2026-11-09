@@ -328,6 +328,7 @@ data class UiSettings(
     val retentionDays: Int = 0,
     val logFolderUri: String? = null,
     val chatZonaAvatarsEnabled: Boolean = true,
+    val avatarWifiOnly: Boolean = false,
     val chatZonaAvatarsInMessages: Boolean = false,
     val avatarTemplate: String = DEFAULT_AVATAR_TEMPLATE,
     val logDailyFiles: Boolean = false,

@@ -2013,7 +2013,7 @@
     <string name="dreams_sidebar_collapsed">Collapsed</string>
     <string name="dreams_avatar_automatic">Automatic network photo</string>
     <string name="dreams_avatar_use_source">Use this address in my profile</string>
-    <string name="dreams_avatar_option_disabled">Photo loading is off. Enable it in Settings → Media previews: ChatZona avatars or image previews for other networks.</string>
+    <string name="dreams_avatar_option_disabled">Avatar loading is disabled. Enable it in Settings → Media → Automatic avatar loading.</string>
     <string name="dreams_avatar_proxy_disabled">External photos are not downloaded for profiles using a proxy.</string>
     <string name="dreams_avatar_enlarge">Enlarge photo</string>
     <string name="dreams_avatar_refresh">Update / retry photo</string>

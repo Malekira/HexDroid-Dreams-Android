@@ -84,3 +84,9 @@ internal fun publicAvatarLiteral(url: String): Boolean = runCatching {
     val host=URI(url).host ?: return false
     if (host.contains(':') || host.matches(Regex("[0-9.]+"))) publicAvatarAddress(java.net.InetAddress.getByName(host)) else true
 }.getOrDefault(false)
+
+/** Follow the actual HTTPS Location, without rewriting a redirect back to its origin. */
+internal fun avatarRedirectTarget(source:String,location:String):String? = runCatching {
+    val target=URI(source).resolve(location).toASCIIString()
+    target.takeIf { validAvatarUrl(it) && it.isNotBlank() }
+}.getOrNull()

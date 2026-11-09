@@ -1038,7 +1038,8 @@ fun SettingsScreen(
             if (onePage) item(key = "hdr_MEDIA") { OnePageHeader(SettingsCategory.MEDIA) }
             item { OutlinedTextField(s.avatarTemplate, { value -> onUpdate { copy(avatarTemplate = value) } }, label = { Text("Plantilla de avatares HTTPS") }, supportingText = { Text("{nick}, {nickLower}, %nick% o %s · vacío desactiva el respaldo") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
             item { FullWidthSettingToggle("Carga automática de avatares", s.chatZonaAvatarsEnabled) { onUpdate { copy(chatZonaAvatarsEnabled = !chatZonaAvatarsEnabled) } } }
-            item { Text("Usa METADATA, la foto del chat web o la plantilla. Respeta multimedia y solo Wi-Fi; las conexiones con proxy no descargan avatares.", style = MaterialTheme.typography.bodySmall) }
+            item { FullWidthSettingToggle("Avatares solo por Wi-Fi", s.avatarWifiOnly) { onUpdate { copy(avatarWifiOnly = !avatarWifiOnly) } } }
+            item { Text("Las fotos usan sus propios controles de carga y Wi-Fi. Las vistas previas de enlaces se configuran aparte. Las conexiones con proxy no descargan avatares.", style = MaterialTheme.typography.bodySmall) }
             item { FullWidthSettingToggle("Avatares junto a los mensajes", s.chatZonaAvatarsInMessages) { onUpdate { copy(chatZonaAvatarsInMessages = !chatZonaAvatarsInMessages) } } }
 
 
