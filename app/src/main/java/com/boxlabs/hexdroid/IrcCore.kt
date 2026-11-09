@@ -2263,6 +2263,18 @@ class IrcClient(val config: IrcConfig) {
         val s = try {
             withContext(Dispatchers.IO) { openSocket() }
         } catch (t: Throwable) {
+            val untrusted=certificateApprovalCause(t)
+            val certificate=untrusted?.certificate ?: (t as? TlsFingerprintMismatchException)?.certificate ?: (t as? TlsHostnameMismatchException)?.certificate
+            if(certificate!=null) {
+                val reason=when(t) {
+                    is TlsFingerprintMismatchException -> "El certificado cambió. Huella anterior: ${t.stored}"
+                    is TlsHostnameMismatchException -> "El certificado no corresponde a ${config.host}. Identidades: ${t.identities.joinToString()}"
+                    else -> "El certificado no está reconocido o su cadena no es válida: ${untrusted?.cause?.message.orEmpty()}"
+                }
+                send(IrcEvent.CertificateApprovalRequired(TlsCertificateApproval(config.host,config.port,certificate,reason,config.certificateApprovalAllowed)))
+                sendDisconnectedOnce(reason,DisconnectCode.TLS_UNRECOVERABLE)
+                return@channelFlow
+            }
             // TOFU pin mismatch gets its own structured event so the UI can show the
             // stored-vs-actual fingerprints and the user can make an informed choice
             // (legitimate cert renewal vs. suspected MITM).

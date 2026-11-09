@@ -457,6 +457,7 @@ data class NetConnState(
      * in NetworkEditScreen
      */
     val tlsPinMismatch: Boolean = false,
+    val certificateApproval: TlsCertificateApproval? = null,
     /**
      * The actual fingerprint the server presented at the most recent mismatch, stashed so
      * the edit screen can offer "Trust this server too" without re-deriving it. Cleared on

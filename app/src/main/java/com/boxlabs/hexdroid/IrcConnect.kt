@@ -163,7 +163,7 @@ internal fun IrcClient.openSocket(): Socket {
         var cacheable = true
         val sslContext = sslContextCache[cacheKey] ?: run {
             val ctx = SSLContext.getInstance("TLS")
-            val tm = if (pinMode) arrayOf<TrustManager>(InsecureTrustManager()) else null
+            val tm = if (pinMode) arrayOf<TrustManager>(InsecureTrustManager()) else arrayOf<TrustManager>(ApprovalTrustManager.platform())
             val km: Array<KeyManager>? = config.clientCert?.let { cert ->
                 try {
                     val alias = cert.keystoreAlias
@@ -252,7 +252,7 @@ internal fun IrcClient.openSocket(): Socket {
                 if (!ok) {
                     runCatching { ss.close() }
                     runCatching { rawSocket.close() }
-                    throw TlsHostnameMismatchException(expected = config.host, identities = ids)
+                    throw TlsHostnameMismatchException(expected = config.host, identities = ids, certificate = TlsCertificateDetails.from(leaf))
                 }
             }
         }
@@ -290,11 +290,13 @@ internal fun IrcClient.openSocket(): Socket {
                 .map { normaliseFingerprint(it) }
                 .toSet() + storedNorm
             if (!acceptedNormSet.any { it.equals(actualFp, ignoreCase = true) }) {
+                val presented=(ss.session.peerCertificates.firstOrNull() as? java.security.cert.X509Certificate)?.let { TlsCertificateDetails.from(it) }
                 runCatching { ss.close() }
                 runCatching { rawSocket.close() }
                 throw TlsFingerprintMismatchException(
                     stored = storedNorm,
                     actual = actualFp,
+                    certificate = presented,
                 )
             }
         } else {
@@ -514,6 +516,7 @@ private class InsecureTrustManager : X509TrustManager {
 internal class TlsFingerprintMismatchException(
     val stored: String,
     val actual: String,
+    val certificate: TlsCertificateDetails? = null,
 ) : java.io.IOException(
     "TLS certificate fingerprint mismatch — expected $stored, got $actual"
 )
@@ -521,6 +524,7 @@ internal class TlsFingerprintMismatchException(
 internal class TlsHostnameMismatchException(
     val expected: String,
     val identities: List<String>,
+    val certificate: TlsCertificateDetails? = null,
 ) : java.io.IOException(
     "TLS certificate is not valid for $expected (cert names: ${identities.joinToString(", ").ifEmpty { "none" }})"
 )
@@ -531,7 +535,7 @@ internal class TlsHostnameMismatchException(
  * representation used by OpenSSL, Firefox, and most IRC clients that expose TOFU, so it
  * round-trips cleanly if a user ever wants to copy-paste a fingerprint between tools.
  */
-private fun computeFingerprintSha256(cert: java.security.cert.X509Certificate): String {
+internal fun computeFingerprintSha256(cert: java.security.cert.X509Certificate): String {
     val der = cert.encoded
     val md = java.security.MessageDigest.getInstance("SHA-256")
     val digest = md.digest(der)

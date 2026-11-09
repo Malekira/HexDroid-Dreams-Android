@@ -2867,7 +2867,7 @@ fun startAddNetwork() {
             is IrcEvent.Status, is IrcEvent.Connected, is IrcEvent.LagUpdated,
             is IrcEvent.Disconnected, is IrcEvent.RawLine, is IrcEvent.SendResolved,
             is IrcEvent.MultilineSendFailed, is IrcEvent.Error, is IrcEvent.AuthFailed,
-            is IrcEvent.TlsFingerprintLearned, is IrcEvent.TlsHostnameMismatch,
+            is IrcEvent.CertificateApprovalRequired, is IrcEvent.TlsFingerprintLearned, is IrcEvent.TlsHostnameMismatch,
             is IrcEvent.TlsFingerprintChanged, is IrcEvent.ServerLine, is IrcEvent.ServerText,
             is IrcEvent.JoinError, is IrcEvent.ChannelModeIs, is IrcEvent.YoureOper,
             is IrcEvent.SupportedUserModes, is IrcEvent.OwnUserModes,

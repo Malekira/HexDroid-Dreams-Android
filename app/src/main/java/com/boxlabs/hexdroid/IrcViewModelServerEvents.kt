@@ -387,6 +387,14 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         )
                     }
 
+                    is IrcEvent.CertificateApprovalRequired -> {
+                        val profile=_state.value.networks.firstOrNull { it.id==netId }
+                        if(profile!=null && profile.host.trim().equals(ev.request.host.trim(),true) && (!ev.request.allowed || profile.port==ev.request.port)) {
+                            authBlockedReconnect.add(netId)
+                            autoReconnectJobs.remove(netId)?.cancel()
+                            setNetConn(netId) { it.copy(certificateApproval=ev.request) }
+                        }
+                    }
                     is IrcEvent.TlsFingerprintLearned -> {
                         // First time we see this server's TLS certificate - persist the fingerprint so
                         // future connections use TOFU pinning instead of trusting all certs blindly.
