@@ -2011,7 +2011,7 @@
     <string name="dreams_sidebar_collapsed">Plegado</string>
     <string name="dreams_avatar_automatic">Foto automática de la red</string>
     <string name="dreams_avatar_use_source">Usar esta dirección en mi perfil</string>
-    <string name="dreams_avatar_option_disabled">La carga de fotos está desactivada. Activala en Ajustes → Vistas previas multimedia: avatares de ChatZona o vistas previas de imágenes en otras redes.</string>
+    <string name="dreams_avatar_option_disabled">La carga de avatares está desactivada. Actívala en Ajustes → Multimedia → Carga automática de avatares.</string>
     <string name="dreams_avatar_proxy_disabled">Los perfiles con proxy no descargan fotos externas.</string>
     <string name="dreams_avatar_enlarge">Ampliar foto</string>
     <string name="dreams_avatar_refresh">Actualizar / reintentar foto</string>

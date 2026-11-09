@@ -24,14 +24,20 @@ internal fun chatZonaAvatarUrl(host: String, advertisedNetwork: String?, nick: S
 /** Resolve a profile without downloading or persisting a nick-derived URL. */
 internal fun profileAvatarSource(explicitUrl: String?, metadataUrl: String?, host: String, network: String?, nick: String,
                                  legacyUrl: String? = null, metadataKnown: Boolean = false, legacyKnown: Boolean = false,
-                                 aliasUrl: String? = null, aliasKnown: Boolean = false, template: String = DEFAULT_AVATAR_TEMPLATE): String? {
+                                 aliasUrl: String? = null, aliasKnown: Boolean = false, template: String = DEFAULT_AVATAR_TEMPLATE,
+                                 eligible: (String)->Boolean = { true }): String? {
     explicitUrl?.trim()?.takeIf { it.isNotEmpty() }?.let { normalizeWebPhotoUrl(it)?.let { value -> return value } }
-    if (metadataKnown) return normalizeWebPhotoUrl(metadataUrl)
-    normalizeWebPhotoUrl(metadataUrl)?.let { return it }
-    if (aliasKnown) return normalizeWebPhotoUrl(aliasUrl)
-    if (legacyKnown) return normalizeWebPhotoUrl(legacyUrl)
-    return normalizeWebPhotoUrl(legacyUrl) ?: templateAvatarUrl(template, nick)
+    if(metadataKnown && metadataUrl.isNullOrBlank()) return null
+    normalizeWebPhotoUrl(metadataUrl)?.takeIf(eligible)?.let { return it }
+    if(aliasKnown && aliasUrl.isNullOrBlank()) return null
+    normalizeWebPhotoUrl(aliasUrl)?.takeIf(eligible)?.let { return it }
+    if(legacyKnown) return normalizeWebPhotoUrl(legacyUrl)?.takeIf(eligible)
+    return normalizeWebPhotoUrl(legacyUrl)?.takeIf(eligible) ?: templateAvatarUrl(template,nick)?.takeIf(eligible)
 }
+
+/** Avatar preferences are independent of optional previews of links posted in chat. */
+internal fun automaticAvatarDownloadsAllowed(enabled:Boolean,wifiOnly:Boolean,onWifi:Boolean,proxied:Boolean):Boolean =
+    enabled && !proxied && (!wifiOnly || onWifi)
 
 /** An untouched empty field must not publish METADATA DEL or erase a web avatar. */
 internal fun profileAvatarChanged(previous: String?, edited: String?): Boolean = previous.orEmpty().trim() != edited.orEmpty().trim()

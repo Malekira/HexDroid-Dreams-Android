@@ -70,7 +70,7 @@ class Dreams111AvatarUiTest {
     }
     @Test fun dreams111ServerMetadataPhotoWinsOverTheAutomaticAddressWithoutChangingTheSavedProfile() {
         val net=SettingsRepository(context).defaultNetworks().first().copy(id="photo-metadata-demo",host="irc.chatzona.org",nick="DemoNick01",avatarUrl=null,proxyType=ProxyType.NONE)
-        val metadata="https://images.example.invalid/web-profile.png";val calls=CopyOnWriteArrayList<String>();val bitmap=image
+        val metadata="https://chat-avatars.chateagratis.net/web-profile.png";val calls=CopyOnWriteArrayList<String>();val bitmap=image
         var requests=0
         var saved:com.boxlabs.hexdroid.data.NetworkProfile?=null
         val loader:suspend(String,Long)->androidx.compose.ui.graphics.ImageBitmap?={url,_->calls+=url;bitmap}
@@ -88,7 +88,7 @@ class Dreams111AvatarUiTest {
     @Test fun dreams111TheOwnChatPhotoFromMetadataIsNotHiddenByAnEmptyProfileUrl() {
         val id="own-chat-photo-demo";val nick="OwnDemoNick";val key="$id::#demo"
         val net=SettingsRepository(context).defaultNetworks().first().copy(id=id,host="irc.chatzona.org",nick=nick,avatarUrl="",proxyType=ProxyType.NONE)
-        val metadata="https://images.example.invalid/own-web-profile.png";val calls=CopyOnWriteArrayList<String>();val bitmap=image
+        val metadata="https://chat-avatars.chateagratis.net/own-web-profile.png";val calls=CopyOnWriteArrayList<String>();val bitmap=image
         val loader:suspend(String,Long)->androidx.compose.ui.graphics.ImageBitmap?={url,_->calls+=url;bitmap}
         val state=UiState(networks=listOf(net),activeNetworkId=id,selectedBuffer=key,
             buffers=mapOf(key to UiBuffer("#demo",log=BufferLog(messages=kotlinx.collections.immutable.persistentListOf(UiMessage(1,System.currentTimeMillis(),nick,"Mensaje propio de prueba"))))),

@@ -412,6 +412,7 @@ class SettingsRepository(private val ctx: Context) {
                 maxScrollbackLines = o.optInt("maxScrollbackLines", 800),
                 logFolderUri = o.optString("logFolderUri", "").takeIf { it.isNotBlank() },
                 chatZonaAvatarsEnabled = o.optBoolean("chatZonaAvatarsEnabled", true),
+                avatarWifiOnly = o.optBoolean("avatarWifiOnly", false),
                 chatZonaAvatarsInMessages = o.optBoolean("chatZonaAvatarsInMessages", false),
                 avatarTemplate = o.optString("avatarTemplate", com.boxlabs.hexdroid.DEFAULT_AVATAR_TEMPLATE),
                 logDailyFiles = o.optBoolean("logDailyFiles", false),
@@ -547,6 +548,7 @@ class SettingsRepository(private val ctx: Context) {
         o.put("maxScrollbackLines", s.maxScrollbackLines)
         o.put("logFolderUri", s.logFolderUri ?: "")
         o.put("chatZonaAvatarsEnabled", s.chatZonaAvatarsEnabled)
+        o.put("avatarWifiOnly", s.avatarWifiOnly)
         o.put("chatZonaAvatarsInMessages", s.chatZonaAvatarsInMessages)
         o.put("avatarTemplate", s.avatarTemplate)
         o.put("logDailyFiles", s.logDailyFiles)

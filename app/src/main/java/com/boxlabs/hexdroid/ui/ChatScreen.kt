@@ -753,9 +753,11 @@ fun ChatScreen(
     val avatarProfile = state.networks.firstOrNull { it.id == selNetId }
     val isChatZona = avatarProfile != null && com.boxlabs.hexdroid.isChatZonaNetwork(avatarProfile.host, selConn?.serverNetworkName)
     val automaticChatZona = state.settings.chatZonaAvatarsEnabled
-    val avatarDownloadsAllowed = avatarProfile?.proxyType == com.boxlabs.hexdroid.connection.ProxyType.NONE &&
-        state.settings.imagePreviewsEnabled && state.settings.chatZonaAvatarsEnabled &&
-        (!state.settings.imagePreviewsWifiOnly || isOnWifi(androidx.compose.ui.platform.LocalContext.current))
+    val configuredAvatarHost = com.boxlabs.hexdroid.avatarTemplateHost(state.settings.avatarTemplate)
+    val avatarDownloadsAllowed = com.boxlabs.hexdroid.automaticAvatarDownloadsAllowed(
+        state.settings.chatZonaAvatarsEnabled,state.settings.avatarWifiOnly,
+        !state.settings.avatarWifiOnly || isOnWifi(androidx.compose.ui.platform.LocalContext.current),
+        avatarProfile?.proxyType != com.boxlabs.hexdroid.connection.ProxyType.NONE)
     val metadataAvatars: Map<String, String> = if (avatarDownloadsAllowed) {
         (selConn?.avatarUrls ?: emptyMap()).let { urls ->
             val own = state.profileAvatarUrls[selNetId] ?: avatarProfile?.avatarUrl
@@ -768,13 +770,12 @@ fun ChatScreen(
         return com.boxlabs.hexdroid.profileAvatarSource(null, metadataAvatars[key], avatarProfile.host,
             selConn?.serverNetworkName, baseNick(nick), legacyUrl = selConn?.legacyAvatarUrls?.get(key),
             metadataKnown = metadataAvatars.containsKey(key), legacyKnown = selConn?.legacyAvatarUrls?.containsKey(key) == true,
-            aliasUrl = selConn?.avatarAliasUrls?.get(key), aliasKnown = selConn?.avatarAliasUrls?.containsKey(key)==true, template=state.settings.avatarTemplate)
+            aliasUrl = selConn?.avatarAliasUrls?.get(key), aliasKnown = selConn?.avatarAliasUrls?.containsKey(key)==true, template=state.settings.avatarTemplate, eligible={ com.boxlabs.hexdroid.automaticAvatarAllowed(it,configuredAvatarHost) })
     }
     LaunchedEffect(selNetId, myNick, automaticChatZona, selConn?.hasUserMetadata) {
         if (automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, myNick)
     }
     val avatarCacheAgeMs = com.boxlabs.hexdroid.CHATZONA_AVATAR_REFRESH_MS
-    val configuredAvatarHost = com.boxlabs.hexdroid.avatarTemplateHost(state.settings.avatarTemplate)
     LaunchedEffect(selNetId, selBufName, isPrivateMessage, automaticChatZona, selConn?.hasUserMetadata) {
         if (isPrivateMessage && automaticChatZona) viewModel?.requestAvatarMetadata(selNetId, selBufName)
     }
@@ -1628,7 +1629,7 @@ fun ChatScreen(
                         val avatarGap = (nickFontSp * 0.3f).dp
                         if (nickAvatar != null) {
                             AvatarThumbnail(nickAvatar, cleaned,
-                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefreshFor(cleaned), scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarCacheAgeMs) {
+                                Modifier.padding(end = avatarGap).size(avatarSize).alpha(if (isAway) 0.6f else 1f), avatarRefreshFor(cleaned), scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.avatarWifiOnly, refreshEveryMs = avatarCacheAgeMs) {
                                 expandedAvatar = nickAvatar to cleaned
                             }
                         } else if (state.settings.showNickIcons) {
@@ -2128,7 +2129,7 @@ fun ChatScreen(
 
                     if (isPrivateMessage && automaticChatZona) avatarFor(selBufName)?.let { url ->
                         AvatarThumbnail(url, selBufName, Modifier.size(32.dp), avatarRefreshFor(selBufName),
-                            scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarCacheAgeMs) { expandedAvatar = url to selBufName }
+                            scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.avatarWifiOnly, refreshEveryMs = avatarCacheAgeMs) { expandedAvatar = url to selBufName }
                     }
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -2793,7 +2794,7 @@ fun ChatScreen(
                         val readByPeer = peerReadAtMs != null && !isChannel && m.timeMs <= peerReadAtMs &&
                             !m.failed && !m.pending && m.from != null && m.from.equals(myNick, ignoreCase = true)
                         val messageAvatar = if (state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from != null && m.from != "ERROR") avatarFor(m.from) else null
-                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarCacheAgeMs, showAvatar=state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from!=null && m.from!="ERROR", refreshToken = avatarRefreshFor(m.from.orEmpty()), scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly,
+                        AvatarMessageRow(messageAvatar, m.from.orEmpty(), avatarCacheAgeMs, showAvatar=state.settings.chatZonaAvatarsInMessages && automaticChatZona && m.from!=null && m.from!="ERROR", refreshToken = avatarRefreshFor(m.from.orEmpty()), scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.avatarWifiOnly,
                             onOpen = { if (messageAvatar != null) expandedAvatar = messageAvatar to m.from.orEmpty() }) {
                         SingleMessageItem(
                             m = m,
@@ -5265,7 +5266,7 @@ fun ChatScreen(
                         // Avatar (draft/metadata-2), gated identically to the message rows:
                         // only when image previews are on and this profile is unproxied.
                         if (sheetAvatar != null) {
-                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefreshFor(selectedNick), scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.imagePreviewsWifiOnly, refreshEveryMs = avatarCacheAgeMs) {
+                            AvatarThumbnail(sheetAvatar, selectedNick, Modifier.size(44.dp), avatarRefreshFor(selectedNick), scope=selNetId, configuredHost=configuredAvatarHost, wifiOnly=state.settings.avatarWifiOnly, refreshEveryMs = avatarCacheAgeMs) {
                                 expandedAvatar = sheetAvatar to selectedNick
                             }
                         }
