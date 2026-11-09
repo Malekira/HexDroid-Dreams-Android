@@ -535,7 +535,7 @@ internal class TlsHostnameMismatchException(
  * representation used by OpenSSL, Firefox, and most IRC clients that expose TOFU, so it
  * round-trips cleanly if a user ever wants to copy-paste a fingerprint between tools.
  */
-private fun computeFingerprintSha256(cert: java.security.cert.X509Certificate): String {
+internal fun computeFingerprintSha256(cert: java.security.cert.X509Certificate): String {
     val der = cert.encoded
     val md = java.security.MessageDigest.getInstance("SHA-256")
     val digest = md.digest(der)
