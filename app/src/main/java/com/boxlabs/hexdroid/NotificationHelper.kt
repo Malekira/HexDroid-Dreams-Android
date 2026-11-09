@@ -635,6 +635,7 @@ class NotificationHelper(private val ctx: Context) {
 
     /** Fetch the avatars [urls] in the background, reposting [tag]'s conversation as each arrives. */
     private fun fetchAvatars(tag: String, urls: Set<String>) {
+        if (Avatars.wifiOnly && !com.boxlabs.hexdroid.ui.isOnWifi(ctx)) return
         val networkId=synchronized(postLock) { lastPosts[tag]?.networkId } ?: return
         val now = System.currentTimeMillis()
         if (avatarFetches.size > 256) avatarFetches.clear()

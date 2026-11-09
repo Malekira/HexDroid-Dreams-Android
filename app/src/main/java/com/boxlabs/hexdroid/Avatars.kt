@@ -59,9 +59,12 @@ object Avatars {
 
     /** Replace the avatar URLs notifications may use. */
     @Volatile private var configuredHosts: Map<String,String?> = emptyMap()
+    @Volatile var wifiOnly: Boolean = false
+        private set
     @Volatile private var caseMappings: Map<String,String> = emptyMap()
     fun configuredHost(networkId:String):String? = configuredHosts[networkId]
-    fun setAllowedUrls(urls: Map<String, Map<String, String>>, hosts: Map<String,String?> = emptyMap(), mappings: Map<String,String> = emptyMap()) {
+    fun setAllowedUrls(urls: Map<String, Map<String, String>>, hosts: Map<String,String?> = emptyMap(), mappings: Map<String,String> = emptyMap(), wifiOnly: Boolean = false) {
+        this.wifiOnly=wifiOnly
         configuredHosts=hosts;caseMappings=mappings
         allowedUrls = urls
     }

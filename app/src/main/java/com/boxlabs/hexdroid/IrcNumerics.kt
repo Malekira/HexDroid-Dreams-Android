@@ -345,7 +345,7 @@ internal fun IrcClient.buildNumericHandlers(
         "766" to handler@{ msg, _, _, _ ->
             val t = msg.params.getOrNull(1) ?: return@handler
             val k = msg.params.getOrNull(2) ?: return@handler
-            send(IrcEvent.MetadataChanged(t, k.lowercase(Locale.ROOT), null, null))
+            send(IrcEvent.MetadataChanged(t, k.lowercase(Locale.ROOT), null, null, absent = true))
         },
         // 770/771/772: subscription acknowledgements. Keys are individual parameters in
         // metadata-2 (they were a space-separated trailing in the old metadata-notify),

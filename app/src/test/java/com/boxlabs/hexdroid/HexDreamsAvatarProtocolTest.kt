@@ -27,6 +27,8 @@ class HexDreamsAvatarProtocolTest {
             assertEquals("Normal name with spaces",h.await<IrcEvent.Setname> { it.nick=="Dave" }.newRealname)
             h.server.send(":srv 761 me Alice avatar * :https://chat-avatars.chateagratis.net/new.png")
             assertEquals("https://chat-avatars.chateagratis.net/new.png",h.await<IrcEvent.MetadataChanged> { it.target=="Alice" && it.key=="avatar" }.value)
+            h.server.send(":srv 766 me NeverPublished avatar :Key not set")
+            assertTrue(h.await<IrcEvent.MetadataChanged> { it.target=="NeverPublished" }.absent)
             h.server.send(":srv 761 me Alice avatar * :")
             h.sync("photos-done")
             assertTrue(h.events.filterIsInstance<IrcEvent.MetadataChanged>().any { it.target=="Alice" && it.key=="avatar" && it.value.isNullOrEmpty() })

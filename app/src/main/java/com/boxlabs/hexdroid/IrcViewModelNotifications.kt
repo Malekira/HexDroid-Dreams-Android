@@ -280,20 +280,17 @@ fun IrcViewModel.onPushEndpointChanged() {
  */
 internal fun IrcViewModel.launchNotificationAvatarSync() {
     viewModelScope.launch {
-        _state
-            .map { st ->
-                if (!st.settings.imagePreviewsEnabled || !st.settings.chatZonaAvatarsEnabled || (st.settings.imagePreviewsWifiOnly && !com.boxlabs.hexdroid.ui.isOnWifi(appContext))) emptyMap()
-                else st.networks.mapNotNull { net ->
-                    val urls = st.connections[net.id]?.avatarUrls
-                    if (net.proxyType != ProxyType.NONE || urls.isNullOrEmpty()) null else net.id to urls
-                }.toMap()
-            }
-            .distinctUntilChanged()
-            .collect { urls ->
-                val st=_state.value
-                val host=avatarTemplateHost(st.settings.avatarTemplate)
-                Avatars.setAllowedUrls(urls.mapValues { (_,values) -> values.filterValues { automaticAvatarAllowed(it,host) } },
-                    st.networks.associate { it.id to host },st.connections.mapValues { it.value.avatarCaseMapping })
-            }
+        _state.map { st ->
+            val host=avatarTemplateHost(st.settings.avatarTemplate)
+            val blocked=!st.settings.imagePreviewsEnabled || !st.settings.chatZonaAvatarsEnabled ||
+                (st.settings.imagePreviewsWifiOnly && !com.boxlabs.hexdroid.ui.isOnWifi(appContext))
+            val urls=if(blocked) emptyMap() else st.networks.mapNotNull { net ->
+                val values=st.connections[net.id]?.avatarUrls?.filterValues { automaticAvatarAllowed(it,host) }
+                if(net.proxyType!=ProxyType.NONE || values.isNullOrEmpty()) null else net.id to values
+            }.toMap()
+            Triple(urls,host to st.settings.imagePreviewsWifiOnly,st.connections.mapValues { it.value.avatarCaseMapping })
+        }.distinctUntilChanged().collect { (urls,policy,mappings) ->
+            Avatars.setAllowedUrls(urls,urls.keys.associateWith { policy.first },mappings,policy.second)
+        }
     }
 }

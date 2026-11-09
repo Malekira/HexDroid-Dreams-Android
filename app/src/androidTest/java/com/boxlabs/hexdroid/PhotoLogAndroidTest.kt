@@ -69,6 +69,9 @@ class PhotoLogAndroidTest {
             main {
                 val encoded=java.util.Base64.getEncoder().encodeToString("#|#|#|/new.jpg".toByteArray())
                 vm.handleStateEvent(net,IrcEvent.Setname("Alice",encoded))
+                vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar",null,null,absent=true))
+                assertFalse(vm.state.value.connections[net]!!.avatarUrls.containsKey("alice"))
+                assertNotNull(profileAvatarSource(null,null,"irc.chatzona.org",null,"Alice",legacyUrl=vm.state.value.connections[net]!!.legacyAvatarUrls["alice"],legacyKnown=true))
                 assertEquals("https://chat-avatars.chateagratis.net/new.jpg",vm.state.value.connections[net]!!.legacyAvatarUrls["alice"])
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/current.jpg"))
                 val revision=vm.state.value.connections[net]!!.avatarRevision
@@ -77,6 +80,8 @@ class PhotoLogAndroidTest {
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*",null))
                 val state=vm.state.value.connections[net]!!
                 assertTrue(state.avatarUrls.containsKey("alice"))
+                vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar",null,null,absent=true))
+                assertEquals("",vm.state.value.connections[net]!!.avatarUrls["alice"])
                 assertNull(profileAvatarSource(null,state.avatarUrls["alice"],"irc.chatzona.org",null,"Alice",state.legacyAvatarUrls["alice"],metadataKnown=true,legacyKnown=true))
                 val moved=vm.withMetadataMovedForNick(state,"Alice","Bob")
                 assertFalse(moved.avatarUrls.containsKey("alice"));assertEquals("",moved.avatarUrls["bob"])
