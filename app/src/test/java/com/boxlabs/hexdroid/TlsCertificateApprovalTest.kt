@@ -9,8 +9,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TlsCertificateApprovalTest {
-    private val keys get()=KeyStore.getInstance("PKCS12").apply {
-        TlsCertificateApprovalTest::class.java.getResourceAsStream("/tls/self-signed.p12")!!.use { load(it,"test-only-password".toCharArray()) }
+    private val keys get()=generatedKeys
+    companion object {
+        private val generatedKeys:KeyStore by lazy {
+            val temp=java.nio.file.Files.createTempDirectory("hexdreams-tls-test").toFile()
+            try {
+                val file=java.io.File(temp,"localhost.p12")
+                val keytool=java.io.File(System.getProperty("java.home"),"bin/keytool").absolutePath
+                val process=ProcessBuilder(keytool,"-genkeypair","-alias","test","-keyalg","RSA","-keysize","2048",
+                    "-storetype","PKCS12","-keystore",file.absolutePath,"-storepass","test-only-password","-keypass","test-only-password",
+                    "-dname","CN=localhost","-ext","SAN=dns:localhost,ip:127.0.0.1","-validity","2","-noprompt")
+                    .redirectErrorStream(true).start()
+                val output=process.inputStream.bufferedReader().use { it.readText() }
+                check(process.waitFor()==0) { "Could not generate disposable TLS test identity: $output" }
+                KeyStore.getInstance("PKCS12").apply { file.inputStream().use { load(it,"test-only-password".toCharArray()) } }
+            } finally { temp.deleteRecursively() }
+        }
     }
     private class Server(keys:KeyStore):AutoCloseable {
         private val context=SSLContext.getInstance("TLS").apply {
