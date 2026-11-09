@@ -434,7 +434,6 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
                         // do not mean a new photo and must not flush the cache or restart its UI.
                         if(old == (url ?: "")) return
                         old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it,netId) }
-                        url?.let { RemoteBitmaps.invalidate(it,netId) }
                         setNetConn(netId) { conn -> conn.copy(
                             avatarUrls = if (ev.key == "avatar") conn.avatarUrls + (mdKey to (url ?: "")) else conn.avatarUrls,
                             avatarAliasUrls = if (ev.key == "avatar-url") conn.avatarAliasUrls + (mdKey to (url ?: "")) else conn.avatarAliasUrls,

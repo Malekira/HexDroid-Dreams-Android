@@ -421,7 +421,6 @@ internal fun IrcViewModel.noteWebPhoto(netId: String, nick: String, realname: St
     val next = value?.url ?: if (value != null) "" else null
     if (old == next) return
     old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it,netId) }
-    next?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it,netId) }
     setNetConn(netId) { st -> st.copy(legacyAvatarUrls = if (next == null) st.legacyAvatarUrls - key
         else st.legacyAvatarUrls + (key to next), avatarRevision = st.avatarRevision + 1) }
 }
