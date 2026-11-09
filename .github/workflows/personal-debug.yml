@@ -75,7 +75,7 @@ jobs:
           fi
 
       - name: Build debug APK and run unit tests
-        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon --max-workers=2 --no-configuration-cache
+        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest --no-daemon --max-workers=2 --no-configuration-cache
 
       - name: Check stable signing with disposable test keys
         if: github.ref == 'refs/heads/feat/hexdroid-dreams-release'

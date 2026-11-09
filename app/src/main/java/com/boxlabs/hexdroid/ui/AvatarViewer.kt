@@ -66,7 +66,7 @@ fun AvatarThumbnail(url: String, nick: String, modifier: Modifier = Modifier, re
 
 @Composable
 fun AvatarViewer(url: String, nick: String, onDismiss: () -> Unit,
-                 load: (suspend (String, Boolean) -> ImageBitmap?)? = null, scope: String = "", refreshToken: Int = 0) {
+                 scope: String = "", refreshToken: Int = 0, load: (suspend (String, Boolean) -> ImageBitmap?)? = null) {
     var attempt by remember(url,scope) { mutableIntStateOf(0) }
     var loading by remember(url,scope,refreshToken) { mutableStateOf(true) }
     var image by remember(url,scope,refreshToken) { mutableStateOf<ImageBitmap?>(null) }
