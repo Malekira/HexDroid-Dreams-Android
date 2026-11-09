@@ -907,7 +907,7 @@ fun ChatScreen(
     // network so switching networks dismisses a stale dialog.
     var showMetadataEditor by remember(selNetId) { mutableStateOf(false) }
     var expandedAvatar by remember(selNetId) { mutableStateOf<Pair<String, String>?>(null) }
-    val manualAvatarRefresh = remember(selNetId) { mutableStateMapOf<String,Int>() }
+    val manualAvatarRefresh = remember(selNetId) { androidx.compose.runtime.mutableStateMapOf<String,Int>() }
     fun avatarRefreshKey(nick:String)=com.boxlabs.hexdroid.ircCasefold(baseNick(nick),selConn?.avatarCaseMapping ?: "rfc1459")
     fun avatarRefreshFor(nick:String)=manualAvatarRefresh[avatarRefreshKey(nick)] ?: 0
     var showRegistration by remember(selNetId) { mutableStateOf(false) }
