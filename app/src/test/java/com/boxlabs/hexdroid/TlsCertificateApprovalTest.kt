@@ -30,7 +30,7 @@ class TlsCertificateApprovalTest {
         override fun close() { runCatching { peer?.close() };socket.close() }
     }
     private fun client(port:Int,allow:Boolean=false,pin:String?=null)=IrcClient(IrcConfig(host="localhost",port=port,useTls=true,allowInvalidCerts=allow,
-        nick="me",username="u",realname="r",serverPassword="secret-never-send",tlsTofuFingerprint=pin)).apply { strings={id,_->"s$id"};plurals={id,q,_->"p$id/$q"} }
+        nick="me",altNick=null,username="u",realname="r",serverPassword="secret-never-send",tlsTofuFingerprint=pin)).apply { strings={id,_->"s$id"};plurals={id,q,_->"p$id/$q"} }
     private suspend fun waitFor(condition:()->Boolean) { withTimeout(15000) { while(!condition())delay(10) } }
     @Test fun untrustedCertificateRequestsApprovalBeforeSendingIrcCredentials()=runBlocking {
         Server(keys).use { server ->
@@ -58,7 +58,7 @@ class TlsCertificateApprovalTest {
     }
     @Test fun stsDisallowsCertificateClickThrough()=runBlocking {
         Server(keys).use { server ->
-            val config=IrcConfig(host="localhost",port=server.socket.localPort,useTls=true,allowInvalidCerts=false,nick="me",username="u",realname="r",certificateApprovalAllowed=false)
+            val config=IrcConfig(host="localhost",port=server.socket.localPort,useTls=true,allowInvalidCerts=false,nick="me",altNick=null,username="u",realname="r",certificateApprovalAllowed=false)
             val client=IrcClient(config).apply { strings={id,_->"s$id"} };val events=CopyOnWriteArrayList<IrcEvent>()
             val job=launch(Dispatchers.IO) { client.events().collect { events+=it } }
             try { waitFor { events.any { it is IrcEvent.CertificateApprovalRequired } };assertFalse(events.filterIsInstance<IrcEvent.CertificateApprovalRequired>().single().request.allowed);assertTrue(server.lines.isEmpty()) }
