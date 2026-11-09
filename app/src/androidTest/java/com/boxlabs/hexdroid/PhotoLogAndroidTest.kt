@@ -77,7 +77,7 @@ class PhotoLogAndroidTest {
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/current.jpg"))
                 val revision=vm.state.value.connections[net]!!.avatarRevision
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/current.jpg"))
-                assertTrue(vm.state.value.connections[net]!!.avatarRevision>revision)
+                assertEquals(revision,vm.state.value.connections[net]!!.avatarRevision)
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*",null))
                 val state=vm.state.value.connections[net]!!
                 assertTrue(state.avatarUrls.containsKey("alice"))

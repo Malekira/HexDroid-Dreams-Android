@@ -210,7 +210,7 @@ data class UiSettings(
     val networkTabs: Boolean = false,
     // Legacy persisted name: enables the compact conversation strip at the TOP of the chat.
     // It coexists with the independent room/private trees in the drawer.
-    val networkTabsAtBottom: Boolean = true,
+    val networkTabsAtBottom: Boolean = false,
     val showTimestamps: Boolean = true,
     val timestampFormat: String = "HH:mm:ss",
     /** Brackets drawn around the timestamp. */

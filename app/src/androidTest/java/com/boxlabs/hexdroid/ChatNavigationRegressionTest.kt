@@ -28,7 +28,7 @@ class ChatNavigationRegressionTest {
         val commands = mutableListOf<String>()
         var state by mutableStateOf(UiState(networks = listOf(profile), selectedBuffer = first,
             buffers = mapOf(first to UiBuffer(first), second to UiBuffer(second)),
-            showBufferList = false, showNickList = false))
+            showBufferList = false, showNickList = false, settings=UiSettings(networkTabsAtBottom=true)))
         compose.setContent {
             HexDroidIRCTheme {
                 ChatScreen(state, onSelectBuffer = { state = state.copy(selectedBuffer = it) }, onSend = { commands += it },

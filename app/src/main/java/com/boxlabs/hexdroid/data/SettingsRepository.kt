@@ -290,7 +290,7 @@ class SettingsRepository(private val ctx: Context) {
             // Apply the requested tab/history defaults once to existing installations.
             // The version is written on the next settings save, so later user choices stick.
             val enableChatDefaults = o.optInt("chatDefaultsVersion", 0) < 1
-            val enableTopTabs = o.optInt("chatDefaultsVersion", 0) < 2
+            val disableTopTabs = o.optInt("chatDefaultsVersion", 0) < 3
             UiSettings(
                 personal = com.boxlabs.hexdroid.PersonalSettings(
                 personalThemes = com.boxlabs.hexdroid.Phase3Codec.themes(o),
@@ -312,7 +312,7 @@ class SettingsRepository(private val ctx: Context) {
                 }.getOrDefault(ThemeMode.DARK),
                 compactMode = o.optBoolean("compactMode", false),
                 networkTabs = o.optBoolean("networkTabs", false),
-                networkTabsAtBottom = enableTopTabs || o.optBoolean("networkTabsAtBottom", true),
+                networkTabsAtBottom = if (disableTopTabs) false else o.optBoolean("networkTabsAtBottom", false),
 
                 showTimestamps = o.optBoolean("showTimestamps", true),
                 timestampFormat = o.optString("timestampFormat", "HH:mm:ss"),
@@ -470,7 +470,7 @@ class SettingsRepository(private val ctx: Context) {
 
     private fun toSettingsJson(s: UiSettings): JSONObject {
         val o = JSONObject()
-        o.put("chatDefaultsVersion", 2)
+        o.put("chatDefaultsVersion", 3)
         com.boxlabs.hexdroid.Phase3Codec.write(o, s)
         o.put("themeMode", s.themeMode.name)
         o.put("compactMode", s.compactMode)

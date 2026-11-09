@@ -429,8 +429,11 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
                         // GECOS/template remain eligible. A previously announced key disappearing
                         // is a removal, and an existing removal tombstone remains authoritative.
                         if (ev.absent && old == null) return
-                        old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it,netId) }
                         val url = normalizeWebPhotoUrl(sanitizeMetadataValue(ev.value, maxLen = 2048))
+                        // SYNC/GET repeats the same values for large rooms. Repeated announcements
+                        // do not mean a new photo and must not flush the cache or restart its UI.
+                        if(old == (url ?: "")) return
+                        old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it,netId) }
                         url?.let { RemoteBitmaps.invalidate(it,netId) }
                         setNetConn(netId) { conn -> conn.copy(
                             avatarUrls = if (ev.key == "avatar") conn.avatarUrls + (mdKey to (url ?: "")) else conn.avatarUrls,
