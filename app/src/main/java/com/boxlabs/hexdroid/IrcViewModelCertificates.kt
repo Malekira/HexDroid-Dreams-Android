@@ -30,7 +30,8 @@ fun IrcViewModel.approveCertificate(netId:String,requestId:String) {
                 setNetConn(netId) { it.copy(certificateApproval=null,tlsPinMismatch=false,tlsPinMismatchActualFp=null,tlsHostnameMismatchIdentities=null) }
             }
             connectNetwork(netId,force=true,clearAuthBlock=true)
-        } catch(e:Exception) {
+        } catch(cancelled:kotlinx.coroutines.CancellationException) { throw cancelled }
+        catch(e:Exception) {
             setNetConn(netId) { conn ->
                 if(conn.certificateApproval?.id!=requestId)conn else conn.copy(certificateApproval=request.copy(error="No se pudo guardar la autorización: ${e.message}"))
             }

@@ -19,12 +19,25 @@ data class TlsCertificateApproval(val host:String,val port:Int,val certificate:T
 internal class CertificateApprovalException(val certificate:TlsCertificateDetails,cause:CertificateException):CertificateException(cause.message,cause)
 
 /** Keep platform trust validation; expose the presented certificate when it rejects the chain. */
-internal class ApprovalTrustManager(private val delegate:X509TrustManager):X509TrustManager {
+internal class ApprovalTrustManager(private val delegate:X509TrustManager):javax.net.ssl.X509ExtendedTrustManager() {
     override fun getAcceptedIssuers()=delegate.acceptedIssuers
     override fun checkClientTrusted(chain:Array<X509Certificate>,authType:String)=delegate.checkClientTrusted(chain,authType)
-    override fun checkServerTrusted(chain:Array<X509Certificate>,authType:String) {
-        try { delegate.checkServerTrusted(chain,authType) }
+    private fun verify(chain:Array<X509Certificate>,block:()->Unit) {
+        try { block() }
         catch(e:CertificateException) { throw chain.firstOrNull()?.let { CertificateApprovalException(TlsCertificateDetails.from(it),e) } ?: e }
+    }
+    override fun checkServerTrusted(chain:Array<X509Certificate>,authType:String)=verify(chain) { delegate.checkServerTrusted(chain,authType) }
+    override fun checkServerTrusted(chain:Array<X509Certificate>,authType:String,socket:java.net.Socket)=verify(chain) {
+        if(delegate is javax.net.ssl.X509ExtendedTrustManager)delegate.checkServerTrusted(chain,authType,socket) else delegate.checkServerTrusted(chain,authType)
+    }
+    override fun checkServerTrusted(chain:Array<X509Certificate>,authType:String,engine:javax.net.ssl.SSLEngine)=verify(chain) {
+        if(delegate is javax.net.ssl.X509ExtendedTrustManager)delegate.checkServerTrusted(chain,authType,engine) else delegate.checkServerTrusted(chain,authType)
+    }
+    override fun checkClientTrusted(chain:Array<X509Certificate>,authType:String,socket:java.net.Socket) {
+        if(delegate is javax.net.ssl.X509ExtendedTrustManager)delegate.checkClientTrusted(chain,authType,socket) else delegate.checkClientTrusted(chain,authType)
+    }
+    override fun checkClientTrusted(chain:Array<X509Certificate>,authType:String,engine:javax.net.ssl.SSLEngine) {
+        if(delegate is javax.net.ssl.X509ExtendedTrustManager)delegate.checkClientTrusted(chain,authType,engine) else delegate.checkClientTrusted(chain,authType)
     }
     companion object {
         fun platform():ApprovalTrustManager {
