@@ -117,21 +117,27 @@ class NickCompletionWindowsUiTest {
     @Test fun nickColorsRemainDistinctWithACustomThemeAndRefreshWhenMetadataChanges() {
         fixture(tabs = false)
         val key = "$first::#demo"
-        state = state.copy(showBufferList = false,
+        state = state.copy(showBufferList = false, showNickList = true,
+            nicklists = mapOf(key to listOf("@Alice")),
             buffers = mapOf(key to UiBuffer("#demo", log = BufferLog(messages = persistentListOf(
                 UiMessage(1, System.currentTimeMillis(), "Alice", "mensaje de prueba"))))),
             connections = mapOf(first to NetConnState(myNick = "Own")),
             settings = state.settings.copy(colorizeNicks = true))
-        val theme = PersonalTheme(lightColors = mapOf("CHAT" to 0xffffffff.toInt(), "NICK" to 0xff123456.toInt()),
-            darkColors = mapOf("CHAT" to 0xffffffff.toInt(), "NICK" to 0xff123456.toInt()))
-        compose.setContent { HexDroidIRCTheme(personalTheme = theme) {
+        val theme = PersonalTheme(lightColors = mapOf("CHAT" to 0xffffffff.toInt(), "NICKLIST" to 0xff000000.toInt(), "NICK" to 0xff123456.toInt()),
+            darkColors = mapOf("CHAT" to 0xffffffff.toInt(), "NICKLIST" to 0xff000000.toInt(), "NICK" to 0xff123456.toInt()))
+        val configuration = Configuration(context.resources.configuration).apply { screenWidthDp = 900; orientation = Configuration.ORIENTATION_LANDSCAPE }
+        compose.setContent { CompositionLocalProvider(LocalConfiguration provides configuration) { HexDroidIRCTheme(personalTheme = theme) {
             ChatScreen(state, onSelectBuffer = {}, onSend = {}, onDisconnect = {}, onReconnect = {}, onExit = {},
                 onToggleBufferList = {}, onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {},
                 onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> }, onIgnoreNotifications = { _, _ -> },
                 onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
                 onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {},
                 onAbout = {}, onUpdateSettings = {})
-        } }
+        } } }
+        val nicklistLayouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText("@Alice", useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(nicklistLayouts) }
+        assertEquals(com.boxlabs.hexdroid.ui.NickColors.nicklistColors(listOf("alice"), 0f).single(), nicklistLayouts.single().layoutInput.style.color)
         fun nickColor(): Color {
             val layouts = mutableListOf<TextLayoutResult>()
             compose.onNodeWithText("mensaje de prueba", substring = true, useUnmergedTree = true)

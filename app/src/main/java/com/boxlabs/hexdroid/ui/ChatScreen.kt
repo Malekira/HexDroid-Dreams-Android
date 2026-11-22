@@ -842,12 +842,12 @@ fun ChatScreen(
     // an opaque Color, or null if somehow unparseable (belt-and-braces). A colour too
     // close to the theme background (e.g. #000000 on a dark theme) is rejected so the
     // nick doesn't vanish; the caller then falls back to the readable hash colour.
-    fun metadataNickColor(base: String): Color? {
+    fun metadataNickColor(base: String, backgroundLum: Float = bgLum): Color? {
         val hex = metadataColors[base] ?: return null
         val c = runCatching { Color("ff$hex".toLong(16)) }.getOrNull() ?: return null
         val lum = c.luminance()
-        val lighter = maxOf(lum, bgLum)
-        val darker = minOf(lum, bgLum)
+        val lighter = maxOf(lum, backgroundLum)
+        val darker = minOf(lum, backgroundLum)
         // WCAG-style contrast ratio; below ~2.5 the nick is hard to read on this theme.
         val contrast = (lighter + 0.05f) / (darker + 0.05f)
         return if (contrast < 2.5f) null else c
@@ -1597,8 +1597,9 @@ fun ChatScreen(
             // Declared here (inside NicklistContent) so it captures sortedBaseNicks
             // and bgLum from the outer composable scope without needing to be passed
             // as a parameter. Rebuilds only when the nicklist or theme changes.
-            val nicklistColorMap = remember(sortedBaseNicks, bgLum) {
-                val colors = NickColors.nicklistColors(sortedBaseNicks, bgLum)
+            val nicklistBgLum = personalColors.color(ThemeRole.NICKLIST, MaterialTheme.colorScheme.surface).luminance()
+            val nicklistColorMap = remember(sortedBaseNicks, nicklistBgLum) {
+                val colors = NickColors.nicklistColors(sortedBaseNicks, nicklistBgLum)
                 sortedBaseNicks.zip(colors).toMap<String, Color>()
             }
 
@@ -1652,9 +1653,9 @@ fun ChatScreen(
                         Text(
                             n,
                             color = if (state.settings.colorizeNicks)
-                                metadataNickColor(cleaned.lowercase())
+                                metadataNickColor(cleaned.lowercase(), nicklistBgLum)
                                     ?: nicklistColorMap[cleaned.lowercase()]
-                                    ?: NickColors.colorForNick(cleaned.lowercase(), bgLum)
+                                    ?: NickColors.colorForNick(cleaned.lowercase(), nicklistBgLum)
                             else Color.Unspecified,
                             fontSize = nickFontSp.sp,
                             lineHeight = (nickFontSp * 1.15f).sp,
