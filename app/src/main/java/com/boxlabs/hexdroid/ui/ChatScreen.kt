@@ -3329,6 +3329,20 @@ fun ChatScreen(
                     label = "Tab",
                     modifier = Modifier.testTag("nick-tab-button"),
                 )
+                run {
+                    val restoreDraftLabel = stringResource(R.string.dreams_restore_input_draft)
+                    val recallLabel = stringResource(R.string.dreams_recall_ten)
+                    ComposerNavigationButton(
+                        enabled = inputHistory.isNotEmpty(),
+                        backwards = true,
+                        description = recallLabel,
+                        modifier = Modifier.testTag("input-history-backspace"),
+                        onClick = ::recallPrevious,
+                        onLongClickLabel = restoreDraftLabel,
+                        onLongClick = { applyRecall(composerRecall.restoreDraft()); runCatching { inputFocus.requestFocus() } },
+                    )
+                }
+
 
                 // E2E lock badge at the start of the input row when the buffer has a key; tapping
                 // it opens the EncryptionDialog. Re-derived from state.e2eKeyVersion.
@@ -3525,17 +3539,6 @@ fun ChatScreen(
 				)
 
                 run {
-                    val restoreDraftLabel = stringResource(R.string.dreams_restore_input_draft)
-                    val recallLabel = stringResource(R.string.dreams_recall_ten)
-                    ComposerNavigationButton(
-                        enabled = inputHistory.isNotEmpty(),
-                        backwards = true,
-                        description = recallLabel,
-                        modifier = Modifier.testTag("input-history-backspace"),
-                        onClick = ::recallPrevious,
-                        onLongClickLabel = restoreDraftLabel,
-                        onLongClick = { applyRecall(composerRecall.restoreDraft()); runCatching { inputFocus.requestFocus() } },
-                    )
                     val sendInteraction = remember { MutableInteractionSource() }
                     val sendPressed by sendInteraction.collectIsPressedAsState()
                     val accents = LocalAccentColors.current
