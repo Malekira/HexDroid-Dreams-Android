@@ -1069,6 +1069,7 @@ fun SettingsScreen(
             if (onePage || current == SettingsCategory.CHAT) {
             if (onePage) item(key = "hdr_CHAT") { OnePageHeader(SettingsCategory.CHAT) }
             item { DreamsChatSettings(state, onUpdate, onNativePrivateMode, onProfileAvatar) }
+            item { NickCompletionSettings(s.nickCompletion) { value -> onUpdate { copy(nickCompletion = value) } } }
             item {
                 SettingToggle(stringResource(R.string.setting_colorise_nicks), s.colorizeNicks) { onUpdate { copy(colorizeNicks = !colorizeNicks) } }
                 SettingToggle(stringResource(R.string.setting_show_nick_icons), s.showNickIcons) { onUpdate { copy(showNickIcons = !showNickIcons) } }

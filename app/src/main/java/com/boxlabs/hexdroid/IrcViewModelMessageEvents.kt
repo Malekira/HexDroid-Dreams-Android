@@ -303,6 +303,7 @@ internal fun IrcViewModel.handleMessageEvent(netId: String, ev: IrcEvent) {
             )
         }
         is IrcEvent.Notice -> {
+            if (ev.fromBot) markBotInState(netId, ev.from)
             // Drop empty-bodied notices, as for PRIVMSG above; encoding-mangled but non-empty
             // text is kept.
             if (ev.text.isEmpty()) return
@@ -437,7 +438,10 @@ internal fun IrcViewModel.handleMessageEvent(netId: String, ev: IrcEvent) {
                 }
             }
 
-            val destKeys = replyDestinations(
+            val systemNotice = !isChanTarget && !ev.isServer && (ev.fromBot ||
+                isSystemConversation(ev.from, st.connections[netId]?.botNicks.orEmpty(),
+                    st.connections[netId]?.avatarCaseMapping ?: "rfc1459") || ev.replyToMsgId != null)
+            val destKeys = if (systemNotice) setOf(bufKey(netId, NOTICES_BUFFER)) else replyDestinations(
                 mask = st.settings.noticeDestinations,
                 network = netId, window = NOTICES_BUFFER,
                 selectedKey = st.selectedBuffer,
@@ -488,7 +492,7 @@ internal fun IrcViewModel.handleMessageEvent(netId: String, ev: IrcEvent) {
             val st = _state.value
             val sel = st.selectedBuffer
             val (selNet, _) = splitKey(sel)
-            val destKey = if (sel.isNotBlank() && selNet == netId) sel else bufKey(netId, "*server*")
+            val destKey = bufKey(netId, COMMANDS_BUFFER)
             ensureBuffer(destKey)
 
             val text = when (ev.command.uppercase()) {

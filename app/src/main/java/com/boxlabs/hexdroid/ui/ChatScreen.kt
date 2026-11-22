@@ -394,6 +394,12 @@ fun ChatScreen(
     fun nickPrefix(display: String): Char? =
         display.firstOrNull()?.takeIf { it in nickPrefixChars }
 
+    fun conversationLabel(key: String): String = when (splitKey(key).second) {
+        com.boxlabs.hexdroid.MENTIONS_BUFFER -> "Menciones"
+        com.boxlabs.hexdroid.COMMANDS_BUFFER -> "Comandos"
+        else -> bufferLabel(key, state.networks)
+    }
+
     fun netName(netId: String): String =
         state.networks.firstOrNull { it.id == netId }?.name ?: netId
 
@@ -811,7 +817,7 @@ fun ChatScreen(
 
     val personalColors = LocalPersonalColors.current
     val chatBackground = personalColors.color(ThemeRole.CHAT, MaterialTheme.colorScheme.background)
-    val bgLum = MaterialTheme.colorScheme.background.luminance()
+    val bgLum = chatBackground.luminance()
 
     // Collect all own nicks across every connected network so the custom colour
     // fires for your nick regardless of which buffer is active.
@@ -836,12 +842,12 @@ fun ChatScreen(
     // an opaque Color, or null if somehow unparseable (belt-and-braces). A colour too
     // close to the theme background (e.g. #000000 on a dark theme) is rejected so the
     // nick doesn't vanish; the caller then falls back to the readable hash colour.
-    fun metadataNickColor(base: String): Color? {
+    fun metadataNickColor(base: String, backgroundLum: Float = bgLum): Color? {
         val hex = metadataColors[base] ?: return null
         val c = runCatching { Color("ff$hex".toLong(16)) }.getOrNull() ?: return null
         val lum = c.luminance()
-        val lighter = maxOf(lum, bgLum)
-        val darker = minOf(lum, bgLum)
+        val lighter = maxOf(lum, backgroundLum)
+        val darker = minOf(lum, backgroundLum)
         // WCAG-style contrast ratio; below ~2.5 the nick is hard to read on this theme.
         val contrast = (lighter + 0.05f) / (darker + 0.05f)
         return if (contrast < 2.5f) null else c
@@ -855,7 +861,6 @@ fun ChatScreen(
         // A user's self-chosen colour (via metadata) wins over the hash, but never
         // over your own manual override for your own nick, handled above.
         metadataNickColor(base)?.let { return it }
-        if (personalColors.theme != null) return personalColors.text(ThemeRole.NICK, chatBackground, Color.Unspecified)
         // Stable hash-based colour for messages — never changes regardless of who
         // else is in the channel. The nicklist panel uses nicklistColorMap
         // (pre-computed with adjacency nudge) instead.
@@ -1049,7 +1054,7 @@ fun ChatScreen(
 
         val roomsLabel = stringResource(R.string.dreams_sidebar_rooms)
         val privatesLabel = stringResource(R.string.dreams_sidebar_privates)
-        val othersLabel = stringResource(R.string.dreams_sidebar_other)
+        val othersLabel = "Sistema"
         val conversationItemsByNet = remember(visibleNets, buffersByNet, state.channelsOnly, state.buffers,
             state.connections, collapsedConversationGroups, roomsLabel, privatesLabel, othersLabel) {
             visibleNets.associate { net ->
@@ -1057,7 +1062,12 @@ fun ChatScreen(
                 val channelTypes = state.connections[net.id]?.chanTypes ?: "#&!+"
                 val rooms = keys.filter { splitKey(it).second.firstOrNull() in channelTypes.toSet() }
                 val remaining = keys - rooms.toSet()
-                val privates = remaining.filter { val name = splitKey(it).second; !name.startsWith("*") && !name.startsWith("DCCCHAT:") }
+                val conn = state.connections[net.id]
+                val privates = remaining.filter {
+                    val name = splitKey(it).second
+                    name == com.boxlabs.hexdroid.MENTIONS_BUFFER ||
+                        !com.boxlabs.hexdroid.isSystemConversation(name, conn?.botNicks.orEmpty(), conn?.avatarCaseMapping ?: "rfc1459")
+                }.sortedBy { if (splitKey(it).second == com.boxlabs.hexdroid.MENTIONS_BUFFER) 0 else 1 }
                 val others = remaining - privates.toSet()
                 net.id to buildList<SidebarItem> {
                     for ((kind, title, children) in listOf(Triple("rooms", roomsLabel, rooms),
@@ -1069,7 +1079,7 @@ fun ChatScreen(
                             children.sumOf { state.buffers[it]?.unread ?: 0 },
                             children.sumOf { state.buffers[it]?.highlights ?: 0 })
                         add(section)
-                        if (section.expanded) children.forEach { add(SidebarItem.Buffer(it, bufferLabel(it, state.networks), 36.dp)) }
+                        if (section.expanded) children.forEach { add(SidebarItem.Buffer(it, conversationLabel(it), 36.dp)) }
                     }
                 }
             }
@@ -1587,8 +1597,9 @@ fun ChatScreen(
             // Declared here (inside NicklistContent) so it captures sortedBaseNicks
             // and bgLum from the outer composable scope without needing to be passed
             // as a parameter. Rebuilds only when the nicklist or theme changes.
-            val nicklistColorMap = remember(sortedBaseNicks, bgLum) {
-                val colors = NickColors.nicklistColors(sortedBaseNicks, bgLum)
+            val nicklistBgLum = personalColors.color(ThemeRole.NICKLIST, MaterialTheme.colorScheme.surface).luminance()
+            val nicklistColorMap = remember(sortedBaseNicks, nicklistBgLum) {
+                val colors = NickColors.nicklistColors(sortedBaseNicks, nicklistBgLum)
                 sortedBaseNicks.zip(colors).toMap<String, Color>()
             }
 
@@ -1642,10 +1653,9 @@ fun ChatScreen(
                         Text(
                             n,
                             color = if (state.settings.colorizeNicks)
-                                metadataNickColor(cleaned.lowercase())
-                                    ?: (if (personalColors.theme != null) personalColors.text(ThemeRole.NICK, personalColors.color(ThemeRole.NICKLIST, chatBackground), Color.Unspecified) else null)
+                                metadataNickColor(cleaned.lowercase(), nicklistBgLum)
                                     ?: nicklistColorMap[cleaned.lowercase()]
-                                    ?: NickColors.colorForNick(cleaned.lowercase(), bgLum)
+                                    ?: NickColors.colorForNick(cleaned.lowercase(), nicklistBgLum)
                             else Color.Unspecified,
                             fontSize = nickFontSp.sp,
                             lineHeight = (nickFontSp * 1.15f).sp,
@@ -2029,7 +2039,7 @@ fun ChatScreen(
         }
     }
 
-    val topBarTitle = if (selBufName == "*server*") selNetName else "$selNetName:${bufferLabel(selected, state.networks)}"
+    val topBarTitle = if (selBufName == "*server*") selNetName else "$selNetName:${conversationLabel(selected)}"
 
     // Show the channel's modes next to the name. Rendered
     // as a subtitle under the title rather than appended to it.
@@ -2334,33 +2344,7 @@ fun ChatScreen(
                                     overflowExpanded = false; showTopicQuickEdit = true
                                 })
                                 add(MenuEntry(stringResource(R.string.menu_channel_list)) { overflowExpanded = false; onOpenList() })
-                                add(MenuEntry(stringResource(R.string.menu_file_transfers)) { overflowExpanded = false; onOpenTransfers() })
                                 if (onOpenLogViewer != null) add(MenuEntry("Visor de logs") { overflowExpanded = false; onOpenLogViewer() })
-                                if (viewModel != null) {
-                                    add(MenuEntry(stringResource(R.string.menu_search_logs)) { overflowExpanded = false; showLogSearch = true })
-                                }
-                                // Encryption is only meaningful for channel/query buffers, not the
-                                // *server*/*status* tab. selNetId can be blank if no networks exist
-                                // yet; viewModel can be null in preview/test.
-                                if (viewModel != null &&
-                                    selNetId.isNotBlank() &&
-                                    selBufName.isNotBlank() &&
-                                    selBufName != "*server*" &&
-                                    selBufName != "*status*"
-                                ) {
-                                    add(MenuEntry("Secure Chat") { overflowExpanded = false; showEncryptionDialog = true })
-                                    add(MenuEntry(stringResource(
-                                        if (isChannel) R.string.menu_channel_settings else R.string.menu_conversation_settings
-                                    )) { overflowExpanded = false; showChannelSettings = true })
-                                }
-                                // draft/metadata-2 editor and draft/account-registration dialog,
-                                // shown only when the connected server negotiated the cap.
-                                if (viewModel != null && selNetId.isNotBlank() &&
-                                    viewModel.serverSupportsMetadata(selNetId)) {
-                                    add(MenuEntry(stringResource(R.string.menu_edit_metadata)) {
-                                        overflowExpanded = false; showMetadataEditor = true
-                                    })
-                                }
                                 if (viewModel != null && selNetId.isNotBlank() &&
                                     viewModel.serverSupportsAccountReg(selNetId) &&
                                     state.connections[selNetId]?.myAccount == null) {
@@ -2373,10 +2357,6 @@ fun ChatScreen(
                                 add(MenuEntry(stringResource(R.string.menu_networks)) { overflowExpanded = false; onOpenNetworks() })
                                 if (isIrcOper) {
                                     add(MenuEntry(stringResource(R.string.menu_ircop_tools)) { overflowExpanded = false; showIrcOpTools = true })
-                                }
-                                add(MenuEntry(stringResource(R.string.menu_about)) { overflowExpanded = false; onAbout() })
-                                if (onEnterFloating != null) {
-                                    add(MenuEntry(stringResource(R.string.menu_float)) { overflowExpanded = false; onEnterFloating() })
                                 }
                                 add(MenuEntry(
                                     stringResource(R.string.menu_reconnect),
@@ -3150,7 +3130,7 @@ fun ChatScreen(
         var nickCycle by remember(selected) { mutableStateOf<NickCompletion?>(null) }
         fun completeNick(backwards: Boolean): Boolean {
             if (!input.selection.collapsed) return false
-            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards) ?: return false
+            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards, state.settings.nickCompletion) ?: return false
             input = TextFieldValue(result.text, TextRange(result.cursor))
             nickCycle = result
             return true
@@ -3172,11 +3152,11 @@ fun ChatScreen(
             val liveCycle = nickCycle?.takeIf { it.text == input.text && it.cursor == input.selection.start }
             val matches = (liveCycle?.prefix ?: nickQuery)?.let { completionMatches(completionNicks, it) }.orEmpty()
             // Suggestions never edit the draft until the user chooses one or presses Tab.
-            if (matches.isNotEmpty() && cmdQuery == null && subCmdQuery == null) {
+            if (state.settings.nickCompletion.enabled && matches.isNotEmpty() && cmdQuery == null && subCmdQuery == null) {
                 NickChoiceList(matches, liveCycle?.let { it.matches[it.index] }) { nick ->
                     val token = liveCycle?.let { NickToken(it.start, it.cursor, it.cursor, "", it.hadAt) } ?: completionToken
                     if (token != null) {
-                        val (newText, cursor) = completeNickToken(input.text, token, nick)
+                        val (newText, cursor) = completeNickToken(input.text, token, nick, state.settings.nickCompletion)
                         input = TextFieldValue(newText, TextRange(cursor)); nickCycle = null
                         onTypingChanged(newText)
                     }
@@ -3324,7 +3304,7 @@ fun ChatScreen(
             ) {
                 ComposerNavigationButton(
                     onClick = { completeNick(backwards = false); onTypingChanged(input.text) },
-                    enabled = completionNicks.isNotEmpty(),
+                    enabled = state.settings.nickCompletion.enabled && completionNicks.isNotEmpty(),
                     description = stringResource(R.string.chat_complete_nick),
                     label = "Tab",
                     modifier = Modifier.testTag("nick-tab-button"),
@@ -3858,7 +3838,7 @@ fun ChatScreen(
                                 val (network, name) = splitKey(key)
                                 val meta = state.buffers[key]
                                 ConversationTab(key,
-                                    if (name == "*server*") netName(network) else bufferLabel(key, state.networks),
+                                    if (name == "*server*") netName(network) else conversationLabel(key),
                                     meta?.unread ?: 0, (meta?.highlights ?: 0) > 0, name == "*server*")
                             },
                             selected = selected,

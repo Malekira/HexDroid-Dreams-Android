@@ -352,6 +352,7 @@ data class UiSettings(
     val partMessage: String = "Leaving",
 
     val colorizeNicks: Boolean = true,
+    val nickCompletion: NickCompletionStyle = NickCompletionStyle(),
     /**
      * Show a presence dot in the member list for nicks with no avatar, filling the space
      * their avatar would occupy. Red when away, green otherwise.

@@ -150,7 +150,7 @@ internal suspend fun IrcViewModel.postReplaySummary(netId: String, tally: Replay
  * True for buffers that exist only locally and are not a valid target.
  */
 internal fun IrcViewModel.isPseudoBuffer(bufferName: String): Boolean =
-    bufferName == "*server*" || bufferName == RAW_BUFFER || bufferName == WHOIS_BUFFER || bufferName == NOTICES_BUFFER
+    bufferName == "*server*" || bufferName == RAW_BUFFER || bufferName == WHOIS_BUFFER || bufferName == NOTICES_BUFFER || bufferName == MENTIONS_BUFFER || bufferName == COMMANDS_BUFFER
 
 internal fun IrcViewModel.bufKey(netId: String, bufferName: String): String = "$netId::$bufferName"
 
@@ -504,6 +504,7 @@ internal fun IrcViewModel.setNetConn(netId: String, f: (NetConnState) -> NetConn
 
 internal fun IrcViewModel.ensureServerBuffer(netId: String) {
     ensureBuffer(bufKey(netId, "*server*"))
+    ensureBuffer(bufKey(netId, MENTIONS_BUFFER))
 }
 
 internal fun IrcViewModel.ensureBuffer(key: String) {
@@ -1167,7 +1168,9 @@ internal fun IrcViewModel.append(
         id = nextUiMsgId.getAndIncrement(),
         timeMs = ts,
         fromHistory = isHistory,
-        isMention = effectiveHighlight && !isPrivate && !isError && from != null && isChannelOnNet(splitKey(bufferKey).first, splitKey(bufferKey).second) && !isMyNick(splitKey(bufferKey).first, from),
+        isMention = !senderNotifyIgnored && !isError && from != null && !isPseudoBuffer(splitKey(bufferKey).second) &&
+            !isMyNick(splitKey(bufferKey).first, from) &&
+            (this.isHighlight(splitKey(bufferKey).first, text, false, bufferKey) || (!isPrivate && effectiveHighlight)),
         from = from,
         text = text,
         isAction = isAction,
@@ -1268,6 +1271,16 @@ internal fun IrcViewModel.append(
     }
     val st = _state.value
     if (msgWasDuplicate) return
+
+    // Mirror committed live mentions once. PM notification highlighting alone is not a mention.
+    if (msg.isMention && !isFromMe && !suspectReplay && !staleLive && !isLocal) {
+        val mentionsKey = bufKey(selfNetId, MENTIONS_BUFFER)
+        ensureBuffer(mentionsKey)
+        append(mentionsKey, from = from,
+            text = mentionSummary(splitKey(bufferKey).second, isPrivate, text),
+            isAction = isAction, isHighlight = true, timeMs = ts, doNotify = false,
+            msgId = msgId, encryption = encryption, fromOper = fromOper, fromBot = fromBot)
+    }
 
     // Record genuine local echoes of our own outgoing messages so a later bouncer
     // history-replay of the same line (after a reconnect) can be recognised and
@@ -1391,7 +1404,7 @@ internal fun IrcViewModel.writeLogLine(
     if (bufferName == "*server*" && !st.settings.logServerBuffer) return
     val netName = st.networks.firstOrNull { it.id == netId }?.name ?: "network"
     val safe = safeHistoryText(bufferName, text) ?: return
-    if (isPseudoBuffer(bufferName) && bufferName != "*server*" && bufferName != WHOIS_BUFFER) return
+    if (isPseudoBuffer(bufferName) && bufferName != "*server*" && bufferName != WHOIS_BUFFER && bufferName != MENTIONS_BUFFER && bufferName != COMMANDS_BUFFER && bufferName != NOTICES_BUFFER) return
     val logLine = formatLogLine(ts, from, safe, isAction)
     scope.launch(logLane) {
         val err = runCatching {

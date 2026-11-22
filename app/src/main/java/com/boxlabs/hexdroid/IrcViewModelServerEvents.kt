@@ -505,7 +505,9 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                                 return
                             }
                         }
-                        val targetKey = if (!ev.bufferName.isNullOrBlank() && ev.bufferName != "*server*") {
+                        val targetKey = if (code != null && code !in motdCodes && !ev.isWhoisReply) {
+                            bufKey(netId, COMMANDS_BUFFER)
+                        } else if (!ev.bufferName.isNullOrBlank() && ev.bufferName != "*server*") {
                             resolveBufferKey(netId, ev.bufferName)
                         } else {
                             bufKey(netId, "*server*")
@@ -533,7 +535,7 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                             val first = !whoisBlocks.contains(netId, id)
                             val st = _state.value
                             val destinations = replyDestinations(
-                                mask = st.settings.whoisDestinations,
+                                mask = ReplyDestination.WINDOW,
                                 network = netId, window = WHOIS_BUFFER,
                                 selectedKey = st.selectedBuffer, privateNick = ev.whoisNick,
                                 resolve = { resolveBufferKey(netId, it) },
@@ -551,6 +553,7 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                                 }
                             }
                         } else if (visibleText != null && !callerIdHandled) {
+                            ensureBuffer(targetKey)
                             append(targetKey, from = null, text = visibleText, doNotify = false, isMotd = isMotdLine)
                         }
 
