@@ -1169,7 +1169,8 @@ internal fun IrcViewModel.append(
         timeMs = ts,
         fromHistory = isHistory,
         isMention = !senderNotifyIgnored && !isError && from != null && !isPseudoBuffer(splitKey(bufferKey).second) &&
-            !isMyNick(splitKey(bufferKey).first, from) && this.isHighlight(splitKey(bufferKey).first, text, false, bufferKey),
+            !isMyNick(splitKey(bufferKey).first, from) &&
+            (this.isHighlight(splitKey(bufferKey).first, text, false, bufferKey) || (!isPrivate && effectiveHighlight)),
         from = from,
         text = text,
         isAction = isAction,
