@@ -63,9 +63,9 @@ internal fun nickToken(text: String, cursor: Int): NickToken? {
 }
 internal fun bareMember(nick: String) = nick.trimStart('~', '&', '@', '%', '+')
 internal fun memberNames(members: List<String>): List<String> = members.map(::bareMember).filter(::isReplyNick).distinctBy { it.lowercase() }
-internal fun completeNickToken(text: String, token: NickToken, nick: String): Pair<String, Int> {
-    val suffix = if (token.start == 0) ": " else if (token.end < text.length && text[token.end].isWhitespace()) "" else " "
-    val replacement = (if (token.hadAt) "@" else "") + bareMember(nick) + suffix
+internal fun completeNickToken(text: String, token: NickToken, nick: String, style: NickCompletionStyle = NickCompletionStyle()): Pair<String, Int> {
+    val replacement = style.render(bareMember(nick), token.start == 0, token.hadAt,
+        token.end < text.length && text[token.end].isWhitespace())
     return (text.substring(0, token.start) + replacement + text.substring(token.end)) to (token.start + replacement.length)
 }
 

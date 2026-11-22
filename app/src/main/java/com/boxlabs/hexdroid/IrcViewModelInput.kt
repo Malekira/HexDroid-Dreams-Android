@@ -58,6 +58,7 @@ fun IrcViewModel.cancelTypingOnBackground() {
 /** Sends typing [state] to buffer [key] now and records the time. */
 internal fun IrcViewModel.sendTypingNow(key: String, state: String) {
     val (netId, bufferName) = splitKey(key)
+    if (isPseudoBuffer(bufferName)) return
     typingSentAtMs[key] = System.currentTimeMillis()
     viewModelScope.launch { runCatching { runtimes[netId]?.client?.sendTypingStatus(bufferName, state) } }
 }
@@ -1055,7 +1056,7 @@ internal fun IrcViewModel.sendInputInternal(raw: String, aliasDepth: Int, target
                         return@launch
                     }
                     // Preserve alias/script dispatch above; only the native WHOIS opts into remote idle.
-                    val commandBuffer = if (bufferName == WHOIS_BUFFER || bufferName == NOTICES_BUFFER) "*server*" else bufferName
+                    val commandBuffer = if (bufferName == WHOIS_BUFFER || bufferName == NOTICES_BUFFER || bufferName == MENTIONS_BUFFER || bufferName == COMMANDS_BUFFER) "*server*" else bufferName
                     c.handleSlashCommand(whoisCommand(cmdLine, st.settings.whoisRequestIdle), commandBuffer)
                     return@launch
                 }
@@ -1098,7 +1099,7 @@ internal fun IrcViewModel.sendInputInternal(raw: String, aliasDepth: Int, target
             append(currentKey, from = null, text = "*** " + appContext.getString(R.string.vm_not_connected), doNotify = false)
             return@launch
         }
-        if (bufferName == WHOIS_BUFFER || bufferName == NOTICES_BUFFER) {
+        if (bufferName == WHOIS_BUFFER || bufferName == NOTICES_BUFFER || bufferName == MENTIONS_BUFFER || bufferName == COMMANDS_BUFFER) {
             append(currentKey, from = null, text = appContext.getString(R.string.personal_readonly_buffer), isLocal = true, doNotify = false)
             return@launch
         }

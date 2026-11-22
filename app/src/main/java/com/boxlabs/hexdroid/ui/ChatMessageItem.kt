@@ -171,6 +171,7 @@ internal fun SingleMessageItem(
     displayName: String? = null,
 ) {
     val fromNick = m.from
+    val resolvedNickColor = if (colorizeNicks && fromNick != null) nickColor(fromNick) else Color.Unspecified
     // Local copy of ChatScreen's baseNick — strips IRC mode prefixes from a display nick.
     fun baseNick(display: String) = display.trimStart('~', '&', '@', '%', '+')
     val swipeOffsetX = remember { Animatable(0f) }
@@ -436,7 +437,7 @@ internal fun SingleMessageItem(
                 val fromDisplay = displayNick(fromNick)
                 val fromBase = baseNick(fromDisplay)
                 val botPrefix = stringResource(R.string.chat_bot_prefix)
-                val annotated = remember(ts, fromDisplay, fromBase, bodyText, colorizeNicks,
+                val annotated = remember(ts, fromDisplay, fromBase, bodyText, colorizeNicks, resolvedNickColor,
                     mircColorsEnabled, ansiColorsEnabled, linkStyle, encScheme, m.fromOper, m.fromBot, displayName, botPrefix,
                     timestampColor, readByPeer, readLabel) {
                     buildAnnotatedString {
@@ -447,7 +448,7 @@ internal fun SingleMessageItem(
                         // Bot Mode: a robot icon marks messages from bots.
                         if (m.fromBot) { appendInlineContent(BOT_INLINE_ID, botPrefix); }
                         pushStringAnnotation(tag = ANN_NICK, annotation = fromBase)
-                        withStyle(SpanStyle(color = if (colorizeNicks) nickColor(fromBase) else Color.Unspecified)) {
+                        withStyle(SpanStyle(color = resolvedNickColor)) {
                             append(fromDisplay)
                         }
                         pop()
@@ -464,7 +465,7 @@ internal fun SingleMessageItem(
                 val fromDisplay = displayNick(fromNick)
                 val fromBase = baseNick(fromDisplay)
                 val botPrefix = stringResource(R.string.chat_bot_prefix)
-                val annotated = remember(ts, fromDisplay, fromBase, bodyText, colorizeNicks,
+                val annotated = remember(ts, fromDisplay, fromBase, bodyText, colorizeNicks, resolvedNickColor,
                     mircColorsEnabled, ansiColorsEnabled, linkStyle, encScheme, m.fromOper, m.fromBot, displayName, botPrefix,
                     timestampColor, nickStyle, readByPeer, readLabel) {
                     buildAnnotatedString {
@@ -475,7 +476,7 @@ internal fun SingleMessageItem(
                         // Bot Mode: a robot icon marks messages from bots.
                         if (m.fromBot) { appendInlineContent(BOT_INLINE_ID, botPrefix); }
                         pushStringAnnotation(tag = ANN_NICK, annotation = fromBase)
-                        withStyle(SpanStyle(color = if (colorizeNicks) nickColor(fromBase) else Color.Unspecified)) {
+                        withStyle(SpanStyle(color = resolvedNickColor)) {
                             append(fromDisplay)
                         }
                         pop()

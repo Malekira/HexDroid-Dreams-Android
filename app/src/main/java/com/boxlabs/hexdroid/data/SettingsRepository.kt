@@ -437,6 +437,7 @@ class SettingsRepository(private val ctx: Context) {
                 quitMessage = o.optString("quitMessage", UiSettings().quitMessage),
                 partMessage = o.optString("partMessage", UiSettings().partMessage),
                 colorizeNicks = o.optBoolean("colorizeNicks", true),
+                nickCompletion = com.boxlabs.hexdroid.NickCompletionStyle.fromJson(o.optJSONObject("nickCompletion")),
                 showNickIcons = o.optBoolean("showNickIcons", true),
                 ctcpRepliesEnabled = o.optBoolean("ctcpRepliesEnabled", true),
                 nickRegainEnabled = o.optBoolean("nickRegainEnabled", true),
@@ -570,6 +571,7 @@ class SettingsRepository(private val ctx: Context) {
         o.put("quitMessage", s.quitMessage)
         o.put("partMessage", s.partMessage)
         o.put("colorizeNicks", s.colorizeNicks)
+        o.put("nickCompletion", s.nickCompletion.toJson())
         o.put("showNickIcons", s.showNickIcons)
         o.put("ctcpRepliesEnabled", s.ctcpRepliesEnabled)
         o.put("nickRegainEnabled", s.nickRegainEnabled)
