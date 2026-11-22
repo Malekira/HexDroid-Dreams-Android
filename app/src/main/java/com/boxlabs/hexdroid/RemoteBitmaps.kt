@@ -128,12 +128,12 @@ object RemoteBitmaps {
         downloadScope.launch { fetchFresh(url,60_000L,scope,configuredHost)?.let { runCatching { onLoaded(it) } } }
     }
 
-    private fun download(source: String, full: Boolean, refresh: Boolean, configuredHost: String?, redirects: Int = 0): Pair<Bitmap?, AvatarFailure?> = try {
-        val requestUrl = avatarRequestUrl(source, System.currentTimeMillis(), refresh)
+    private fun download(source: String, full: Boolean, refresh: Boolean, configuredHost: String?, redirects: Int = 0, retries: Int = 1): Pair<Bitmap?, AvatarFailure?> = try {
+        val requestUrl = if(redirects==0) avatarRequestUrl(source, System.currentTimeMillis(), refresh) else source
         if (!validAvatarUrl(requestUrl) || !publicAvatarLiteral(requestUrl) || (!full && !automaticAvatarAllowed(requestUrl,configuredHost))) null to AvatarFailure.REDIRECT else {
             fun redirect(location: String?): Pair<Bitmap?,AvatarFailure?> {
-                val target=location?.let { normalizeWebPhotoUrl(URL(URL(requestUrl),it).toString()) }
-                return if (redirects>=3 || target==null) null to AvatarFailure.REDIRECT else download(target,full,refresh,configuredHost,redirects+1)
+                val target=location?.let { avatarRedirectTarget(requestUrl,it) }
+                return if (redirects>=3 || target==null) null to AvatarFailure.REDIRECT else download(target,full,refresh,configuredHost,redirects+1,retries)
             }
             fun image(input: java.io.InputStream, length: Long): Pair<Bitmap?,AvatarFailure?> {
                 val bytes=input.use { readAvatarBytes(it,length,if(full) 5*1024*1024 else AVATAR_MAX_BYTES) }
@@ -160,7 +160,9 @@ object RemoteBitmaps {
             }
         }
     } catch (_: AvatarTooLargeException) { null to AvatarFailure.TOO_LARGE }
-      catch (_: java.net.SocketTimeoutException) { null to AvatarFailure.TIMEOUT }
+      catch (_: java.net.SocketTimeoutException) { if(retries>0)download(source,full,refresh,configuredHost,redirects,retries-1) else null to AvatarFailure.TIMEOUT }
+      catch (_: javax.net.ssl.SSLException) { null to AvatarFailure.CONNECTION }
+      catch (_: java.io.IOException) { if(retries>0)download(source,full,refresh,configuredHost,redirects,retries-1) else null to AvatarFailure.CONNECTION }
       catch (_: Exception) { null to AvatarFailure.CONNECTION }
 
     private fun decodeSampled(bytes: ByteArray, maxEdge: Int): Bitmap? {

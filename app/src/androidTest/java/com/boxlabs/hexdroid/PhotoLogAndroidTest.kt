@@ -74,6 +74,8 @@ class PhotoLogAndroidTest {
                 assertFalse(vm.state.value.connections[net]!!.avatarUrls.containsKey("alice"))
                 assertNotNull(profileAvatarSource(null,null,"irc.chatzona.org",null,"Alice",legacyUrl=vm.state.value.connections[net]!!.legacyAvatarUrls["alice"],legacyKnown=true))
                 assertEquals("https://chat-avatars.chateagratis.net/new.jpg",vm.state.value.connections[net]!!.legacyAvatarUrls["alice"])
+                vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","javascript:bad-url"))
+                assertFalse(vm.state.value.connections[net]!!.avatarUrls.containsKey("alice"))
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/current.jpg"))
                 val revision=vm.state.value.connections[net]!!.avatarRevision
                 vm.handleStateEvent(net,IrcEvent.MetadataChanged("Alice","avatar","*","https://example.org/current.jpg"))

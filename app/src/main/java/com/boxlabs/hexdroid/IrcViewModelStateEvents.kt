@@ -429,16 +429,20 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
                         // GECOS/template remain eligible. A previously announced key disappearing
                         // is a removal, and an existing removal tombstone remains authoritative.
                         if (ev.absent && old == null) return
-                        val url = normalizeWebPhotoUrl(sanitizeMetadataValue(ev.value, maxLen = 2048))
-                        // SYNC/GET repeats the same values for large rooms. Repeated announcements
-                        // do not mean a new photo and must not flush the cache or restart its UI.
-                        if(old == (url ?: "")) return
+                        val raw=sanitizeMetadataValue(ev.value,maxLen=2048)
+                        val url=normalizeWebPhotoUrl(raw)
+                        // Only an actual empty/deleted value withdraws a photo. A malformed
+                        // nonempty address must not hide a valid GECOS/template photo.
+                        val next=if(ev.value.isNullOrBlank()) "" else url
+                        if(old==next || (old=="" && next==null))return
                         old?.takeIf { it.isNotBlank() }?.let { RemoteBitmaps.invalidate(it,netId) }
+                        fun updated(values:Map<String,String>)=if(next==null) values-mdKey else values+(mdKey to next)
                         setNetConn(netId) { conn -> conn.copy(
-                            avatarUrls = if (ev.key == "avatar") conn.avatarUrls + (mdKey to (url ?: "")) else conn.avatarUrls,
-                            avatarAliasUrls = if (ev.key == "avatar-url") conn.avatarAliasUrls + (mdKey to (url ?: "")) else conn.avatarAliasUrls,
-                            primaryAvatarNicks = if (ev.key == "avatar") conn.primaryAvatarNicks + mdKey else conn.primaryAvatarNicks,
-                            avatarRevision = conn.avatarRevision + 1) }
+                            avatarUrls = if(ev.key=="avatar")updated(conn.avatarUrls) else conn.avatarUrls,
+                            avatarAliasUrls = if(ev.key=="avatar-url")updated(conn.avatarAliasUrls) else conn.avatarAliasUrls,
+                            primaryAvatarNicks = if(ev.key!="avatar")conn.primaryAvatarNicks else if(next==null)conn.primaryAvatarNicks-mdKey else conn.primaryAvatarNicks+mdKey,
+                            avatarRevision=conn.avatarRevision+1) }
+
                     }
                     "color" -> setNetConn(netId) { st ->
                         // Registry format is exactly 6 hex digits (no leading #).

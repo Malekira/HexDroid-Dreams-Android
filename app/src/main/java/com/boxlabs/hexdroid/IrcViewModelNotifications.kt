@@ -282,13 +282,13 @@ internal fun IrcViewModel.launchNotificationAvatarSync() {
     viewModelScope.launch {
         _state.map { st ->
             val host=avatarTemplateHost(st.settings.avatarTemplate)
-            val blocked=!st.settings.imagePreviewsEnabled || !st.settings.chatZonaAvatarsEnabled ||
-                (st.settings.imagePreviewsWifiOnly && !com.boxlabs.hexdroid.ui.isOnWifi(appContext))
+            val blocked=!st.settings.chatZonaAvatarsEnabled ||
+                (st.settings.avatarWifiOnly && !com.boxlabs.hexdroid.ui.isOnWifi(appContext))
             val urls=if(blocked) emptyMap() else st.networks.mapNotNull { net ->
                 val values=st.connections[net.id]?.avatarUrls?.filterValues { automaticAvatarAllowed(it,host) }
                 if(net.proxyType!=ProxyType.NONE || values.isNullOrEmpty()) null else net.id to values
             }.toMap()
-            Triple(urls,host to st.settings.imagePreviewsWifiOnly,st.connections.mapValues { it.value.avatarCaseMapping })
+            Triple(urls,host to st.settings.avatarWifiOnly,st.connections.mapValues { it.value.avatarCaseMapping })
         }.distinctUntilChanged().collect { (urls,policy,mappings) ->
             Avatars.setAllowedUrls(urls,urls.keys.associateWith { policy.first },mappings,policy.second)
         }

@@ -1397,7 +1397,7 @@ class IrcViewModel(
         // Apply immediately; DataStore confirms shortly after.
         val st = _state.value
         val next = st.settings.update()
-        if (st.settings.avatarTemplate != next.avatarTemplate || st.settings.chatZonaAvatarsEnabled != next.chatZonaAvatarsEnabled || st.settings.imagePreviewsEnabled != next.imagePreviewsEnabled) st.connections.keys.forEach { RemoteBitmaps.invalidateScope(it) }
+        if (st.settings.avatarTemplate != next.avatarTemplate || st.settings.chatZonaAvatarsEnabled != next.chatZonaAvatarsEnabled || st.settings.avatarWifiOnly != next.avatarWifiOnly) st.connections.keys.forEach { RemoteBitmaps.invalidateScope(it) }
         _state.value = st.copy(settings = next)
 
         viewModelScope.launch {

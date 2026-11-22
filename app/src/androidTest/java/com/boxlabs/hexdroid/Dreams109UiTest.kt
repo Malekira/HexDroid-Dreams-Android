@@ -82,7 +82,7 @@ class Dreams109UiTest {
         compose.waitUntil(5_000) { urls.any { it == "https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01.png" } }
         compose.runOnIdle { state = state.copy(settings = state.settings.copy(chatZonaAvatarsInMessages = false)) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(1)
-        val custom = "https://images.example.invalid/custom.jpg"
+        val custom = "https://chat-avatars.chateagratis.net/custom.jpg"
         compose.runOnIdle { state = state.copy(connections = mapOf(id to NetConnState(myNick = "OwnDemoNick", avatarUrls = mapOf("demonick01" to custom)))) }
         compose.waitUntil(5_000) { urls.contains(custom) }
         compose.runOnIdle { state = state.copy(settings = state.settings.copy(chatZonaAvatarsEnabled = false, imagePreviewsEnabled = true)) }
@@ -90,7 +90,7 @@ class Dreams109UiTest {
         compose.runOnIdle { state = state.copy(settings = state.settings.copy(chatZonaAvatarsEnabled = true), networks = listOf(profile.copy(host = "irc.other.invalid"))) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(1)
         compose.runOnIdle { state = state.copy(settings=state.settings.copy(imagePreviewsEnabled=false)) }
-        compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)
+        compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(1)
         compose.runOnIdle { state = state.copy(settings=state.settings.copy(imagePreviewsEnabled=true)) }
         compose.runOnIdle { state = state.copy(networks = listOf(profile.copy(proxyType = ProxyType.SOCKS5))) }
         compose.onAllNodesWithTag("avatar-DemoNick01").assertCountEquals(0)

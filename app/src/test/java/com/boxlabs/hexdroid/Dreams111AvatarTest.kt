@@ -17,7 +17,7 @@ class Dreams111AvatarTest {
         assertEquals(metadata, profileAvatarSource(null, metadata, "irc.other.invalid", null, "DemoNick01"))
     }
     @Test fun invalidOrEmptyMetadataNeverBecomesADownloadTargetAndNickChangesKeepAutomaticResolutionFresh() {
-        assertNull(profileAvatarSource("http://invalid.example/photo", "javascript:invalid", "irc.other.invalid", null, "DemoNick01", metadataKnown=true))
+        assertEquals("https://chat-avatars.chateagratis.net/avatar/Chat/DemoNick01.png",profileAvatarSource("http://invalid.example/photo", "javascript:invalid", "irc.other.invalid", null, "DemoNick01", metadataKnown=true))
         assertNotEquals(profileAvatarSource("", "", "irc.chatzona.org", null, "DemoNick01"), profileAvatarSource("", null, "irc.chatzona.org", null, "DemoNick02"))
     }
     @Test fun anUnchangedEmptyIdentityDoesNotClearAnAvatarPublishedByTheWebClient() {

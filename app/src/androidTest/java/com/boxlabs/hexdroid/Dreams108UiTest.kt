@@ -59,8 +59,8 @@ class Dreams108UiTest {
         val tab = compose.onNodeWithTag("nick-tab-button")
         val recall = compose.onNodeWithTag("input-history-backspace")
         for (button in listOf(tab, recall)) button.assertWidthIsEqualTo(36.dp).assertHeightIsEqualTo(36.dp).assertHasClickAction()
-        assertTrue(tab.fetchSemanticsNode().boundsInRoot.right <= input.fetchSemanticsNode().boundsInRoot.left)
-        assertTrue(recall.fetchSemanticsNode().boundsInRoot.left >= input.fetchSemanticsNode().boundsInRoot.right)
+        assertTrue(tab.fetchSemanticsNode().boundsInRoot.right <= recall.fetchSemanticsNode().boundsInRoot.left)
+        assertTrue(recall.fetchSemanticsNode().boundsInRoot.right <= input.fetchSemanticsNode().boundsInRoot.left)
         recall.performClick(); input.assertTextEquals("Mensaje 2")
         recall.performClick(); input.assertTextEquals("Mensaje 1")
         recall.performTouchInput { longClick() }
