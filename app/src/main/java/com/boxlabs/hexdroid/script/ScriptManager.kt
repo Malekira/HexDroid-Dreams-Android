@@ -254,17 +254,14 @@ class ScriptManager(
     /** Withdraw the old uploader while preserving its source outside executable scripts. */
     private fun retireFileUploadScript() {
         val name = "imgpaste.hex"
-        val marker = "retired_file_upload_v1"
-        if (prefs.getBoolean(marker, false)) return
-        val source = store.read(name)
-        val owned = source != null && (prefs.contains(shippedKey(name)) ||
-            Regex("(?m)^\\s*media\\.upload\\b").containsMatchIn(source))
-        if (owned) {
-            prefs.edit().putStringSet(KEY_DISABLED, disabledSet().apply { add(name) })
-                .putStringSet(KEY_SUPPRESSED, suppressedSet().apply { add(name) }).commit()
-            if (runCatching { store.archive(name) }.isFailure) return
-        }
-        prefs.edit().putBoolean(marker, true).apply()
+        val source = store.read(name) ?: return
+        val owned = prefs.contains(shippedKey(name)) ||
+            Regex("(?m)^\\s*media\\.upload\\b").containsMatchIn(source)
+        if (!owned) return
+        // Check on every reload so restoring an older backup cannot re-enable the uploader.
+        prefs.edit().putStringSet(KEY_DISABLED, disabledSet().apply { add(name) })
+            .putStringSet(KEY_SUPPRESSED, suppressedSet().apply { add(name) }).commit()
+        runCatching { store.archive(name) }
     }
 
     /**

@@ -84,6 +84,22 @@ class IrcCompletionEditorAndroidTest {
             assertEquals(false,response?.ok)
             assertTrue(response?.error.orEmpty().contains("not supported"))
             assertFalse(DccManager::class.java.methods.any { it.name in setOf("sendFile","sendFileConnect","receive","receivePassive","createDccOutputStream") })
+            val scripts = com.boxlabs.hexdroid.script.ScriptStore(instrumentation.targetContext,"hex")
+            val old = scripts.read("imgpaste.hex")
+            val retired = java.io.File(instrumentation.targetContext.filesDir,"retired-scripts")
+            val previousArchives = retired.listFiles().orEmpty().map { it.name }.toSet()
+            val legacy = "alias img {\n  media.upload https://example.invalid/upload old-token done\n}\n"
+            try {
+                // A backup restored after first launch must not bring back the removed uploader.
+                scripts.write("imgpaste.hex",legacy)
+                instrumentation.runOnMainSync { vm.scriptManager.reloadAll() }
+                assertFalse(scripts.list().contains("imgpaste.hex"))
+                assertTrue(retired.listFiles().orEmpty().any { it.name !in previousArchives && it.readText() == legacy })
+            } finally {
+                if (old != null) scripts.write("imgpaste.hex",old) else scripts.delete("imgpaste.hex")
+                retired.listFiles().orEmpty().filter { it.name !in previousArchives }.forEach { it.delete() }
+            }
+
         } finally {
             host.shutdown(); instrumentation.runOnMainSync { store.clear() }
         }
