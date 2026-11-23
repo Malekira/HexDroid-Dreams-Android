@@ -145,7 +145,7 @@ internal val IRC_COMMANDS = listOf(
     IrcCommand("dns", "/dns <host|ip>", R.string.cmd_dns),
 
     // DCC
-    IrcCommand("dcc", "/dcc chat|schat|send <nick>", R.string.cmd_dcc),
+    IrcCommand("dcc", "/dcc chat|schat <nick>", R.string.cmd_dcc),
 
     // IRC operator
     IrcCommand("oper", "/oper <user> <password>", R.string.cmd_oper),

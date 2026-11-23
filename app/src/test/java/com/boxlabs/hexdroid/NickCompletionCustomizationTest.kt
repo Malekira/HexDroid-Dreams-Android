@@ -13,17 +13,17 @@ class NickCompletionCustomizationTest {
     }
     @Test fun customTemplatesColorsAndStylesDoNotColorTheRemainingMessage() {
         val style = NickCompletionStyle(startTemplate = "«{nick}» ", middleTemplate = "[{nick}] ",
-            colors = "#FF3399, #33CCFF", bold = true, italic = true, underline = true)
+            colors = "13,11", bold = true, italic = true, underline = true)
         val result = advanceNickCompletion("Ali resto", 3, listOf("@Alice"), null, style = style)!!
         assertEquals("«Alice» resto", stripIrcFormatting(result.text))
-        assertTrue(result.text.contains("\u0004FF3399A\u000433CCFFl"))
+        assertTrue(result.text.contains("\u000313A\u000311l"))
         assertTrue(result.text.contains('\u0002'))
         assertTrue(result.text.contains('\u001d'))
         assertTrue(result.text.contains('\u001f'))
         assertTrue(result.text.endsWith("» resto"))
     }
     @Test fun cyclingBothDirectionsWorksWithColoredTemplatesAndChangedMembership() {
-        val style = NickCompletionStyle(startTemplate = "<{nick}> ", colors = "FF0000,00FF00")
+        val style = NickCompletionStyle(startTemplate = "<{nick}> ", colors = "4,9")
         val first = advanceNickCompletion("Al", 2, listOf("@Alice", "+Alfred"), null, style = style)!!
         val second = advanceNickCompletion(first.text, first.cursor, listOf("@Alice", "+Alfred"), first, style = style)!!
         assertEquals("<Alice> ", stripIrcFormatting(second.text))
@@ -34,14 +34,14 @@ class NickCompletionCustomizationTest {
     }
     @Test fun disabledCompletionAndInvalidPaletteAreHandledWithoutInjectingControlLines() {
         assertNull(advanceNickCompletion("Ali", 3, listOf("Alice"), null, style = NickCompletionStyle(enabled = false)))
-        val style = NickCompletionStyle(startTemplate = "\r\nPRIVMSG {nick}\u0000", colors = "garbage,#12,FF00AA")
-        assertEquals(listOf("FF00AA"), style.palette())
+        val style = NickCompletionStyle(startTemplate = "\r\nPRIVMSG {nick}\u0000", colors = "garbage,-1,99,04")
+        assertEquals(listOf(4), style.palette())
         val result = style.render("Alice", true, true, false)
         assertEquals("PRIVMSG @Alice", stripIrcFormatting(result))
         assertFalse(result.contains('\r')); assertFalse(result.contains('\n')); assertFalse(result.contains('\u0000'))
     }
     @Test fun specialNicksAndUnicodeAreNotSplitOrRewritten() {
-        val result = NickCompletionStyle(colors = "112233,445566").render("[Álice]😀", true, false, false)
+        val result = NickCompletionStyle(colors = "4,7").render("[Álice]😀", true, false, false)
         assertEquals("[Álice]😀: ", stripIrcFormatting(result))
         assertFalse(result.contains("\uD83D\u0004"))
     }

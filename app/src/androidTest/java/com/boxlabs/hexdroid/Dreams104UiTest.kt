@@ -33,7 +33,7 @@ class Dreams104UiTest {
                 onToggleBufferList = {}, onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {},
                 onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> }, onIgnoreNotifications = { _, _ -> },
                 onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
-                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {})
+                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {})
         } }
         val input = compose.onNodeWithTag("chat-input")
         compose.onNodeWithTag("input-history-backspace").assertIsNotEnabled()

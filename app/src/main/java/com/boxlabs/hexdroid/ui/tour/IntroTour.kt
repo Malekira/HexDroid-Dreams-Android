@@ -94,7 +94,7 @@ fun buildIntroTour(context: Context? = null): List<IntroTourStep> {
             target = TourTarget.CHAT_OVERFLOW_BUTTON,
             title  = s(R.string.tour_more_title, "More actions"),
             body   = s(R.string.tour_more_body,
-                "This menu reaches channel list, file transfers, ignore list, network settings, " +
+                "This menu reaches channel list, logs, settings, " +
                 "and more. It also shows channel mode and topic management when you're an op."),
         ),
         // 6. Settings — appearance section
@@ -105,24 +105,6 @@ fun buildIntroTour(context: Context? = null): List<IntroTourStep> {
             body   = s(R.string.tour_settings_body,
                 "Choose a theme, adjust font size, tweak notification sounds, privacy options, " +
                 "and much more. Changes apply instantly — no restart needed."),
-        ),
-        // 7. Transfers — enable DCC toggle
-        IntroTourStep(
-            screen = AppScreen.TRANSFERS,
-            target = TourTarget.TRANSFERS_ENABLE_DCC,
-            title  = s(R.string.tour_dcc_title, "File transfers (DCC)"),
-            body   = s(R.string.tour_dcc_body,
-                "Enable DCC to send and receive files directly between users. " +
-                "If you're behind a router, Passive DCC avoids port-forwarding headaches."),
-        ),
-        // 8. Transfers — pick file button
-        IntroTourStep(
-            screen = AppScreen.TRANSFERS,
-            target = TourTarget.TRANSFERS_PICK_FILE,
-            title  = s(R.string.tour_send_file_title, "Send a file"),
-            body   = s(R.string.tour_send_file_body,
-                "Enter the target nick, then pick a file from storage. " +
-                "Incoming DCC offers also arrive here — accept or reject them from this screen."),
         ),
         // 9. Networks — AfterNET support channel
         IntroTourStep(

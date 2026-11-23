@@ -27,7 +27,7 @@ class Dreams109UiTest {
             onToggleBufferList = {}, onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {},
             onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> }, onIgnoreNotifications = { _, _ -> },
             onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
-            onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {})
+            onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {})
     }
 
     @Test fun dreams109HistoryControlsExposeFolderSelectionAndPersistTheChosenGroupingInTheirCallback() {

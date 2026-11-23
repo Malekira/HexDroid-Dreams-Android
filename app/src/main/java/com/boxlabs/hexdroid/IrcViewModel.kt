@@ -219,7 +219,6 @@ class IrcViewModel(
         /** How long after our own join a notice counts as that channel's entry notice. */
         const val ENTRY_NOTICE_WINDOW_MS = 15_000L
         /** How long a declined script file pick keeps refusing requests the user did not start. */
-        const val SCRIPT_PICK_QUIET_MS = 60_000L
         /** Quiet time after the last replayed line before the replay summary is posted. */
         const val REPLAY_SUMMARY_QUIET_MS = 4_000L
         /** How long after registration a replay can begin and still be summarised. */
@@ -274,7 +273,7 @@ class IrcViewModel(
         internal const val LAN_LOOKUP_TIMEOUT_MS = 5_000
 
         /** A picker MIME filter given to /dcc send: type/subtype, either part may be *. */
-        val DCC_MIME_FILTER = Regex("^(\\*|[A-Za-z0-9][A-Za-z0-9.+-]*)/(\\*|[A-Za-z0-9][A-Za-z0-9.+-]*)$")
+
 
         /**
          * Matches the substitution tokens in a command-alias template: $channel, $chan,
@@ -724,7 +723,6 @@ class IrcViewModel(
      */
     val e2eKeyStore = com.boxlabs.hexdroid.crypto.E2eKeyStore(repo.secretStore)
     internal val dcc = DccManager(appContext)
-    internal val dccPartials = DccResumeStore(appContext)
 
     internal data class DccChatSession(
         val netId: String,
@@ -740,59 +738,6 @@ class IrcViewModel(
 
     /** DCC chats still listening for, or dialling, the peer, by buffer key. */
     internal val dccChatPending = java.util.concurrent.ConcurrentHashMap<String, Job>()
-
-    internal data class PendingPassiveDccSend(
-        val target: String,
-        val filename: String,
-        val size: Long,
-        val reply: CompletableDeferred<DccOffer>
-    )
-
-    internal val pendingPassiveDccSends: MutableMap<Long, PendingPassiveDccSend> =
-        java.util.concurrent.ConcurrentHashMap()
-
-    /**
-     * Jobs for in-progress outgoing DCC sends, keyed by "$target/$filename".
-     * Stored so the user can cancel a send from the Transfers screen.
-     */
-    internal val outgoingSendJobs: MutableMap<String, kotlinx.coroutines.Job> =
-        java.util.concurrent.ConcurrentHashMap()
-
-    /**
-     * Tracks in-flight DCC receive coroutines, keyed by the offer. Mirrors [outgoingSendJobs]
-     * so the user can cancel an incoming transfer from the Transfers screen X button.
-     * Cancelling the Job triggers [DccManager]'s `invokeOnCompletion` socket-close, which
-     * unblocks the receive loop and aborts the transfer.
-     */
-    internal val incomingReceiveJobs: MutableMap<DccOffer, kotlinx.coroutines.Job> =
-        java.util.concurrent.ConcurrentHashMap()
-
-    /**
-     * An outgoing DCC send waiting for its peer, keyed by `nick|baseName|size`, so an incoming DCC
-     * RESUME can find it. [startOffset] receives the agreed offset once we have replied with DCC
-     * ACCEPT.
-     */
-    internal data class LiveOutgoingSend(
-        val target: String,
-        val filename: String,
-        val absolutePath: String,
-        val size: Long,
-        /** Active SEND's listening port, or 0 for passive sends. */
-        val port: Int,
-        /** Passive-DCC token, or null for active sends. */
-        val token: Long?,
-        /** Completes when peer sends DCC RESUME; surfaces the start offset to honour. */
-        val resumeRequest: CompletableDeferred<Long> = CompletableDeferred()
-    )
-    internal val liveOutgoingSends: MutableMap<String, LiveOutgoingSend> =
-        java.util.concurrent.ConcurrentHashMap()
-
-    /**
-     * Pending DCC RESUME requests *we* sent, keyed by `peer.lowercase()|baseName|size`.
-     * Completes when the peer replies with DCC ACCEPT confirming the offset.
-     */
-    internal val pendingResumeRequests: MutableMap<String, CompletableDeferred<DccAccept>> =
-        java.util.concurrent.ConcurrentHashMap()
 
     internal val nextUiMsgId = AtomicLong(1L)
 
@@ -1405,7 +1350,7 @@ class IrcViewModel(
         }
     }
     fun setDccEnabled(enabled: Boolean) { updateSettings { copy(dccEnabled = enabled) } }
-    fun setDccSendMode(mode: DccSendMode) { updateSettings { copy(dccSendMode = mode) } }
+
 
     fun setActiveNetwork(id: String) {
         val st = _state.value
@@ -2203,71 +2148,6 @@ fun startAddNetwork() {
     data class ScriptLauncher(val id: String, val label: String, val command: String)
     internal val _scriptLaunchers = kotlinx.coroutines.flow.MutableStateFlow<List<ScriptLauncher>>(emptyList())
     val scriptLaunchers: kotlinx.coroutines.flow.StateFlow<List<ScriptLauncher>> = _scriptLaunchers
-    // ---- script file picking -------------------------------------------------
-    /** An outstanding request from a script for the user to choose a file. */
-    data class ScriptFilePick(val id: String, val mimeFilter: String, val buffer: String?)
-
-    internal val _scriptFilePick = kotlinx.coroutines.flow.MutableStateFlow<ScriptFilePick?>(null)
-    val scriptFilePick: kotlinx.coroutines.flow.StateFlow<ScriptFilePick?> = _scriptFilePick
-
-    internal var scriptPickCallback: ((com.boxlabs.hexdroid.script.ScriptMediaRef?) -> Unit)? = null
-
-    /** The script whose pick prompt is showing. */
-    internal var scriptPickOwner: String? = null
-
-    /** A file handed to [owner], addressed by an opaque token. */
-    internal data class ScriptMediaGrant(val uri: android.net.Uri, val owner: String)
-
-    /**
-     * Files the user handed to scripts this session, keyed by an opaque token. Scripts get the
-     * token, never the URI, and only the script that asked can use it. Dropped on script reload
-     * and capped, since read permission on each lasts only as long as the process.
-     */
-    internal val scriptMediaTokens = java.util.Collections.synchronizedMap(
-        object : LinkedHashMap<String, ScriptMediaGrant>(16, 0.75f, false) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ScriptMediaGrant>) = size > 16
-        }
-    )
-
-    /** Per script, when a declined pick stops refusing requests the user did not start. */
-    internal val scriptPickQuietUntil = HashMap<String, Long>()
-
-    /** Called by the UI once the user has picked a file or declined. */
-    fun scriptFilePickResult(uri: android.net.Uri?) {
-        val cb = scriptPickCallback
-        val owner = scriptPickOwner
-        scriptPickCallback = null
-        scriptPickOwner = null
-        _scriptFilePick.value = null
-        if (cb == null || owner == null) return
-        if (uri == null) {
-            scriptPickQuietUntil[owner] = System.currentTimeMillis() + SCRIPT_PICK_QUIET_MS
-            cb(null)
-            return
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            val name = queryDisplayName(uri) ?: "file"
-            val mime = runCatching { appContext.contentResolver.getType(uri) }.getOrNull()
-                ?: "application/octet-stream"
-            val size = runCatching {
-                appContext.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
-                    if (c.moveToFirst()) {
-                        val idx = c.getColumnIndex(OpenableColumns.SIZE)
-                        if (idx >= 0 && !c.isNull(idx)) c.getLong(idx) else -1L
-                    } else -1L
-                } ?: -1L
-            }.getOrDefault(-1L)
-            val token = java.util.UUID.randomUUID().toString()
-            scriptMediaTokens[token] = ScriptMediaGrant(uri, owner)
-            withContext(Dispatchers.Main) {
-                cb(com.boxlabs.hexdroid.script.ScriptMediaRef(token, name, mime, size))
-            }
-        }
-    }
-
-    internal val scriptUploadDirLock = Any()
-    internal var scriptUploadDirSwept = false
-
     // ---- a mounted script view (e.g. the poker table), shown as an overlay ----
     internal val _scriptView = kotlinx.coroutines.flow.MutableStateFlow<com.boxlabs.hexdroid.script.ScriptView?>(null)
     val scriptView: kotlinx.coroutines.flow.StateFlow<com.boxlabs.hexdroid.script.ScriptView?> = _scriptView
@@ -2752,28 +2632,6 @@ fun startAddNetwork() {
 
     // Ignore list
 
-    fun setDccAutoAccept(netId: String, nick: String, enabled: Boolean) {
-        val base = nick.trim().takeIf { it.isNotBlank() } ?: return
-        val st = _state.value
-        val net = st.networks.firstOrNull { it.id == netId } ?: return
-        val nextList = if (enabled) {
-            (net.dccAutoAcceptNicks + base)
-                .map { it.trim() }
-                .filter { it.isNotBlank() }
-                .distinctBy { it.lowercase() }
-        } else {
-            net.dccAutoAcceptNicks.filterNot { it.equals(base, ignoreCase = true) }
-        }
-        val updated = net.copy(dccAutoAcceptNicks = nextList)
-        updateNetworkInState(updated)
-        viewModelScope.launch { repo.upsertNetwork(updated) }
-        val sel = _state.value.selectedBuffer
-        val (selNet, _) = splitKey(sel)
-        val dest = if (sel.isNotBlank() && selNet == netId) sel else bufKey(netId, "*server*")
-        val msg = if (enabled) R.string.vm_dcc_auto_accept_on else R.string.vm_dcc_auto_accept_off
-        append(dest, from = null, text = "*** " + appContext.getString(msg, base), isLocal = true, doNotify = false)
-    }
-
     fun ignoreNick(netId: String, nick: String) {
         val base = canonicalIgnoreNick(nick) ?: return
         val st = _state.value
@@ -2876,7 +2734,6 @@ fun startAddNetwork() {
             is IrcEvent.ExceptListEnd, is IrcEvent.InvexListItem, is IrcEvent.InvexListEnd,
             is IrcEvent.ISupport, is IrcEvent.StsReceived, is IrcEvent.Registered,
             is IrcEvent.NickChanged -> handleServerEvent(netId, ev)
-            is IrcEvent.DccOfferEvent, is IrcEvent.DccResumeRequest, is IrcEvent.DccAcceptResponse,
             is IrcEvent.DccChatOfferEvent, is IrcEvent.NotOnChannel, is IrcEvent.ChatMessage,
             is IrcEvent.Notice, is IrcEvent.CtcpReply -> handleMessageEvent(netId, ev)
             is IrcEvent.ChannelModeLine, is IrcEvent.Names, is IrcEvent.NamesEnd, is IrcEvent.Joined,
@@ -3189,75 +3046,6 @@ fun startAddNetwork() {
 
     internal enum class ChannelEventKind { JOIN, PART, QUIT, NICK, TOPIC, KICK, MODE }
 
-    fun acceptDcc(offer: DccOffer) {
-        doAcceptDccCommon(offer, resumeFrom = null)
-    }
-
-    /**
-     * Look up a recorded partial for this offer and, if one exists, resume the transfer from
-     * that offset. Falls back to a fresh accept if no partial is found.
-     *
-     * The actual CTCP RESUME / ACCEPT exchange happens inside [doAcceptDccCommon] so the
-     * UI doesn't have to know which DCC mode (active vs passive) the offer was in.
-     */
-    fun acceptDccResume(offer: DccOffer) {
-        val partial = getPartialFor(offer)
-        if (partial == null) {
-            acceptDcc(offer)
-            return
-        }
-        doAcceptDccCommon(offer, resumeFrom = partial)
-    }
-
-    /**
-     * The partial recorded for [offer], if any, and currently usable.
-     * Public so the UI can decide whether to render a "Resume" button.
-     */
-    fun getPartialFor(offer: DccOffer): PartialTransfer? {
-        val baseName = offer.filename.substringAfterLast('/').substringAfterLast('\\')
-        return dccPartials.get(offer.from, baseName, offer.size)
-    }
-
-    /**
-     * Remove a completed or errored transfer entry from the list.
-     * Active in-progress transfers are silently ignored.
-     */
-    fun clearDccTransfer(transfer: DccTransferState) {
-        val canClear = when (transfer) {
-            is DccTransferState.Incoming -> transfer.done || transfer.error != null
-            is DccTransferState.Outgoing -> transfer.done || transfer.error != null
-        }
-        if (!canClear) return
-        // Match by logical identity key rather than full structural equality:
-        // the transfer state is updated frequently (progress ticks, endTimeMs stamp)
-        // so a full == comparison against the rendered snapshot will fail once
-        // any field has changed since the item was composed.
-        _state.update { st ->
-            st.copy(dccTransfers = st.dccTransfers.filterNot { t ->
-                when {
-                    t is DccTransferState.Incoming && transfer is DccTransferState.Incoming ->
-                        t.offer == transfer.offer
-                    t is DccTransferState.Outgoing && transfer is DccTransferState.Outgoing ->
-                        t.target == transfer.target &&
-                        t.filename == transfer.filename &&
-                        t.startTimeMs == transfer.startTimeMs
-                    else -> false
-                }
-            })
-        }
-    }
-
-    fun rejectDcc(offer: DccOffer) {
-        _state.value = _state.value.copy(dccOffers = _state.value.dccOffers.filterNot { it == offer })
-        val netId = offer.netId.takeIf { it.isNotBlank() } ?: _state.value.activeNetworkId ?: return
-        // Discard any partial we had for this offer: the user explicitly rejected, so we
-        // shouldn't keep the bytes (or the resume option) around. The store does both:
-        // unlinks the partial file and drops the registry entry.
-        val baseName = offer.filename.substringAfterLast('/').substringAfterLast('\\')
-        dccPartials.removeAndDeleteFile(offer.from, baseName, offer.size)
-        append(bufKey(netId, "*server*"), from = null, text = "*** " + appContext.getString(R.string.vm_dcc_rejected, offer.filename), doNotify = false)
-    }
-
     fun acceptDccChat(offer: DccChatOffer) {
         val st = _state.value
         val netId = offer.netId.takeIf { it.isNotBlank() } ?: st.activeNetworkId ?: return
@@ -3312,184 +3100,6 @@ fun startAddNetwork() {
     }
 
     fun startDccChat(targetNick: String) = startDccChatFlow(targetNick)
-
-    // ---- DCC send file picking -----------------------------------------------
-    /** A DCC send waiting for the user to choose its file. */
-    data class DccSendPick(
-        val id: String,
-        val netId: String,
-        val nick: String,
-        val networkName: String,
-        val mimeFilter: String,
-        /** Show a prompt naming the recipient before the picker opens. */
-        val confirm: Boolean,
-        /** Buffer for the send's status lines; null picks the query or server buffer. */
-        val statusKey: String? = null,
-        /** The picker has been opened for this request. */
-        val launched: Boolean = false,
-    )
-
-    private val _dccSendPick = MutableStateFlow<DccSendPick?>(null)
-    val dccSendPick: StateFlow<DccSendPick?> = _dccSendPick
-
-    /**
-     * Ask the UI for a file to offer [targetNick] on [netIdArg] (default: the active network).
-     * [confirm] shows a prompt naming the recipient before the picker; [statusKey] is where the
-     * send reports. Replaces any pending request.
-     */
-    fun requestDccSendPick(
-        targetNick: String,
-        netIdArg: String? = null,
-        mimeFilter: String = "*/*",
-        confirm: Boolean = false,
-        statusKey: String? = null,
-    ) {
-        val st = _state.value
-        val netId = netIdArg ?: st.activeNetworkId ?: return
-        val nick = targetNick.trim().trimStart('~', '&', '@', '%', '+')
-        if (nick.isBlank()) return
-        if (!st.settings.dccEnabled) {
-            append(bufKey(netId, "*server*"), from = "DCC", text = appContext.getString(R.string.vm_dcc_disabled), isHighlight = true)
-            return
-        }
-        _dccSendPick.value = DccSendPick(
-            id = java.util.UUID.randomUUID().toString(),
-            netId = netId,
-            nick = nick,
-            networkName = st.networks.firstOrNull { it.id == netId }?.name ?: netId,
-            mimeFilter = mimeFilter,
-            confirm = confirm,
-            statusKey = statusKey,
-        )
-    }
-
-    /** The UI has opened the picker for request [id]. */
-    fun dccSendPickLaunched(id: String) {
-        _dccSendPick.update { p -> if (p?.id == id) p.copy(launched = true) else p }
-    }
-
-    /** The file chosen for the pending DCC send, or null when the user declined. */
-    fun dccSendPickResult(uri: android.net.Uri?) {
-        val pick = _dccSendPick.value ?: return
-        _dccSendPick.value = null
-        if (uri != null) sendDccFile(uri, pick.nick, pick.netId, pick.statusKey)
-    }
-
-    /** No picker could be opened for the pending DCC send. */
-    fun dccSendPickUnavailable() {
-        val pick = _dccSendPick.value ?: return
-        _dccSendPick.value = null
-        append(bufKey(pick.netId, "*server*"), from = "DCC", text = appContext.getString(R.string.no_file_picker), isHighlight = true)
-    }
-
-    /**
-     * Cancel an in-progress outgoing DCC send.
-     * [target] and [filename] must match the values in [DccTransferState.Outgoing].
-     */
-    fun cancelOutgoingDcc(target: String, filename: String) {
-        val jobKey = "$target/$filename"
-        outgoingSendJobs[jobKey]?.cancel()
-        outgoingSendJobs.remove(jobKey)
-        // We deliberately don't remove the transfer from dccTransfers here. The send
-        // coroutine's catch block transitions it to error = "Cancelled" so the UI shows
-        // the cancelled state; the user then taps the X (clearDccTransfer) to dismiss
-        // it. Two buttons, two actions.
-    }
-
-    /**
-     * Cancel an incoming DCC receive. Cancelling the job closes the socket, which ends the receive
-     * loop; the transfer then shows "Cancelled" until dismissed.
-     */
-    fun cancelIncomingDcc(offer: DccOffer) {
-        incomingReceiveJobs[offer]?.cancel()
-    }
-    internal data class PreparedDccSend(val file: File, val offerName: String)
-
-    /**
-     * Upload a picked document to the network's soju.im/FILEHOST endpoint; [onDone] gets (url,
-     * error) on the main thread, exactly one non-null. Credentials are the connection's SASL PLAIN
-     * identity and password, or the server password for PASS-authenticated bouncers; SCRAM and
-     * EXTERNAL passwords are never sent. Refused on proxied networks, since the upload would bypass
-     * the proxy.
-     */
-    fun uploadFileToFilehost(netId: String, uri: android.net.Uri, onDone: (url: String?, error: String?) -> Unit) {
-        val cfg = runtimes[netId]?.client?.config
-        val uploadUrl = _state.value.connections[netId]?.filehostUrl
-        if (cfg == null || uploadUrl.isNullOrBlank()) {
-            onDone(null, appContext.getString(R.string.vm_upload_unsupported))
-            return
-        }
-        if (!cfg.capPrefs.filehostUploads) {
-            onDone(null, appContext.getString(R.string.vm_upload_disabled))
-            return
-        }
-        if (cfg.proxy.enabled) {
-            onDone(null, appContext.getString(R.string.vm_upload_no_proxy))
-            return
-        }
-        val saslCfg = cfg.sasl as? SaslConfig.Enabled
-        val baseUser = saslCfg?.authcid?.takeIf { it.isNotBlank() } ?: cfg.nick
-        val username = cfg.effectiveAuthIdentity(baseUser)
-        val secret = when {
-            saslCfg == null -> cfg.serverPassword
-            saslCfg.mechanism == SaslMechanism.PLAIN -> saslCfg.password ?: cfg.serverPassword
-            else -> cfg.serverPassword
-        }
-        val uploadHost = runCatching { java.net.URI(uploadUrl.trim()).host }.getOrNull().orEmpty()
-        val sameSite = FilehostUpload.sameSite(uploadHost, cfg.host)
-        val password = secret?.takeIf { sameSite }
-        val withheldReason = when {
-            secret != null && !sameSite -> "the upload host $uploadHost is not part of ${cfg.host}"
-            secret == null && saslCfg != null && saslCfg.mechanism != SaslMechanism.PLAIN ->
-                "logins using ${saslCfg.mechanism.name.replace('_', '-')} do not share their password"
-            else -> null
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            val result = try {
-                val name = queryDisplayName(uri)
-                    ?: runCatching { java.net.URLDecoder.decode(uri.lastPathSegment ?: "", "UTF-8") }.getOrNull()
-                val size = try {
-                    appContext.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
-                        if (c.moveToFirst()) {
-                            val idx = c.getColumnIndex(OpenableColumns.SIZE)
-                            if (idx >= 0 && !c.isNull(idx)) c.getLong(idx) else -1L
-                        } else -1L
-                    } ?: -1L
-                } catch (_: Throwable) { -1L }
-                val mime = runCatching { appContext.contentResolver.getType(uri) }.getOrNull()
-
-                fun send(declaredLength: Long): FilehostUpload.Result {
-                    val stream = appContext.contentResolver.openInputStream(uri)
-                        ?: return FilehostUpload.Result(null, appContext.getString(R.string.vm_file_open_failed))
-                    return stream.use { inp ->
-                        FilehostUpload.upload(
-                            uploadUrl = uploadUrl,
-                            username = username,
-                            password = password,
-                            fileName = name,
-                            mimeType = mime,
-                            contentLength = declaredLength,
-                            input = inp,
-                            connectionUsesTls = cfg.useTls,
-                            withheldReason = withheldReason,
-                        )
-                    }
-                }
-
-                val first = send(size)
-                // A provider's reported SIZE can disagree with what the stream actually
-                // yields: cloud-backed documents report a stale or approximate size, and a
-                // file edited between the query and the read is a different length. The
-                // fixed-length request then refuses the body mid-write. Resend without a
-                // declared length rather than making the user pick the file again.
-                if (first.ok || !FilehostUpload.isLengthMismatch(first.error)) first
-                else send(-1L)
-            } catch (t: Throwable) {
-                FilehostUpload.Result(null, appContext.getString(R.string.vm_upload_failed, t.message ?: t.javaClass.simpleName))
-            }
-            withContext(Dispatchers.Main) { onDone(result.url, result.error) }
-        }
-    }
 
     /**
      * Ask the server to delete one of our own messages (draft/message-redaction).

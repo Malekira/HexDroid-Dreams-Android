@@ -128,11 +128,6 @@ sealed class IrcEvent {
          * not advertised.
          */
         val elist: String? = null,
-        /**
-         * soju.im/FILEHOST (or draft/FILEHOST) upload endpoint URL, null when the
-         * server does not offer HTTP file uploads.
-         */
-        val filehostUrl: String? = null,
         /** ICON / draft/ICON ISUPPORT token: server-supplied icon URL. */
         val networkIconUrl: String? = null,
         /** EXTBAN prefix (e.g. "~"), or empty string when the ircd uses no prefix; null if unsupported. */
@@ -321,23 +316,9 @@ data class Notice(
         val encryption: com.boxlabs.hexdroid.crypto.E2eScheme? = null,
     ) : IrcEvent()
 
-    data class DccOfferEvent(val offer: DccOffer) : IrcEvent()
 
     // CTCP DCC CHAT offer
     data class DccChatOfferEvent(val offer: DccChatOffer) : IrcEvent()
-
-    /**
-     * Incoming CTCP `DCC RESUME` from [from]. Carries the request we'd need to honour
-     * if [resume] matches one of our outgoing SEND offers (we're the sender).
-     */
-    data class DccResumeRequest(val from: String, val resume: DccResume) : IrcEvent()
-
-    /**
-     * Incoming CTCP `DCC ACCEPT` from [from]. The sender confirmed our RESUME request:
-     * the original SEND can now be answered (active: we connect; passive: we listen)
-     * with the agreed start offset.
-     */
-    data class DccAcceptResponse(val from: String, val accept: DccAccept) : IrcEvent()
 
     // Numeric 442 (ERR_NOTONCHANNEL)
     data class NotOnChannel(val channel: String, val message: String, val code: String = "442") : IrcEvent()

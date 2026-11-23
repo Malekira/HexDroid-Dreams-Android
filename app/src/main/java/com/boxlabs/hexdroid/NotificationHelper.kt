@@ -105,15 +105,11 @@ class NotificationHelper(private val ctx: Context) {
 
         const val ACTION_QUIT             = "action_quit"
         const val ACTION_EXIT             = "action_exit"
-        const val ACTION_OPEN_TRANSFERS   = "action_open_transfers"
         const val ACTION_OPEN_DCC_CHAT    = "action_open_dcc_chat"
         const val ACTION_INLINE_REPLY     = "action_inline_reply"
         /** Intent action of a conversation shortcut. */
         const val ACTION_OPEN_CONVERSATION = "com.boxlabs.hexdroid.OPEN_CONVERSATION"
         /** Accept the DCC file offer identified by [EXTRA_DCC_FROM] + [EXTRA_DCC_FILENAME]. */
-        const val ACTION_ACCEPT_DCC       = "action_accept_dcc"
-        const val EXTRA_DCC_FROM          = "extra_dcc_from"
-        const val EXTRA_DCC_FILENAME      = "extra_dcc_filename"
 
         /**
          * Carried by the quit, exit and accept-DCC intents. MainActivity is exported, so an
@@ -163,7 +159,6 @@ class NotificationHelper(private val ctx: Context) {
          * PendingIntent instead of creating one.
          */
         const val CONNECTION_PI_REQUEST_CODE = 100
-        const val CONNECTION_TRANSFERS_PI_REQUEST_CODE = 101
         const val CONNECTION_QUIT_PI_REQUEST_CODE = 102
         const val CONNECTION_EXIT_PI_REQUEST_CODE = 103
 
@@ -288,18 +283,6 @@ class NotificationHelper(private val ctx: Context) {
             putExtra(EXTRA_BUFFER, buffer)
             if (msgId >= 0L) putExtra(EXTRA_MSG_ID, msgId)
             if (msgAnchor != null) putExtra(EXTRA_MSG_ANCHOR, msgAnchor)
-        }
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-            (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
-        val rc = if (stableRequestCode >= 0) stableRequestCode else nextPiRequestCode()
-        return safePi { PendingIntent.getActivity(ctx, rc, i, flags) }
-    }
-
-    private fun openTransfersPendingIntent(networkId: String, stableRequestCode: Int = -1): PendingIntent? {
-        val i = Intent(ctx, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(EXTRA_NETWORK_ID, networkId)
-            putExtra(EXTRA_ACTION, ACTION_OPEN_TRANSFERS)
         }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or
             (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
@@ -755,49 +738,13 @@ class NotificationHelper(private val ctx: Context) {
         runCatching { ShortcutManagerCompat.removeLongLivedShortcuts(ctx, listOf(id)) }
     }
 
-    fun notifyFileDone(networkId: String, filename: String, where: String) {
-        ensureChannels()
-        val builder = NotificationCompat.Builder(ctx, CH_DCC)
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle(ctx.getString(R.string.notif_dcc_file_done_title))
-            .setContentText(ctx.getString(R.string.notif_dcc_file_done_text, filename, where))
-            .setAutoCancel(true)
-        openTransfersPendingIntent(networkId)?.let { builder.setContentIntent(it) }
-        NotificationManagerCompat.from(ctx).notify(nextNotifId(), builder.build())
-    }
-
-    fun notifyDccIncomingFile(networkId: String, from: String, filename: String) {
-        ensureChannels()
-        val notifId = nextNotifId()
-        val acceptIntent = Intent(ctx, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(EXTRA_NETWORK_ID, networkId)
-            putExtra(EXTRA_ACTION, ACTION_ACCEPT_DCC)
-            putExtra(EXTRA_ACTION_TOKEN, actionToken)
-            putExtra(EXTRA_DCC_FROM, from)
-            putExtra(EXTRA_DCC_FILENAME, filename)
-            putExtra(EXTRA_NOTIF_ID, notifId)
-        }
-        val piFlags = PendingIntent.FLAG_UPDATE_CURRENT or
-            (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
-        val acceptPi = safePi { PendingIntent.getActivity(ctx, nextPiRequestCode(), acceptIntent, piFlags) }
-        val builder = NotificationCompat.Builder(ctx, CH_DCC)
-            .setSmallIcon(android.R.drawable.stat_sys_download)
-            .setContentTitle(ctx.getString(R.string.notif_dcc_incoming_file_title, from))
-            .setContentText(filename)
-            .setAutoCancel(true)
-        openTransfersPendingIntent(networkId)?.let { builder.setContentIntent(it) }
-        if (acceptPi != null) builder.addAction(0, ctx.getString(R.string.transfers_accept), acceptPi)
-        NotificationManagerCompat.from(ctx).notify(notifId, builder.build())
-    }
-
     /** Incoming DCC chat offer; tapping opens [dccBuffer] (a buffer name such as DCCCHAT:nick). */
     fun notifyDccIncomingChat(networkId: String, from: String, dccBuffer: String? = null) {
         ensureChannels()
         val contentIntent = if (dccBuffer != null)
             openBufferPendingIntent(networkId, dccBuffer)
         else
-            openTransfersPendingIntent(networkId)
+            openBufferPendingIntent(networkId, "*server*")
 
         val builder = NotificationCompat.Builder(ctx, CH_DCC)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
@@ -805,7 +752,6 @@ class NotificationHelper(private val ctx: Context) {
             .setContentText(ctx.getString(R.string.notif_dcc_incoming_chat_text))
             .setAutoCancel(true)
         contentIntent?.let { builder.setContentIntent(it) }
-        openTransfersPendingIntent(networkId)?.let { builder.addAction(0, ctx.getString(R.string.notif_open_transfers), it) }
         NotificationManagerCompat.from(ctx).notify(nextNotifId(), builder.build())
     }
 }

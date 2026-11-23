@@ -268,8 +268,6 @@ class HexScriptBackend : ScriptBackend {
             "toast", "decorate", "action", "sidebar" -> cb.uiIntent(verb, expand(raw, env).trim().split(' '))
             "http.get" -> doHttp(raw, env, post = false)
             "http.post" -> doHttp(raw, env, post = true)
-            "media.pick" -> doMediaPick(raw, env)
-            "media.upload" -> doMediaUpload(raw, env)
             else -> when {
                 verb.startsWith("age.") || verb.startsWith("media.") || verb.startsWith("private.") ->
                     cb.capability(verb, expand(raw, env).trim().split(' ').filter { it.isNotEmpty() })

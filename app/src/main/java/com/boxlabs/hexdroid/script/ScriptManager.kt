@@ -233,6 +233,7 @@ class ScriptManager(
 
     /** One-time withdrawal. User scripts with other names are never touched. */
     private fun retireObsoleteBundled() {
+        retireFileUploadScript()
         val name = "solicitudes-pv.hex"
         val marker = "retired_bundled_v1:$name"
         if (prefs.getBoolean(marker, false)) return
@@ -248,6 +249,19 @@ class ScriptManager(
             if (runCatching { store.archive(name) }.isFailure) return
         }
         prefs.edit().putBoolean(marker, true).apply()
+    }
+
+    /** Withdraw the old uploader while preserving its source outside executable scripts. */
+    private fun retireFileUploadScript() {
+        val name = "imgpaste.hex"
+        val source = store.read(name) ?: return
+        val owned = prefs.contains(shippedKey(name)) ||
+            Regex("(?m)^\\s*media\\.upload\\b").containsMatchIn(source)
+        if (!owned) return
+        // Check on every reload so restoring an older backup cannot re-enable the uploader.
+        prefs.edit().putStringSet(KEY_DISABLED, disabledSet().apply { add(name) })
+            .putStringSet(KEY_SUPPRESSED, suppressedSet().apply { add(name) }).commit()
+        runCatching { store.archive(name) }
     }
 
     /**

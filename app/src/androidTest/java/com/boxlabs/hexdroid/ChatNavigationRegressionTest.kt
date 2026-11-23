@@ -36,7 +36,7 @@ class ChatNavigationRegressionTest {
                     onToggleChannelsOnly = {}, onWhois = {}, onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> },
                     onIgnoreNotifications = { _, _ -> }, onUnignoreNotifications = { _, _ -> },
                     onRefreshNicklist = {}, onRefreshChannelModes = {}, onOpenList = {}, onOpenSettings = {},
-                    onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {},
+                    onOpenNetworks = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {},
                     draftFor = { drafts[it] ?: Draft.EMPTY },
                     onDraftChanged = { key, text, cursor -> drafts[key] = Draft(text, cursor) })
             }

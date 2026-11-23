@@ -39,7 +39,7 @@ class CompactTopNavigationTest {
                     onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> },
                     onIgnoreNotifications = { _, _ -> }, onUnignoreNotifications = { _, _ -> },
                     onRefreshNicklist = {}, onRefreshChannelModes = {}, onOpenList = {}, onOpenSettings = {},
-                    onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {})
+                    onOpenNetworks = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {})
             }
         }
     }

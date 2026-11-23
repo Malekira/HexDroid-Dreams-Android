@@ -264,7 +264,6 @@ fun NetworkEditScreen(
     var capAccountRegistration by remember(n0.id) { mutableStateOf(n0.caps.accountRegistration) }
     var capExtendedIsupport by remember(n0.id) { mutableStateOf(n0.caps.extendedIsupport) }
     var capMetadata2 by remember(n0.id) { mutableStateOf(n0.caps.metadata2) }
-    var capFilehostUploads by remember(n0.id) { mutableStateOf(n0.caps.filehostUploads) }
     // Bouncer-specific caps
     var capSojuRead by remember(n0.id) { mutableStateOf(n0.caps.sojuRead) }
     var capSojuNoImplicitNames by remember(n0.id) { mutableStateOf(n0.caps.sojuNoImplicitNames) }
@@ -389,7 +388,6 @@ fun NetworkEditScreen(
                             accountRegistration = capAccountRegistration,
                             extendedIsupport = capExtendedIsupport,
                             metadata2 = capMetadata2,
-                            filehostUploads = capFilehostUploads,
                         )
 
                         clientCertUiError = null
@@ -1612,7 +1610,6 @@ fun NetworkEditScreen(
                         CapSwitch("draft/extended-isupport", capExtendedIsupport) { capExtendedIsupport = it }
                         CapSwitch("draft/metadata-2", capMetadata2) { capMetadata2 = it }
                         CapSwitch("draft/no-implicit-names", capNoImplicitNames, alias = "no-implicit-names") { capNoImplicitNames = it }
-                        CapSwitch("soju.im/FILEHOST uploads", capFilehostUploads) { capFilehostUploads = it }
 
                         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

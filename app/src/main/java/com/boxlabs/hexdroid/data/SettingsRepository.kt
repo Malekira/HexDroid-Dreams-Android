@@ -424,13 +424,9 @@ class SettingsRepository(private val ctx: Context) {
                 ircHistoryTriggersNotifications = o.optBoolean("ircHistoryTriggersNotifications", false),
 
                 dccEnabled = o.optBoolean("dccEnabled", UiSettings().dccEnabled),
-                dccSendMode = runCatching {
-                    com.boxlabs.hexdroid.DccSendMode.valueOf(o.optString("dccSendMode", com.boxlabs.hexdroid.DccSendMode.AUTO.name))
-                }.getOrDefault(com.boxlabs.hexdroid.DccSendMode.AUTO),
                 dccSecure = o.optBoolean("dccSecure", false),
                 dccIncomingPortMin = o.optInt("dccIncomingPortMin", 5000),
                 dccIncomingPortMax = o.optInt("dccIncomingPortMax", 5010),
-                dccDownloadFolderUri = o.optString("dccDownloadFolderUri", "").takeIf { it.isNotBlank() },
 
                 // A legacy ctcpVersionReply key is ignored; the VERSION reply is derived from
                 // BuildConfig.
@@ -561,11 +557,9 @@ class SettingsRepository(private val ctx: Context) {
         o.put("ircHistoryTriggersNotifications", s.ircHistoryTriggersNotifications)
 
         o.put("dccEnabled", s.dccEnabled)
-        o.put("dccSendMode", s.dccSendMode.name)
         o.put("dccSecure", s.dccSecure)
         o.put("dccIncomingPortMin", s.dccIncomingPortMin)
         o.put("dccIncomingPortMax", s.dccIncomingPortMax)
-        o.put("dccDownloadFolderUri", s.dccDownloadFolderUri ?: "")
 
         // ctcpVersionReply intentionally not saved - always derived from BuildConfig at runtime.
         o.put("quitMessage", s.quitMessage)
@@ -675,7 +669,6 @@ class SettingsRepository(private val ctx: Context) {
                             accountRegistration = o.optBoolean("cap_accountRegistration", true),
                             extendedIsupport = o.optBoolean("cap_extendedIsupport", true),
                             metadata2 = o.optBoolean("cap_metadata2", true),
-                            filehostUploads = o.optBoolean("cap_filehostUploads", true),
                         ),
     
                         autoJoin = o.optJSONArray("autoJoin")?.let { aj ->
@@ -694,12 +687,6 @@ class SettingsRepository(private val ctx: Context) {
                             }.distinctBy { it.lowercase() }
                         } ?: emptyList(),
                         ignoreLevels = IgnoreRules.decodeLevels(o.optJSONObject("ignoreLevels")),
-    
-                        dccAutoAcceptNicks = o.optJSONArray("dccAutoAccept")?.let { aa ->
-                            (0 until aa.length()).mapNotNull { j ->
-                                aa.optString(j)?.trim()?.takeIf { it.isNotBlank() }
-                            }.distinctBy { it.lowercase() }
-                        } ?: emptyList(),
     
                         notifyOnErrors = o.optBoolean("notifyOnErrors", false),
                         highlightIgnoreMasks = o.optJSONArray("highlightIgnoreMasks")?.let { hm ->
@@ -835,7 +822,6 @@ class SettingsRepository(private val ctx: Context) {
             o.put("cap_accountRegistration", n.caps.accountRegistration)
             o.put("cap_extendedIsupport", n.caps.extendedIsupport)
             o.put("cap_metadata2", n.caps.metadata2)
-            o.put("cap_filehostUploads", n.caps.filehostUploads)
 
             o.put("autoJoin", JSONArray(n.autoJoin.map { it.toLine() }))
             o.put("autoConnect", n.autoConnect)
@@ -844,7 +830,6 @@ class SettingsRepository(private val ctx: Context) {
             // Types only for entries still listed.
             val levels = n.ignoreLevels.filterKeys { k -> n.ignoredNicks.any { IgnoreRules.key(it) == k } }
             if (levels.isNotEmpty()) o.put("ignoreLevels", IgnoreRules.encodeLevels(levels))
-            o.put("dccAutoAccept", JSONArray(n.dccAutoAcceptNicks))
             o.put("notifyOnErrors", n.notifyOnErrors)
             if (n.highlightIgnoreMasks.isNotEmpty()) {
                 o.put("highlightIgnoreMasks", JSONArray(n.highlightIgnoreMasks))
@@ -1503,12 +1488,6 @@ data class NetworkProfile(
 
     /** What each ignore entry drops, keyed by [IgnoreRules.key]. Entries without types use [IgnoreRules.DEFAULT_TYPES]. */
     val ignoreLevels: Map<String, Set<IgnoreType>> = emptyMap(),
-
-    /**
-     * Nicks whose DCC file offers are accepted without prompting on this network
-     * (case-insensitive). Trust follows whoever holds the nick; see IrcViewModel.isDccAutoAccepted.
-     */
-    val dccAutoAcceptNicks: List<String> = emptyList(),
 
     /**
      * If true, genuine (non-transient) server/connection errors on this network are

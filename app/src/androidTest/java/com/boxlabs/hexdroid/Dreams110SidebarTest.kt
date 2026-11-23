@@ -47,7 +47,7 @@ class Dreams110SidebarTest {
                 onDisconnect = {}, onReconnect = {}, onExit = {}, onToggleBufferList = { state = state.copy(showBufferList = !state.showBufferList) },
                 onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {}, onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> },
                 onIgnoreNotifications = { _, _ -> }, onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
-                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {},
+                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {},
                 onToggleNetworkExpanded = { id -> state = state.copy(collapsedNetworkIds = if (id in state.collapsedNetworkIds) state.collapsedNetworkIds - id else state.collapsedNetworkIds + id) })
         } }
     }

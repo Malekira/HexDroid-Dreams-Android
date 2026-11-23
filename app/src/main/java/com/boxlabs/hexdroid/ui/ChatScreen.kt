@@ -297,15 +297,12 @@ fun ChatScreen(
     onWhois: (String) -> Unit,
     onIgnoreNick: (String, String) -> Unit,
     onUnignoreNick: (String, String) -> Unit,
-    onSetDccAutoAccept: (String, String, Boolean) -> Unit = { _, _, _ -> },
     /** Mute/unmute highlight & PM notifications from a nick (adds/removes a bare-nick entry in highlightIgnoreMasks). */
     onIgnoreNotifications: (String, String) -> Unit,
     onUnignoreNotifications: (String, String) -> Unit,
     onRefreshNicklist: () -> Unit,
     /** Silent MODE refresh for the ops drawer; does not echo numerics to any buffer. */
     onRefreshChannelModes: () -> Unit,
-    /** Called when user taps "DCC Send File" in nick actions. Opens file picker then calls /dcc send. */
-    onDccSendFile: ((targetNick: String) -> Unit)? = null,
     /** Called when user taps "DCC Chat" in nick actions. */
     onDccChat: ((targetNick: String) -> Unit)? = null,
     onOpenList: () -> Unit,
@@ -315,7 +312,6 @@ fun ChatScreen(
     scriptLaunchers: List<Pair<String, String>> = emptyList(),
     onRunLauncher: (command: String) -> Unit = {},
     onOpenNetworks: () -> Unit,
-    onOpenTransfers: () -> Unit,
     onSysInfo: () -> Unit,
     onAbout: () -> Unit,
     onUpdateSettings: (UiSettings.() -> UiSettings) -> Unit,
@@ -870,8 +866,6 @@ fun ChatScreen(
     var showNickSheet by remember { mutableStateOf(false) }
 
     var showNickActions by remember { mutableStateOf(false) }
-    /** Nick awaiting confirmation before DCC auto-accept is switched on; null when idle. */
-    var confirmAutoAcceptFor by remember { mutableStateOf<String?>(null) }
     var selectedNick by remember { mutableStateOf("") }
     LaunchedEffect(showNickActions, selectedNick, selNetId) {
         if (showNickActions && automaticChatZona && selectedNick.isNotBlank()) viewModel?.requestAvatarMetadata(selNetId, selectedNick)
@@ -2340,9 +2334,6 @@ fun ChatScreen(
                             )
 
                             val entries = buildList {
-                                if (isChannel) add(MenuEntry(stringResource(R.string.topic_edit_title), enabled = canTopic) {
-                                    overflowExpanded = false; showTopicQuickEdit = true
-                                })
                                 add(MenuEntry(stringResource(R.string.menu_channel_list)) { overflowExpanded = false; onOpenList() })
                                 if (onOpenLogViewer != null) add(MenuEntry("Visor de logs") { overflowExpanded = false; onOpenLogViewer() })
                                 if (viewModel != null && selNetId.isNotBlank() &&
@@ -3342,64 +3333,6 @@ fun ChatScreen(
                                 contentDescription = stringResource(R.string.chat_cd_encryption_configured, keyInfo.scheme.displayName, keyInfo.fingerprint),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp),
-                            )
-                        }
-                    }
-                }
-                // Filehost attach button: shown when the server advertises a
-                // soju.im/FILEHOST upload endpoint (soju, Ergo, standalone filehost
-                // servers). Picks a document, uploads it, and appends the resulting
-                // URL to the input so the user can add text before sending.
-                val filehostUrl = state.connections[selNetId]?.filehostUrl
-                if (viewModel != null && filehostUrl != null) {
-                    var uploading by remember { mutableStateOf(false) }
-                    val ctxUpload = LocalContext.current
-                    val filePicker = rememberLauncherForActivityResult(
-                        ActivityResultContracts.OpenDocument()
-                    ) { uri ->
-                        if (uri != null && !uploading) {
-                            uploading = true
-                            val startKey = selected
-                            viewModel.uploadFileToFilehost(selNetId, uri) { url, err ->
-                                uploading = false
-                                if (url != null) {
-                                    if (liveSelected == startKey) {
-                                        val target = liveInputState
-                                        val cur = target.value
-                                        val sep = if (cur.text.isEmpty() || cur.text.endsWith(" ")) "" else " "
-                                        val newText = cur.text + sep + url
-                                        target.value = cur.copy(
-                                            text = newText,
-                                            selection = TextRange(newText.length)
-                                        )
-                                    } else if (startKey.isNotBlank()) {
-                                        // The user moved on; the link goes into that buffer's draft.
-                                        val draft = draftFor(startKey)
-                                        val sep = if (draft.text.isEmpty() || draft.text.endsWith(" ")) "" else " "
-                                        val newText = draft.text + sep + url
-                                        onDraftChanged(startKey, newText, newText.length)
-                                    }
-                                } else {
-                                    Toast.makeText(ctxUpload, err ?: "Upload failed", Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        }
-                    }
-                    if (uploading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        IconButton(
-                            onClick = { filePicker.launchPicker(ctxUpload, arrayOf("*/*")) },
-                            modifier = Modifier.size(28.dp).focusHighlight(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AttachFile,
-                                contentDescription = stringResource(R.string.chat_cd_upload_file),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
@@ -5191,27 +5124,6 @@ fun ChatScreen(
         }
     }
 
-    confirmAutoAcceptFor?.let { pendingNick ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmAutoAcceptFor = null },
-            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-            title = { Text(stringResource(R.string.dcc_auto_confirm_title, pendingNick)) },
-            text = { Text(stringResource(R.string.dcc_auto_confirm_body, pendingNick)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    onSetDccAutoAccept(selNetId, pendingNick, true)
-                    confirmAutoAcceptFor = null
-                    showNickActions = false
-                }, modifier = Modifier.tvInitialFocus().focusHighlight(RoundedCornerShape(50))) { Text(stringResource(R.string.dcc_auto_confirm_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmAutoAcceptFor = null }, modifier = Modifier.focusHighlight(RoundedCornerShape(50))) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
     if (showNickActions && selectedNick.isNotBlank()) {
         val dccEnabled = state.settings.dccEnabled
         val dccSecure  = state.settings.dccSecure
@@ -5386,50 +5298,6 @@ fun ChatScreen(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-
-                ActionRow(
-                    icon = Icons.AutoMirrored.Filled.SendToMobile,
-                    label = stringResource(R.string.nick_send_file),
-                    subtitle = when {
-                        !dccEnabled -> stringResource(R.string.nick_dcc_disabled)
-                        dccSecure   -> stringResource(R.string.nick_send_file_desc) + " (SDCC/TLS)"
-                        else        -> stringResource(R.string.nick_send_file_desc)
-                    },
-                    enabled = dccEnabled && onDccSendFile != null,
-                    tint = if (dccEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        showNickActions = false
-                        onDccSendFile?.invoke(selectedNick)
-                    }
-                )
-                val autoAcceptList = state.networks.firstOrNull { it.id == selNetId }
-                    ?.dccAutoAcceptNicks.orEmpty()
-                val isAutoAccept = autoAcceptList.any { it.equals(selectedNick, ignoreCase = true) }
-
-                ActionRow(
-                    icon = if (isAutoAccept) Icons.Default.DownloadDone else Icons.Default.Download,
-                    label = if (isAutoAccept) stringResource(R.string.nick_dcc_auto_off)
-                            else stringResource(R.string.nick_dcc_auto_on),
-                    subtitle = when {
-                        !dccEnabled  -> stringResource(R.string.nick_dcc_disabled)
-                        isAutoAccept -> stringResource(R.string.nick_dcc_auto_off_desc)
-                        else         -> stringResource(R.string.nick_dcc_auto_on_desc)
-                    },
-                    enabled = dccEnabled,
-                    tint = if (isAutoAccept) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        if (isAutoAccept) {
-                            // Turning trust off never needs a confirmation.
-                            onSetDccAutoAccept(selNetId, selectedNick, false)
-                            showNickActions = false
-                        } else {
-                            // Turning it on does: files will land on the device with nobody
-                            // watching, so the risk is spelled out before it takes effect.
-                            confirmAutoAcceptFor = selectedNick
-                        }
-                    }
                 )
 
                 ActionRow(

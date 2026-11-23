@@ -256,7 +256,7 @@
     <string name="tour_send_title">Enviar mensajes</string>
     <string name="tour_send_body">Escribe aquí para chatear. Los comandos slash también funcionan: /join #canal, /msg nick texto, /part, /whois nick, /me texto de acción, y más.</string>
     <string name="tour_more_title">Más acciones</string>
-    <string name="tour_more_body">Este menú accede a la lista de canales, transferencias de archivos, lista de ignorados, ajustes de red y más. También muestra la gestión de modo de canal y tema cuando eres op.</string>
+    <string name="tour_more_body">Aquí puedes abrir la lista de canales, los logs, ajustes, scripts y redes.</string>
     <string name="tour_settings_title">Apariencia y ajustes</string>
     <string name="tour_settings_body">Elige un tema, ajusta el tamaño de fuente, los sonidos de notificación, opciones de privacidad y mucho más. Los cambios se aplican al instante.</string>
     <string name="tour_dcc_title">Transferencias de archivos (DCC)</string>
@@ -354,7 +354,7 @@
     <string name="notif_channel_highlight_silent">Menciones IRC (silencioso)</string>
     <string name="notif_channel_highlight_sound">Menciones IRC</string>
     <string name="notif_channel_pm">Mensajes privados IRC</string>
-    <string name="notif_channel_dcc">Solicitudes DCC</string>
+    <string name="notif_channel_dcc">Chat directo DCC</string>
 
     <!-- DCC notification strings -->
     <string name="notif_dcc_incoming_chat_title">Chat DCC entrante de %1$s</string>
@@ -752,7 +752,7 @@
     <string name="nick_dcc_section">Conexión directa (DCC)</string>
     <string name="nick_send_file">Enviar archivo</string>
     <string name="nick_send_file_desc">Enviar un archivo via DCC SEND</string>
-    <string name="nick_dcc_disabled">DCC está desactivado en los ajustes</string>
+    <string name="nick_dcc_disabled">Chat directo desactivado</string>
     <string name="nick_dcc_chat">DCC Chat</string>
     <string name="nick_dcc_chat_desc">Abrir una sesión de chat directo entre pares</string>
     <string name="nick_ignore">Ignorar</string>
@@ -810,7 +810,7 @@
 
     <!-- SDCC settings -->
     <string name="setting_dcc_secure">Usar SDCC (cifrado TLS)</string>
-    <string name="setting_dcc_secure_desc">Las transferencias de archivos y los chats salientes usan DCC SSEND y SCHAT (cifrado TLS). El cliente remoto también debe admitir SDCC.</string>
+    <string name="setting_dcc_secure_desc">Usar TLS para cifrar las conversaciones de chat directo.</string>
 
     <!-- Channel list user count filter -->
     <string name="list_users_filter_label">Usuarios:</string>
@@ -1093,7 +1093,7 @@
     <string name="vm_quietlist_usage">Uso: /quietlist #canal</string>
     <string name="vm_exceptlist_usage">Uso: /exceptlist #canal</string>
     <string name="vm_invexlist_usage">Uso: /invexlist #canal</string>
-    <string name="vm_dcc_chat_usage">Uso: /dcc chat|schat &lt;nick&gt;, /dcc send &lt;nick&gt; [mime], /dcc accept|reject [nick], /dcc close [nick]</string>
+    <string name="vm_dcc_chat_usage">/dcc chat|schat|accept|reject|close [nick]</string>
     <string name="vm_age_send_failed">Falló el envío +AGE; el mensaje no se envió.</string>
     <string name="vm_ignoring">Ignorando a %1$s</string>
     <string name="vm_unignored">%1$s ya no está ignorado</string>
@@ -1212,7 +1212,7 @@
     <string name="vm_status_unreachable_halted">Servidor inaccesible: reconexión detenida</string>
     <string name="vm_status_rejected_halted">El servidor rechazó la conexión: reconexión detenida</string>
     <string name="vm_server_error">Error del servidor: %1$s</string>
-    <string name="vm_dcc_disabled">DCC está desactivado en los ajustes.</string>
+    <string name="vm_dcc_disabled">El chat directo DCC está desactivado.</string>
     <string name="vm_dcc_chat_proxy">No se puede ofrecer DCC CHAT con un proxy activo (requiere escuchar fuera del túnel). Desactiva el proxy de esta red para usar DCC CHAT.</string>
 
     <!-- IrcViewModel auth hints / reactions -->
@@ -1653,7 +1653,7 @@
     <string name="cmd_admin">Muestra la información del administrador del servidor</string>
     <string name="cmd_info">Muestra información del software del servidor</string>
     <string name="cmd_dns">Resuelve un nombre de host o una dirección IP</string>
-    <string name="cmd_dcc">Abre un chat DCC directo con un usuario</string>
+    <string name="cmd_dcc">Chat directo DCC: chat, schat, accept, reject o close.</string>
     <string name="cmd_oper">Te autentica como operador de IRC</string>
     <string name="cmd_sajoin">Fuerza la entrada de un usuario (solo IRCop)</string>
     <string name="cmd_sapart">Fuerza la salida de un usuario (solo IRCop)</string>

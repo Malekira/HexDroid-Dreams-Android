@@ -98,7 +98,7 @@ class Dreams111AvatarUiTest {
             ChatScreen(state,onSelectBuffer={},onSend={},onDisconnect={},onReconnect={},onExit={},
                 onToggleBufferList={},onToggleNickList={},onToggleChannelsOnly={},onWhois={},onIgnoreNick={_,_->},onUnignoreNick={_,_->},
                 onIgnoreNotifications={_,_->},onUnignoreNotifications={_,_->},onRefreshNicklist={},onRefreshChannelModes={},
-                onOpenList={},onOpenSettings={},onOpenNetworks={},onOpenTransfers={},onSysInfo={},onAbout={},onUpdateSettings={})
+                onOpenList={},onOpenSettings={},onOpenNetworks={},onSysInfo={},onAbout={},onUpdateSettings={})
         } } }
         awaitTag("avatar-$nick").assertIsDisplayed()
         compose.waitUntil(5_000){calls.contains(metadata)}

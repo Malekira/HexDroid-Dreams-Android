@@ -358,7 +358,7 @@ enum class SettingsCategory(
     LOGGING(R.string.section_logging, R.string.settings_cat_logging_desc, Icons.AutoMirrored.Filled.Article),
     PRIVACY(R.string.section_privacy, R.string.settings_cat_privacy_desc, Icons.Filled.Lock),
     HISTORY(R.string.section_ircv3_history, R.string.settings_cat_history_desc, Icons.Filled.History),
-    TRANSFERS(R.string.section_file_transfers, R.string.settings_cat_transfers_desc, Icons.Filled.SwapVert),
+    DIRECT_CHAT(R.string.nick_dcc_chat, R.string.nick_dcc_chat_desc, Icons.AutoMirrored.Filled.Chat),
     BACKUP(R.string.section_backup_restore, R.string.settings_cat_backup_desc, Icons.Filled.Backup),
 }
 
@@ -572,20 +572,10 @@ fun SettingsScreen(
                 onLogFolderGranted(uri.toString())
                 val old = s.logFolderUri
                 onUpdate { copy(logFolderUri = uri.toString()) }
-                if (old != uri.toString()) releaseFolder(old, s.dccDownloadFolderUri)
+                if (old != uri.toString()) releaseFolder(old, null)
             }.onFailure {
                 android.widget.Toast.makeText(ctx, "No se pudo conservar el permiso de la carpeta. Elegí otra carpeta.", android.widget.Toast.LENGTH_LONG).show()
             }
-        }
-    }
-
-    val dccFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
-        if (uri != null) {
-            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            runCatching { ctx.contentResolver.takePersistableUriPermission(uri, flags) }
-            val old = s.dccDownloadFolderUri
-            onUpdate { copy(dccDownloadFolderUri = uri.toString()) }
-            if (old != uri.toString()) releaseFolder(old, s.logFolderUri)
         }
     }
 
@@ -1069,7 +1059,7 @@ fun SettingsScreen(
             if (onePage || current == SettingsCategory.CHAT) {
             if (onePage) item(key = "hdr_CHAT") { OnePageHeader(SettingsCategory.CHAT) }
             item { DreamsChatSettings(state, onUpdate, onNativePrivateMode, onProfileAvatar) }
-            item { NickCompletionSettings(s.nickCompletion) { value -> onUpdate { copy(nickCompletion = value) } } }
+            item { NickCompletionSettings(s.nickCompletion, { value -> onUpdate { copy(nickCompletion = value) } }, state.myNick) }
             item {
                 SettingToggle(stringResource(R.string.setting_colorise_nicks), s.colorizeNicks) { onUpdate { copy(colorizeNicks = !colorizeNicks) } }
                 SettingToggle(stringResource(R.string.setting_show_nick_icons), s.showNickIcons) { onUpdate { copy(showNickIcons = !showNickIcons) } }
@@ -1691,7 +1681,7 @@ fun SettingsScreen(
                         TextButton(onClick = {
                             val old = s.logFolderUri
                             onUpdate { copy(logFolderUri = null) }
-                            releaseFolder(old, s.dccDownloadFolderUri)
+                            releaseFolder(old, null)
                         }, modifier = Modifier.testTag("history-use-internal")) { Text("Usar almacenamiento interno") }
                     }
                     Text("Organización de los archivos TXT", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 12.dp))
@@ -1826,10 +1816,10 @@ fun SettingsScreen(
 
             }
 
-            if (onePage || current == SettingsCategory.TRANSFERS) {
-            if (onePage) item(key = "hdr_TRANSFERS") { OnePageHeader(SettingsCategory.TRANSFERS) }
+            if (onePage || current == SettingsCategory.DIRECT_CHAT) {
+            if (onePage) item(key = "hdr_DIRECT_CHAT") { OnePageHeader(SettingsCategory.DIRECT_CHAT) }
 
-            item { SettingToggle(stringResource(R.string.setting_enable_dcc), s.dccEnabled) { onUpdate { copy(dccEnabled = !dccEnabled) } } }
+            item { SettingToggle("Activar chat directo DCC", s.dccEnabled) { onUpdate { copy(dccEnabled = !dccEnabled) } } }
 
             if (s.dccEnabled) {
                 item {
@@ -1843,29 +1833,6 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = androidx.compose.ui.Modifier.padding(bottom = 4.dp)
                     )
-                }
-            }
-
-            item {
-                val dccFolderLabel = if (s.dccDownloadFolderUri.isNullOrBlank()) stringResource(R.string.setting_dcc_downloads_default) else stringResource(R.string.setting_dcc_downloads_custom)
-                Column(Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.setting_download_folder), style = MaterialTheme.typography.titleSmall)
-                    Text(dccFolderLabel, style = MaterialTheme.typography.bodySmall)
-                    if (!s.dccDownloadFolderUri.isNullOrBlank()) {
-                        Text(s.dccDownloadFolderUri, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { dccFolderPicker.launchPicker(ctx, null) }, modifier = Modifier.focusHighlight(RoundedCornerShape(50))) { Text(stringResource(R.string.setting_choose_folder)) }
-                        if (!s.dccDownloadFolderUri.isNullOrBlank()) {
-                            OutlinedButton(onClick = {
-                                releaseFolder(s.dccDownloadFolderUri, s.logFolderUri)
-                                onUpdate { copy(dccDownloadFolderUri = null) }
-                            }, modifier = Modifier.focusHighlight(RoundedCornerShape(50))) {
-                                Text(stringResource(R.string.reset))
-                            }
-                        }
-                    }
                 }
             }
 

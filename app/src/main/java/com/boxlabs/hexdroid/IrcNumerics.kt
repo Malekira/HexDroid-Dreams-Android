@@ -190,7 +190,6 @@ internal fun IrcClient.buildNumericHandlers(
                         "CLIENTTAGDENY" -> clientTagDeny = null
                         "ELIST" -> elistTokens = null
                         "MONITOR" -> monitorLimit = -1
-                        "SOJU.IM/FILEHOST", "DRAFT/FILEHOST", "FILEHOST" -> filehostUrl = null
                         "DRAFT/ICON", "ICON" -> networkIconUrl = null
                         "BOT" -> botModeChar = null
                         "EXTBAN" -> { extbanPrefix = null; extbanTypes = null }
@@ -280,7 +279,6 @@ internal fun IrcClient.buildNumericHandlers(
                     "SOJU.IM/SAFERATE" -> safeRate = true
                     // soju.im/FILEHOST / draft/FILEHOST: HTTP file-upload endpoint URL.
                     // Keys arrive uppercased by the tokenizer above; the value keeps its case.
-                    "SOJU.IM/FILEHOST", "DRAFT/FILEHOST", "FILEHOST" -> filehostUrl = v?.takeIf { it.isNotBlank() }
                     // ICON / draft/ICON ISUPPORT token: ICON=<url> (draft/ICON in the wild, e.g. UnrealIRCd)
                     // advertises a server icon; may contain a literal {size} template the client
                     // substitutes with a pixel size. Keys arrive uppercased by the tokenizer.
@@ -311,7 +309,7 @@ internal fun IrcClient.buildNumericHandlers(
 
             send(IrcEvent.ISupport(
                 chantypes, caseMapping, prefixModes, prefixSymbols, statusMsg, chanModes, ll, elistTokens,
-                filehostUrl, networkIconUrl, extbanPrefix, extbanTypes, accountExtban,
+                networkIconUrl, extbanPrefix, extbanTypes, accountExtban,
                 bouncerNetId = bouncerNetId,
                 safeRate = safeRate,
                 callerIdMode = callerIdMode,

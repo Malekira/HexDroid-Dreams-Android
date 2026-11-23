@@ -177,17 +177,6 @@ internal fun IrcViewModel.updateNetworkInState(updated: com.boxlabs.hexdroid.dat
     _state.value = st.copy(networks = next)
 }
 
-/**
- * True when [nick] is on this network's DCC auto-accept list.
- */
-internal fun IrcViewModel.isDccAutoAccepted(netId: String, nick: String?): Boolean {
-    val n = nick?.trim().orEmpty()
-    if (n.isBlank()) return false
-    return _state.value.networks.firstOrNull { it.id == netId }
-        ?.dccAutoAcceptNicks.orEmpty()
-        .any { it.equals(n, ignoreCase = true) }
-}
-
 /** Adds [channel] to the reconnect rejoin list, keeping a key already known for it when [key] is null. */
 internal fun IrcViewModel.rememberManualJoin(netId: String, rt: NetRuntime, channel: String, key: String?) {
     val known = forgetManualJoin(netId, rt, channel)

@@ -51,7 +51,7 @@ class NickCompletionWindowsUiTest {
                 onDisconnect = {}, onReconnect = {}, onExit = {}, onToggleBufferList = { state = state.copy(showBufferList = !state.showBufferList) },
                 onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {}, onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> },
                 onIgnoreNotifications = { _, _ -> }, onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
-                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {},
+                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {},
                 onToggleNetworkExpanded = { id -> state = state.copy(collapsedNetworkIds = if (id in state.collapsedNetworkIds) state.collapsedNetworkIds - id else state.collapsedNetworkIds + id) })
         } }
     }
@@ -87,7 +87,7 @@ class NickCompletionWindowsUiTest {
         fixture(tabs = false)
         state = state.copy(showBufferList = false, nicklists = mapOf("$first::#demo" to listOf("@Alice", "+Alfred")),
             settings = state.settings.copy(nickCompletion = NickCompletionStyle(
-                startTemplate = "«{nick}» ", colors = "FF3399,33CCFF", bold = true)))
+                startTemplate = "«{nick}» ", colors = "13,11", bold = true)))
         compose.setContent { Chat(phone = true) }
         val input = compose.onNodeWithTag("chat-input")
         input.performTextReplacement("Al")
@@ -96,7 +96,7 @@ class NickCompletionWindowsUiTest {
         compose.onNodeWithContentDescription(context.getString(R.string.chat_send_message)).performClick()
         compose.runOnIdle {
             assertEquals("«Alice»", stripIrcFormatting(commands.single()).trim())
-            assertTrue(commands.single().contains("\u0004FF3399A\u000433CCFFl"))
+            assertTrue(commands.single().contains("\u000313A\u000311l"))
         }
     }
 
@@ -112,6 +112,7 @@ class NickCompletionWindowsUiTest {
             compose.onNodeWithText(context.getString(id)).assertDoesNotExist()
         }
         compose.onNodeWithText("Secure Chat").assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.topic_edit_title)).assertDoesNotExist()
     }
 
     @Test fun nickColorsRemainDistinctWithACustomThemeAndRefreshWhenMetadataChanges() {
@@ -131,7 +132,7 @@ class NickCompletionWindowsUiTest {
                 onToggleBufferList = {}, onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {},
                 onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> }, onIgnoreNotifications = { _, _ -> },
                 onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
-                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {},
+                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {},
                 onAbout = {}, onUpdateSettings = {})
         } } }
         val nicklistLayouts = mutableListOf<TextLayoutResult>()

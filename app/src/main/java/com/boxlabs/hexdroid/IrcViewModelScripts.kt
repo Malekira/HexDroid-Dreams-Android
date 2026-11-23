@@ -19,7 +19,6 @@
 package com.boxlabs.hexdroid
 
 import androidx.lifecycle.viewModelScope
-import com.boxlabs.hexdroid.IrcViewModel.ScriptFilePick
 import com.boxlabs.hexdroid.IrcViewModel.ScriptLauncher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -39,31 +38,6 @@ fun IrcViewModel.scriptsUiState(): com.boxlabs.hexdroid.script.ScriptsUiState = 
 /** Every reload drops the scripts that registered launchers and held file tokens. */
 internal fun IrcViewModel.beforeScriptReload() {
     _scriptLaunchers.value = emptyList()
-    scriptClearMediaTokens()
-}
-
-/** "#chan (Network)", or the network name alone for its server buffer. */
-internal fun IrcViewModel.scriptPickPlace(network: String?, buffer: String?): String? {
-    val netId = network ?: splitKey(_state.value.selectedBuffer).first
-    val netName = _state.value.networks.firstOrNull { it.id == netId }?.name
-    val name = buffer?.takeIf { it.isNotBlank() }
-        ?: splitKey(_state.value.selectedBuffer).second.takeIf { network == null }
-    return when {
-        name.isNullOrBlank() || name == "*server*" -> netName
-        netName == null -> name
-        else -> "$name ($netName)"
-    }
-}
-
-/** Forget every handed-out file token (script reload drops the scripts that held them). */
-fun IrcViewModel.scriptClearMediaTokens() {
-    scriptMediaTokens.clear()
-    scriptPickQuietUntil.clear()
-    val cb = scriptPickCallback
-    scriptPickCallback = null
-    scriptPickOwner = null
-    _scriptFilePick.value = null
-    cb?.invoke(null)
 }
 
 /**
@@ -413,63 +387,6 @@ fun IrcViewModel.scriptRegisterLauncher(id: String, label: String, command: Stri
 }
 
 fun IrcViewModel.scriptUnregisterLauncher(id: String) { _scriptLaunchers.value = _scriptLaunchers.value.filterNot { it.id == id } }
-
-/** Called by a script through the host: queue a pick for the UI to prompt about. */
-fun IrcViewModel.scriptMediaPick(
-    network: String?,
-    buffer: String?,
-    mimeFilter: String,
-    owner: String,
-    userInitiated: Boolean,
-    onResult: (com.boxlabs.hexdroid.script.ScriptMediaRef?) -> Unit,
-) {
-    viewModelScope.launch(Dispatchers.Main.immediate) {
-        // One at a time: a second request while a prompt is up is refused rather than
-        // queued, so a looping script cannot stack dialogs over the app.
-        if (_scriptFilePick.value != null) {
-            onResult(null)
-            return@launch
-        }
-        val quietUntil = scriptPickQuietUntil[owner] ?: 0L
-        if (!userInitiated && System.currentTimeMillis() < quietUntil) {
-            onResult(null)
-            return@launch
-        }
-        scriptPickCallback = onResult
-        scriptPickOwner = owner
-        _scriptFilePick.value = ScriptFilePick(
-            id = java.util.UUID.randomUUID().toString(),
-            mimeFilter = mimeFilter.ifBlank { "*/*" },
-            buffer = scriptPickPlace(network, buffer),
-        )
-    }
-}
-
-/** Resolve [owner]'s token back to what the host needs to read the file. */
-fun IrcViewModel.scriptMediaSource(token: String, owner: String): Triple<android.net.Uri, String, String>? {
-    val grant = scriptMediaTokens[token]?.takeIf { it.owner == owner } ?: return null
-    val uri = grant.uri
-    val name = queryDisplayName(uri) ?: "file"
-    val mime = runCatching { appContext.contentResolver.getType(uri) }.getOrNull()
-        ?: "application/octet-stream"
-    return Triple(uri, name, mime)
-}
-
-/**
- * Scratch directory for script uploads, which stage their body before sending it. Emptied
- * on first use in a process, which clears anything a killed upload left behind.
- */
-fun IrcViewModel.scriptUploadCacheDir(): java.io.File = synchronized(scriptUploadDirLock) {
-    val dir = java.io.File(appContext.cacheDir, "script_upload")
-    if (!scriptUploadDirSwept) {
-        scriptUploadDirSwept = true
-        dir.listFiles()?.forEach { runCatching { it.delete() } }
-    }
-    dir.apply { mkdirs() }
-}
-
-fun IrcViewModel.scriptOpenMedia(uri: android.net.Uri): java.io.InputStream? =
-    runCatching { appContext.contentResolver.openInputStream(uri) }.getOrNull()
 
 fun IrcViewModel.scriptMountView(view: com.boxlabs.hexdroid.script.ScriptView) { _scriptView.value = view }
 

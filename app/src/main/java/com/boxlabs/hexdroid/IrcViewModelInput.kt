@@ -22,7 +22,6 @@ import androidx.lifecycle.viewModelScope
 import com.boxlabs.hexdroid.IrcViewModel.Companion.ALIAS_VAR
 import com.boxlabs.hexdroid.IrcViewModel.Companion.AWAY_POLL_INTERVAL_MS
 import com.boxlabs.hexdroid.IrcViewModel.Companion.AWAY_POLL_MAX_MEMBERS
-import com.boxlabs.hexdroid.IrcViewModel.Companion.DCC_MIME_FILTER
 import com.boxlabs.hexdroid.IrcViewModel.Companion.MAX_ALIAS_DEPTH
 import com.boxlabs.hexdroid.IrcViewModel.Companion.SLAP_FISH
 import com.boxlabs.hexdroid.IrcViewModel.NamesRequest
@@ -920,20 +919,6 @@ internal fun IrcViewModel.sendInputInternal(raw: String, aliasDepth: Int, target
                     val nick = args.firstOrNull() ?: defaultNick
                     val say = { t: String -> append(currentKey, from = null, text = "*** $t", doNotify = false) }
                     when (sub) {
-                        "send" -> {
-                            // Optional MIME filter for the picker, e.g. image/*. Nicks can't
-                            // contain '/', so on its own it means the default nick.
-                            val mimeArg = args.getOrNull(if (args.size == 1) 0 else 1)?.takeIf { DCC_MIME_FILTER.matches(it) }
-                            val target = if (args.size == 1 && mimeArg != null) defaultNick else nick
-                            val mime = mimeArg ?: "*/*"
-                            when {
-                                target.isBlank() || isChannelOnNet(netId, target) -> say(appContext.getString(R.string.vm_dcc_chat_usage))
-                                !_state.value.settings.dccEnabled -> say(appContext.getString(R.string.vm_dcc_disabled))
-                                c?.isConnectedNow() != true && _state.value.connections[netId]?.connected != true ->
-                                    say(appContext.getString(R.string.vm_not_connected))
-                                else -> requestDccSendPick(target, netIdArg = netId, mimeFilter = mime, confirm = true, statusKey = currentKey)
-                            }
-                        }
                         "chat", "schat" -> {
                             if (nick.isBlank()) say(appContext.getString(R.string.vm_dcc_chat_usage))
                             else startDccChatFlow(nick, secure = if (sub == "schat") true else null, netIdArg = netId)
