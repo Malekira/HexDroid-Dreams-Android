@@ -242,16 +242,14 @@ val SETTINGS_SEARCH_INDEX: List<SettingsSearchEntry> = listOf(
     SettingsSearchEntry(R.string.setting_trigger_notif, SettingsCategory.HISTORY,
         keywords = "notification history playback"),
 
-    // File transfers
-    SettingsSearchEntry(R.string.setting_enable_dcc, SettingsCategory.TRANSFERS,
-        keywords = "dcc file transfer"),
-    SettingsSearchEntry(R.string.setting_dcc_secure, SettingsCategory.TRANSFERS,
+    // Direct text chat
+    SettingsSearchEntry(R.string.nick_dcc_chat, SettingsCategory.DIRECT_CHAT,
+        keywords = "dcc chat directo"),
+    SettingsSearchEntry(R.string.setting_dcc_secure, SettingsCategory.DIRECT_CHAT,
         descRes = R.string.setting_dcc_secure_desc, keywords = "dcc tls secure ssl"),
-    SettingsSearchEntry(R.string.setting_download_folder, SettingsCategory.TRANSFERS,
-        keywords = "dcc download folder directory"),
-    SettingsSearchEntry(R.string.setting_incoming_port_min, SettingsCategory.TRANSFERS,
+    SettingsSearchEntry(R.string.setting_incoming_port_min, SettingsCategory.DIRECT_CHAT,
         keywords = "dcc port range incoming"),
-    SettingsSearchEntry(R.string.setting_incoming_port_max, SettingsCategory.TRANSFERS,
+    SettingsSearchEntry(R.string.setting_incoming_port_max, SettingsCategory.DIRECT_CHAT,
         keywords = "dcc port range incoming"),
 
     // Backup and restore

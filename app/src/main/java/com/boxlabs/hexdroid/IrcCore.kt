@@ -376,13 +376,6 @@ class IrcClient(val config: IrcConfig) {
      */
     @Volatile internal var clientTagDeny: String? = null
 
-    /**
-     * soju.im/FILEHOST (or draft/FILEHOST) from ISUPPORT: HTTP endpoint for file
-     * uploads, advertised by soju, Ergo (additional-isupport), and standalone
-     * filehost servers. Null when the server offers none.
-     */
-    @Volatile internal var filehostUrl: String? = null
-
     /** ICON / draft/ICON ISUPPORT token: server-supplied icon URL. Null = none. */
     @Volatile internal var networkIconUrl: String? = null
 
@@ -2519,7 +2512,6 @@ class IrcClient(val config: IrcConfig) {
         monitorListBuffer.clear()
         monitorLimit = -1
         clientTagDeny = null
-        filehostUrl = null
         networkIconUrl = null
         botModeChar = null
         bouncerNetId = null

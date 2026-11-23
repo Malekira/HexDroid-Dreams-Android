@@ -203,31 +203,6 @@ fun IrcViewModel.handleIntent(intent: Intent?) {
         .takeIf { it >= 0L }
     val highlightAnchor = intent.getStringExtra(NotificationHelper.EXTRA_MSG_ANCHOR)
 
-    if (action == NotificationHelper.ACTION_OPEN_TRANSFERS) {
-        if (!netId.isNullOrBlank()) setActiveNetwork(netId)
-        _state.value = _state.value.copy(screen = AppScreen.TRANSFERS)
-        return
-    }
-
-    if (action == NotificationHelper.ACTION_ACCEPT_DCC && NotificationHelper.hasActionToken(intent)) {
-        val from     = intent.getStringExtra(NotificationHelper.EXTRA_DCC_FROM)     ?: ""
-        val filename = intent.getStringExtra(NotificationHelper.EXTRA_DCC_FILENAME) ?: ""
-        val notifId  = intent.getIntExtra(NotificationHelper.EXTRA_NOTIF_ID, -1)
-        if (!netId.isNullOrBlank()) setActiveNetwork(netId)
-        _state.value = _state.value.copy(screen = AppScreen.TRANSFERS)
-        // Dismiss the incoming-file notification immediately so the user
-        // doesn't see a stale "incoming file" banner after accepting.
-        if (notifId >= 0) NotificationManagerCompat.from(appContext).cancel(notifId)
-        // Find the matching pending offer and accept it automatically.
-        val offer = _state.value.dccOffers.firstOrNull { o ->
-            (netId.isNullOrBlank() || o.netId == netId) &&
-            o.from.equals(from, ignoreCase = true) &&
-            o.filename == filename
-        }
-        if (offer != null) acceptDcc(offer)
-        return
-    }
-
     if (netId.isNullOrBlank() && buf.isNullOrBlank()) return
 
     if (!netId.isNullOrBlank()) setActiveNetwork(netId)

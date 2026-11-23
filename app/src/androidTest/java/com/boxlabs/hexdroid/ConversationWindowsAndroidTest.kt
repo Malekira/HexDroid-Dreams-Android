@@ -81,7 +81,7 @@ class ConversationWindowsAndroidTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val repo = SettingsRepository(context); val previous = repo.settingsFlow.first()
         val style = NickCompletionStyle(startTemplate = "«{nick}»: ", middleTemplate = "[{nick}] ",
-            colors = "#FF3399,#33CCFF", bold = true, italic = true, underline = true)
+            colors = "13,11", bold = true, italic = true, underline = true)
         try {
             repo.updateSettings { it.copy(nickCompletion = style) }
             assertEquals(style, SettingsRepository(context).settingsFlow.first().nickCompletion)

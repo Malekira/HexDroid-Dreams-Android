@@ -766,13 +766,9 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
 
                         noteBouncerNetId(netId, ev.bouncerNetId)
 
-                        // Surface the filehost upload endpoint (soju.im/FILEHOST) to the UI so
-                        // ChatScreen can offer the attach button. Assigned unconditionally: a
                         // later 005 without the token must not leave a stale URL behind. The
                         // per-network toggle hides it entirely when uploads are disabled.
-                        val filehostAllowed = runtimes[netId]?.client?.config?.capPrefs?.filehostUploads != false
                         setNetConn(netId) { it.copy(
-                            filehostUrl = if (filehostAllowed) ev.filehostUrl else null,
                             // ICON / draft/ICON ISUPPORT token: raw ICON URL; display gating (previews opt-in,
                             // https-only, unproxied profile) lives in NetworksScreen.
                             networkIconUrl = ev.networkIconUrl,

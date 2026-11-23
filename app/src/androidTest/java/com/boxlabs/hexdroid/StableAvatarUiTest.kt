@@ -23,7 +23,7 @@ class StableAvatarUiTest {
     @Composable private fun Chat(state:UiState) {
         ChatScreen(state,onSelectBuffer={},onSend={},onDisconnect={},onReconnect={},onExit={},onToggleBufferList={},onToggleNickList={},onToggleChannelsOnly={},onWhois={},
             onIgnoreNick={_,_->},onUnignoreNick={_,_->},onIgnoreNotifications={_,_->},onUnignoreNotifications={_,_->},onRefreshNicklist={},onRefreshChannelModes={},
-            onOpenList={},onOpenSettings={},onOpenNetworks={},onOpenTransfers={},onSysInfo={},onAbout={},onUpdateSettings={})
+            onOpenList={},onOpenSettings={},onOpenNetworks={},onSysInfo={},onAbout={},onUpdateSettings={})
     }
     @Test fun otherUsersMetadataDoesNotReloadVisiblePhotosAndOnlyChangedSourceReloads() {
         val id="stable-photo-demo";val key="$id::Alice"

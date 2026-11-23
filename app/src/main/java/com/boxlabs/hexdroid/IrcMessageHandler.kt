@@ -177,6 +177,8 @@ internal suspend fun IrcClient.handleMessageCommand(
                     target
                 }
 
+                if (isFileTransferCtcp(textRaw)) return
+
                 // Handle CTCP requests
                 val trimmedText = textRaw.trim()
                 if (trimmedText.startsWith("\u0001") && !nickEquals(from, currentNick)) {
@@ -284,37 +286,10 @@ internal suspend fun IrcClient.handleMessageCommand(
                     }
                 }
 
-                // CTCP DCC: consume offers so the raw CTCP line doesn't show in chat.
-                val dccSend = parseDccSend(textRaw)
-                if (dccSend != null) {
-                    if (!nickEquals(from, currentNick)) {
-                        send(IrcEvent.DccOfferEvent(dccSend.copy(from = from)))
-                    }
-                    return
-                }
-
                 val dccChat = parseDccChat(textRaw)
                 if (dccChat != null) {
                     if (!nickEquals(from, currentNick)) {
                         send(IrcEvent.DccChatOfferEvent(dccChat.copy(from = from)))
-                    }
-                    return
-                }
-
-                // DCC RESUME (peer wants to resume one of our outgoing sends).
-                val dccResume = parseDccResume(textRaw)
-                if (dccResume != null) {
-                    if (!nickEquals(from, currentNick)) {
-                        send(IrcEvent.DccResumeRequest(from = from, resume = dccResume))
-                    }
-                    return
-                }
-
-                // DCC ACCEPT (the sender confirmed our RESUME request).
-                val dccAccept = parseDccAccept(textRaw)
-                if (dccAccept != null) {
-                    if (!nickEquals(from, currentNick)) {
-                        send(IrcEvent.DccAcceptResponse(from = from, accept = dccAccept))
                     }
                     return
                 }

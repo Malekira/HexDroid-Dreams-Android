@@ -28,7 +28,7 @@ class PersonalPhase3UiTest {
             onToggleBufferList = {}, onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {},
             onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> }, onIgnoreNotifications = { _, _ -> },
             onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
-            onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onOpenTransfers = {}, onSysInfo = {},
+            onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {},
             onAbout = {}, onUpdateSettings = {})
     }
 

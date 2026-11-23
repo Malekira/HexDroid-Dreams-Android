@@ -126,12 +126,6 @@ data class CapPrefs(
     /** draft/metadata-2: user/channel metadata (display-name, avatar). Requires [batch]. */
     val metadata2: Boolean = true,
     /**
-     * soju.im/FILEHOST uploads. the endpoint arrives via ISUPPORT, but grouped
-     * with the per-network capability toggles so the attach button can be disabled per network.
-     */
-    val filehostUploads: Boolean = true,
-
-    /**
      * draft/webpush (soju.im/webpush): lets the server deliver messages of interest as
      * Web Push notifications while no TCP connection is open. The push endpoint comes
      * from a UnifiedPush distributor on the device and is handed to the server with

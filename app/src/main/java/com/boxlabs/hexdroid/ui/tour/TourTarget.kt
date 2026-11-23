@@ -34,9 +34,6 @@ enum class TourTarget {
     CHAT_OVERFLOW_BUTTON,
     CHAT_INPUT,
 
-    // Transfers screen
-    TRANSFERS_ENABLE_DCC,
-    TRANSFERS_PICK_FILE,
 
     // Settings screen
     SETTINGS_APPEARANCE_SECTION,

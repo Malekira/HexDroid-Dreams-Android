@@ -97,25 +97,6 @@ fun AppRoot(
     }
     val scriptLaunchers by vm.scriptLaunchers.collectAsState()
     val mountedScriptView by vm.scriptView.collectAsState()
-    val scriptFilePick by vm.scriptFilePick.collectAsState()
-    val scriptFilePicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri -> vm.scriptFilePickResult(uri) }
-    // DCC send file choice. The target is held in the view model, so it survives the activity
-    // being recreated while the picker is open.
-    val dccSendPick by vm.dccSendPick.collectAsState()
-    val dccSendPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri -> vm.dccSendPickResult(uri) }
-    val launchDccSendPicker: (IrcViewModel.DccSendPick) -> Unit = { pick ->
-        vm.dccSendPickLaunched(pick.id)
-        try {
-            dccSendPicker.launch(arrayOf(pick.mimeFilter))
-        } catch (_: android.content.ActivityNotFoundException) {
-            vm.dccSendPickUnavailable()
-        }
-    }
-
 	val bouncerActions = remember(vm) {
 		BouncerNetworkActions(
 			refresh = vm::refreshBouncerNetworks,
@@ -293,14 +274,11 @@ fun AppRoot(
                     AppScreen.NETWORK_EDIT -> vm.cancelEditNetwork()
                     AppScreen.LIST,
                     AppScreen.SETTINGS,
-                    AppScreen.TRANSFERS,
                     AppScreen.SCRIPTS,
                     AppScreen.ABOUT -> vm.backToChat()
                     AppScreen.PRIVATE_SCRIPT_SETTINGS -> vm.goTo(AppScreen.SCRIPTS)
                     AppScreen.IGNORE -> vm.goTo(AppScreen.SETTINGS)
-                    // Mirror the top-bar arrow: Trusted Senders was opened from Transfers,
-                    // so system Back returns there rather than jumping to chat.
-                    AppScreen.DCC_TRUSTED -> vm.goTo(AppScreen.TRANSFERS)
+
                     AppScreen.NETWORKS -> vm.backToChat()
                     else -> vm.backToChat()
                 }
@@ -330,13 +308,11 @@ fun AppRoot(
                     onToggleChannelsOnly = vm::toggleChannelsOnly,
                     onWhois = vm::whois,
                     onIgnoreNick = vm::ignoreNick,
-                    onSetDccAutoAccept = vm::setDccAutoAccept,
                     onUnignoreNick = vm::unignoreNick,
                     onIgnoreNotifications = vm::ignoreNotifications,
                     onUnignoreNotifications = vm::unignoreNotifications,
 					onRefreshNicklist = vm::refreshNicklistForSelectedBuffer,
 					onRefreshChannelModes = vm::refreshChannelModesForSelectedBuffer,
-                    onDccSendFile = { nick -> vm.requestDccSendPick(nick) },
                     onDccChat = vm::startDccChat,
                     onOpenList = { vm.goTo(AppScreen.LIST) },
                     onOpenSettings = { vm.goTo(AppScreen.SETTINGS) },
@@ -345,7 +321,6 @@ fun AppRoot(
                     scriptLaunchers = scriptLaunchers.map { it.label to it.command },
                     onRunLauncher = vm::runScriptLauncher,
                     onOpenNetworks = { vm.goTo(AppScreen.NETWORKS) },
-                    onOpenTransfers = { vm.goTo(AppScreen.TRANSFERS) },
                     onSysInfo = { vm.sendInput("/sysinfo") },
                     onAbout = { vm.goTo(AppScreen.ABOUT) },
                     onUpdateSettings = vm::updateSettings,
@@ -488,39 +463,11 @@ fun AppRoot(
                     )
                 }
 
-                AppScreen.TRANSFERS -> TransfersScreen(
-                    state = state,
-                    onBack = vm::backToChat,
-                    onOpenTrusted = { vm.goTo(AppScreen.DCC_TRUSTED) },
-                    onAccept = vm::acceptDcc,
-                    onReject = vm::rejectDcc,
-                    onAcceptChat = vm::acceptDccChat,
-                    onRejectChat = vm::rejectDccChat,
-                    onSendFile = { nick -> vm.requestDccSendPick(nick) },
-                    onStartChat = vm::startDccChat,
-                    onShareFile = vm::shareFile,
-                    onSetDccEnabled = vm::setDccEnabled,
-                    onSetDccSendMode = vm::setDccSendMode,
-                    onCancelOutgoing = vm::cancelOutgoingDcc,
-                    onCancelIncoming = vm::cancelIncomingDcc,
-                    onClearTransfer = vm::clearDccTransfer,
-                    onAcceptResume = vm::acceptDccResume,
-                    partialFor = vm::getPartialFor,
-                    tourActive = tourActive,
-                    tourTarget = currentTourStep?.target
-                )
-
                 AppScreen.ABOUT -> AboutScreen(
                     onBack = vm::backToChat,
                     onBuildDebugInfo = vm::buildDebugInfo,
                 )
 
-                AppScreen.DCC_TRUSTED -> DccTrustedScreen(
-                    state = state,
-                    onBack = { vm.goTo(AppScreen.TRANSFERS) },
-                    onSetDccAutoAccept = vm::setDccAutoAccept,
-                )
-            
                 AppScreen.IGNORE -> IgnoreListScreen(
                     state = state,
                     onBack = { vm.goTo(AppScreen.SETTINGS) },
@@ -557,65 +504,6 @@ fun AppRoot(
                 }
             },
         )
-    }
-
-    // A script asked for a file. The picker only opens once the user agrees here, so a script
-    // cannot put a file chooser on screen by itself, and declining answers the script with
-    // nothing rather than leaving it waiting.
-    scriptFilePick?.let { pick ->
-        AlertDialog(
-            onDismissRequest = { vm.scriptFilePickResult(null) },
-            title = { Text(stringResource(R.string.script_pick_file_title)) },
-            text = {
-                Text(
-                    if (pick.buffer.isNullOrBlank()) {
-                        stringResource(R.string.script_pick_file_body)
-                    } else {
-                        stringResource(R.string.script_pick_file_body_in, pick.buffer)
-                    }
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    try {
-                        scriptFilePicker.launch(arrayOf(pick.mimeFilter))
-                    } catch (_: android.content.ActivityNotFoundException) {
-                        vm.scriptFilePickResult(null)
-                    }
-                }) {
-                    Text(stringResource(R.string.script_pick_file_choose))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { vm.scriptFilePickResult(null) }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
-    // A DCC send waiting for its file. From the nick menu the picker opens straight away; from
-    // /dcc send a prompt names the recipient first.
-    dccSendPick?.takeIf { !it.launched }?.let { pick ->
-        if (pick.confirm) {
-            AlertDialog(
-                onDismissRequest = { vm.dccSendPickResult(null) },
-                title = { Text(stringResource(R.string.dcc_send_pick_title, pick.nick)) },
-                text = { Text(stringResource(R.string.dcc_send_pick_body, pick.nick, pick.networkName)) },
-                confirmButton = {
-                    TextButton(onClick = { launchDccSendPicker(pick) }) {
-                        Text(stringResource(R.string.script_pick_file_choose))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { vm.dccSendPickResult(null) }) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                },
-            )
-        } else {
-            LaunchedEffect(pick.id) { launchDccSendPicker(pick) }
-        }
     }
 
     if (state.screen == AppScreen.CHAT) {

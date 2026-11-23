@@ -336,8 +336,6 @@ internal fun IrcViewModel.isProxiedNetwork(netId: String): Boolean {
  * (ACCESS_LOCAL_NETWORK), which both active and passive DCC need for a LAN peer. Checked before
  * auto-accepting too, so a blocked offer falls back to the normal prompt.
  */
-internal fun IrcViewModel.dccBlockedByLanPermission(offer: DccOffer): Boolean =
-    isLanHost(offer.ip) && !hasLocalNetworkPermission()
 
 internal fun IrcViewModel.hasLocalNetworkPermission(): Boolean {
     if (android.os.Build.VERSION.SDK_INT < 37) return true

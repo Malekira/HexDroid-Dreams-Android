@@ -24,7 +24,7 @@ import com.boxlabs.hexdroid.data.NetworkProfile
 import com.boxlabs.hexdroid.data.ThemeMode
 import kotlinx.collections.immutable.PersistentList
 
-enum class AppScreen { CHAT, LIST, SETTINGS, NETWORKS, NETWORK_EDIT, TRANSFERS, ABOUT, IGNORE, SCRIPTS, DCC_TRUSTED, PERSONAL_HISTORY, PRIVATE_REQUESTS, PRIVATE_SCRIPT_SETTINGS }
+enum class AppScreen { CHAT, LIST, SETTINGS, NETWORKS, NETWORK_EDIT, ABOUT, IGNORE, SCRIPTS, PERSONAL_HISTORY, PRIVATE_REQUESTS, PRIVATE_SCRIPT_SETTINGS }
 
 /**
  * UI-level message model. [id] must be unique within a buffer: it is the LazyColumn key, and
@@ -181,7 +181,6 @@ enum class VibrateIntensity { LOW, MEDIUM, HIGH }
 
 
 /** How we initiate DCC SEND connections. */
-enum class DccSendMode { AUTO, ACTIVE, PASSIVE }
 
 data class PersonalSettings(
     val personalThemes: List<PersonalTheme> = emptyList(),
@@ -342,11 +341,9 @@ data class UiSettings(
     val ircHistoryTriggersNotifications: Boolean = false,
 
     val dccEnabled: Boolean = false,
-    val dccSendMode: DccSendMode = DccSendMode.AUTO,
-    val dccSecure: Boolean = false,      // SDCC: wrap transfers in TLS
+    val dccSecure: Boolean = false,      // TLS for direct text chat
     val dccIncomingPortMin: Int = 5000,
     val dccIncomingPortMax: Int = 5010,
-    val dccDownloadFolderUri: String? = null,
 
     val quitMessage: String = "An IRC client for Android - https://hexdroid.org",
     val partMessage: String = "Leaving",
@@ -471,11 +468,6 @@ data class NetConnState(
      * next successful connect. Null when no mismatch is active.
      */
     val tlsHostnameMismatchIdentities: List<String>? = null,
-    /**
-     * soju.im/FILEHOST upload endpoint from ISUPPORT, when the server offers one.
-     * Non-null enables the attach button in the chat input row.
-     */
-    val filehostUrl: String? = null,
     /** ICON / draft/ICON ISUPPORT token: server-supplied icon URL. */
     val networkIconUrl: String? = null,
     /**
@@ -708,9 +700,7 @@ data class UiState(
     /** Non-null when a connect attempt was blocked because ACCESS_LOCAL_NETWORK is not granted (API 37+). */
     val localNetworkWarningNetworkId: String? = null,
 
-    val dccOffers: List<DccOffer> = emptyList(),
     val dccChatOffers: List<DccChatOffer> = emptyList(),
-    val dccTransfers: List<DccTransferState> = emptyList(),
 
     val backupMessage: String? = null,
     /** True when [backupMessage] reports a failed backup or restore. */
