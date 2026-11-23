@@ -68,6 +68,7 @@ class IrcCompletionEditorAndroidTest {
     @Test fun legacyScriptsCannotPickOrUploadFilesAndFileTransferEngineIsAbsent() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val store = ViewModelStore()
+        assertFalse(instrumentation.targetContext.assets.list("hex").orEmpty().contains("imgpaste.hex"))
         lateinit var vm: IrcViewModel
         lateinit var host: HexDroidScriptHost
         instrumentation.runOnMainSync {
