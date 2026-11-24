@@ -136,7 +136,8 @@ jobs:
         shell: python
         run: |
           import os, pathlib, re, xml.etree.ElementTree as E
-          report_paths = sorted({p for p in pathlib.Path('app/build').rglob('*.xml') if 'result' in str(p).lower() or 'report' in str(p).lower()})
+          report_roots = [pathlib.Path('app/build/test-results'), pathlib.Path('app/build/outputs/androidTest-results')]
+          report_paths = sorted({p for root in report_roots for p in root.rglob('*.xml')})
           expected = 'roomRemainsWhilePanelMovesMinimizesRestoresAndCloses'
           overlay_executed = False
           phase3_passed = set()
