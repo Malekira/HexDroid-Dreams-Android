@@ -887,7 +887,7 @@ class SettingsRepository(private val ctx: Context) {
             useTls = true, allowInvalidCerts = false, nick = "HexDreams", altNick = "HexDreams01",
             username = "hexdreams", realname = "HexDreams IRC", saslEnabled = false,
             saslMechanism = SaslMechanism.PLAIN, saslAuthcid = null, saslPassword = null,
-            autoJoin = emptyList())
+            autoJoin = emptyList(), caps = CapPrefs())
     )
 
     /** One-time Lite migration; retain the existing ChatZona identity, secrets and history ID. */
