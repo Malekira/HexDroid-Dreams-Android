@@ -53,7 +53,7 @@ internal suspend fun IrcViewModel.prepareChatZona(net: String, profile: NetworkP
 private suspend fun IrcViewModel.finishChatZona(net: String, profile: NetworkProfile, run: ChatZonaRun) {
     if (!currentChatZonaRun(net,run) || run.finished || run.pending) return
     run.finished = true
-    val desired = profile.nick
+    val desired = profile.chatZonaAccount.ifBlank { profile.nick }
     if (!isReplyNick(desired)) return
     suspend fun send(line: String) { if (currentChatZonaRun(net,run)) run.client.sendRaw(line) }
     suspend fun gotNick(): Boolean = withTimeoutOrNull(2_000L) {

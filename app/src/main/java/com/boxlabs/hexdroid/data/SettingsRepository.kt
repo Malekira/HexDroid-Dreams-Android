@@ -1525,7 +1525,7 @@ data class NetworkProfile(
             port = port,
             useTls = useTls,
             allowInvalidCerts = allowInvalidCerts && (tlsApprovalHost==null || (tlsApprovalHost.equals(host.trim(),true) && tlsApprovalPort==port)),
-            nick = nick,
+            nick = if (com.boxlabs.hexdroid.isChatZonaHost(host) && chatZonaAccount.isNotBlank()) chatZonaAccount else nick,
             altNick = altNick,
             username = username,
             realname = realname,

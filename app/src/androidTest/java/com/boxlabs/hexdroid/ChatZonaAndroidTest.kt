@@ -24,7 +24,7 @@ class ChatZonaAndroidTest {
         assertTrue(profile.useTls)
         assertFalse(profile.allowInvalidCerts)
         assertFalse(profile.saslEnabled)
-        assertTrue(profile.serviceAuthCommand.isBlank())
+        assertTrue(profile.serviceAuthCommand.isNullOrBlank())
     }
 
     @Test fun accountAndModesPersistWithoutPuttingThePasswordInNetworkJson() = runBlocking {
@@ -46,6 +46,35 @@ class ChatZonaAndroidTest {
         } finally {
             repo.secretStore.clearChatZonaPassword(id)
             repo.saveNetworks(old)
+        }
+    }
+
+    @Test fun liteMigrationPreservesChatZonaProfileAndAppliesOnlyOnce() = runBlocking {
+        val repo = SettingsRepository(context)
+        val old = repo.networksFlow.first()
+        val oldDesired = repo.desiredNetworkIdsFlow.first()
+        val oldLast = repo.lastNetworkIdFlow.first()
+        val existing = repo.defaultNetworks().single().copy(id = "existing-cz", host = "lima.chatzona.org",
+            port = 6667, useTls = false, nick = "MySavedNick", chatZonaAccount = "MySavedNick")
+        val other = existing.copy(id = "other", host = "irc.other.example")
+        try {
+            repo.saveNetworks(listOf(other, existing))
+            repo.setDesiredNetworkIds(setOf("other"))
+            repo.ensureChatZonaOnly()
+            val saved = repo.networksFlow.first().single()
+            assertEquals("existing-cz", saved.id)
+            assertEquals("MySavedNick", saved.nick)
+            assertEquals("irc.chatzona.org", saved.host)
+            assertEquals(6697, saved.port)
+            assertTrue(saved.useTls)
+            assertTrue(repo.desiredNetworkIdsFlow.first().isEmpty())
+            repo.saveNetworks(listOf(saved, other))
+            repo.ensureChatZonaOnly()
+            assertEquals(2, repo.networksFlow.first().size)
+        } finally {
+            repo.saveNetworks(old)
+            repo.setDesiredNetworkIds(oldDesired)
+            repo.setLastNetworkId(oldLast)
         }
     }
 

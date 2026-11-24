@@ -123,7 +123,7 @@ jobs:
             bash ./gradlew :app:connectedDebugAndroidTest --no-daemon --max-workers=2 --no-configuration-cache
             bash ./gradlew :app:assembleLite --no-daemon --max-workers=2 --no-configuration-cache
             adb install -r app/build/outputs/apk/lite/app-lite.apk
-            adb shell am force-stop com.malekira.hexdroid.personal.debug
+            adb shell pm clear com.malekira.hexdroid.personal.debug
             adb logcat -c
             adb shell am start -W -n com.malekira.hexdroid.personal.debug/com.boxlabs.hexdroid.MainActivity
             sleep 3
