@@ -167,6 +167,15 @@ class SecretStore(private val ctx: Context) {
         prefs.edit().remove("sasl:$networkId").apply()
     }
 
+    fun getChatZonaPassword(networkId: String): String? {
+        val enc = prefs.getString("chatzona:$networkId", null) ?: return null
+        return decryptFromB64(enc)?.toString(Charsets.UTF_8)
+    }
+    fun setChatZonaPassword(networkId: String, password: String) {
+        prefs.edit().putString("chatzona:$networkId", encryptToB64(password.toByteArray(Charsets.UTF_8))).apply()
+    }
+    fun clearChatZonaPassword(networkId: String) { prefs.edit().remove("chatzona:$networkId").apply() }
+
     fun getServerPassword(networkId: String): String? {
         val enc = prefs.getString("pass:$networkId", null) ?: return null
         val bytes = decryptFromB64(enc) ?: run {

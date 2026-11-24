@@ -649,8 +649,7 @@ fun NetworksScreen(
                 tourTarget == TourTarget.NETWORKS_CONNECT_BUTTON
             ) {
                 val idx = sortedNetworks.indexOfFirst {
-                    it.id.equals("AfterNET", ignoreCase = true) ||
-                    it.name.equals("AfterNET", ignoreCase = true)
+                    com.boxlabs.hexdroid.isChatZonaHost(it.host)
                 }
                 if (idx >= 0) {
                     runCatching { listState.animateScrollToItem(idx) }
@@ -724,8 +723,7 @@ fun NetworksScreen(
                         val isConnecting = conn?.connecting == true
                         val status = conn?.status ?: stringResource(R.string.networks_disconnect)
 
-                        val isAfterNet = n.id.equals("AfterNET", ignoreCase = true) ||
-                                         n.name.equals("AfterNET", ignoreCase = true)
+                        val isAfterNet = com.boxlabs.hexdroid.isChatZonaHost(n.host)
 
                         val isDragging = reorder.isDragging(n.id)
 

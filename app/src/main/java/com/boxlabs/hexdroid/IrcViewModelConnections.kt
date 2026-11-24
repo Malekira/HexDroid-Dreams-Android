@@ -928,7 +928,7 @@ internal suspend fun IrcViewModel.connectNetworkInternal(netId: String, force: B
     // Set before the connect coroutine starts so the handshake itself is logged, which
     // is where most of the interesting protocol traffic lives.
     client.rawLogEnabled = _state.value.settings.rawLog
-    client.nickRegainEnabled = _state.value.settings.nickRegainEnabled
+    client.nickRegainEnabled = _state.value.settings.nickRegainEnabled && !isChatZonaHost(profile.host)
     client.ctcpIgnored = { nick, userHost -> isIgnoredSender(netId, nick, IgnoreType.CTCP, userHost) }
     // Wire localized status text into the protocol engine (and its session).
     client.strings = { id, args -> appContext.getString(id, *args) }

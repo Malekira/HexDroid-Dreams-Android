@@ -190,6 +190,11 @@ fun NetworkEditScreen(
         }
     }
 
+    var chatZonaAccount by remember(n0.id) { mutableStateOf(n0.chatZonaAccount) }
+    var chatZonaPassword by remember(n0.id, n0.chatZonaPassword) { mutableStateOf(n0.chatZonaPassword.orEmpty()) }
+    var chatZonaModes by remember(n0.id) { mutableStateOf(n0.chatZonaModes) }
+    var chatZonaKeepModes by remember(n0.id) { mutableStateOf(n0.chatZonaKeepModes) }
+    var chatZonaExternalMessages by remember(n0.id) { mutableStateOf(n0.chatZonaExternalMessages) }
     var serverPassword by remember(n0.id, n0.serverPassword) { mutableStateOf(n0.serverPassword ?: "") }
     var autoConnect by remember(n0.id) { mutableStateOf(n0.autoConnect) }
     var showInSidebar by remember(n0.id) { mutableStateOf(n0.showInSidebar) }
@@ -428,6 +433,7 @@ fun NetworkEditScreen(
                         }
 
                         if (!validAvatarUrl(avatarUrl.trim())) return@Button
+                        if (com.boxlabs.hexdroid.isChatZonaHost(host) && !com.boxlabs.hexdroid.validChatZonaLogin(chatZonaAccount.trim(), chatZonaPassword)) return@Button
                         onSave(
                             n0.copy(
                                 name = name.trim().ifBlank { ctx.getString(R.string.network_default_name) },
@@ -465,6 +471,11 @@ fun NetworkEditScreen(
                                 bouncerNetworkName = bouncerNetworkName.trim().takeIf { it.isNotBlank() },
                                 bouncerClientId = bouncerClientId.trim().takeIf { it.isNotBlank() },
                                 autoCommandDelaySeconds = postDelayText.toIntOrNull() ?: 0,
+                                chatZonaAccount = chatZonaAccount.trim(),
+                                chatZonaPassword = chatZonaPassword.takeIf { it.isNotEmpty() },
+                                chatZonaModes = chatZonaModes,
+                                chatZonaKeepModes = chatZonaKeepModes,
+                                chatZonaExternalMessages = chatZonaExternalMessages,
                                 serviceAuthCommand = serviceAuthCommand.trim().takeIf { it.isNotBlank() },
                                 autoCommandsText = autoCommandsText,
                                 encoding = encoding,
@@ -1008,7 +1019,14 @@ fun NetworkEditScreen(
                 )
             }
 
-            CardSection(stringResource(R.string.network_section_sasl), visible = shown(NetEditSection.SASL)) {
+            if (com.boxlabs.hexdroid.isChatZonaHost(host)) {
+                CardSection("Cuenta y modos de ChatZona", visible = shown(NetEditSection.IDENTITY) || shown(NetEditSection.SASL)) {
+                    ChatZonaAccountSettings(chatZonaAccount, chatZonaPassword, chatZonaModes, chatZonaKeepModes, chatZonaExternalMessages,
+                        onAccount = { chatZonaAccount = it }, onPassword = { chatZonaPassword = it },
+                        onModes = { chatZonaModes = it }, onKeep = { chatZonaKeepModes = it }, onExternal = { chatZonaExternalMessages = it })
+                }
+            }
+            CardSection(stringResource(R.string.network_section_sasl), visible = !com.boxlabs.hexdroid.isChatZonaHost(host) && shown(NetEditSection.SASL)) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

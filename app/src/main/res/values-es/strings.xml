@@ -7,7 +7,7 @@
     <string name="welcome_language_label">Idioma</string>
     <string name="welcome_nick_label">Apodo</string>
     <string name="welcome_nick_hint">Elige tu apodo de IRC</string>
-    <string name="welcome_nick_helper">Se usará en todos los perfiles de servidor predeterminados.</string>
+    <string name="welcome_nick_helper">Tu nick en ChatZona. La cuenta y la clave son opcionales en la configuración del servidor.</string>
     <string name="welcome_continue">Continuar</string>
     <string name="welcome_nick_error_empty">El apodo no puede estar vacío</string>
     <string name="welcome_nick_error_invalid">El apodo contiene caracteres no válidos</string>
@@ -221,7 +221,7 @@
     <string name="networks_edit">Editar</string>
     <string name="networks_add">Agregar red</string>
     <string name="networks_empty_title">Todavía no hay redes</string>
-    <string name="networks_empty_body">Agrega una red para empezar. AfterNET es un buen punto de partida si no estás seguro.</string>
+    <string name="networks_empty_body">Agrega ChatZona para empezar: irc.chatzona.org con SSL activado.</string>
     <string name="networks_auto_connect">Auto-conectar</string>
     <string name="network_edit_title">Editar red</string>
     <string name="network_add_title">Añadir red</string>
@@ -248,7 +248,7 @@
 
     <!-- Tour steps -->
     <string name="tour_add_network_title">Tus redes</string>
-    <string name="tour_add_network_body">Toca + para añadir un servidor o edita los que ya están. HexDroid incluye varios por defecto.</string>
+    <string name="tour_add_network_body">ChatZona viene configurada con SSL. Edita el servidor para ingresar tu cuenta opcional y elegir tus modos.</string>
     <string name="tour_connect_title">Conectar</string>
     <string name="tour_connect_body">Toca Conectar para abrir una conexión. Puedes tener varias redes conectadas a la vez.</string>
     <string name="tour_switcher_title">Lista de búferes</string>
@@ -264,9 +264,9 @@
     <string name="tour_send_file_title">Enviar un archivo</string>
     <string name="tour_send_file_body">Introduce el nick de destino y elige un archivo del almacenamiento. Las ofertas DCC entrantes también aparecen aquí, acéptalas o recházalas desde las notificaciones.</string>
     <string name="tour_support_title">¿Necesitas ayuda?</string>
-    <string name="tour_support_body">Conéctate a AfterNET y únete a #HexDroid para soporte, sugerencias o simplemente para charlar con otros usuarios de HexDroid.</string>
-    <string name="tour_support_fallback">AfterNET aún no está en tu lista: toca Añadir AfterNET para añadirlo, luego conéctate y únete a #HexDroid para obtener soporte.</string>
-    <string name="tour_support_action">Añadir AfterNET</string>
+    <string name="tour_support_body">Abre la configuración de ChatZona para ajustar tu cuenta y tus modos. Después conéctate y elige una sala.</string>
+    <string name="tour_support_fallback">ChatZona aún no está en tu lista. Toca Agregar ChatZona para recuperar su perfil con SSL.</string>
+    <string name="tour_support_action">Agregar ChatZona</string>
     <string name="tour_replay_title">Repetir esta visita guiada</string>
     <string name="tour_replay_body">Puedes ejecutar el recorrido de nuevo desde Ajustes → Acerca de. Toca Listo para terminar.</string>
 

@@ -98,6 +98,7 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         }
                     }
                     is IrcEvent.Disconnected -> {
+                        chatZonaRuns.remove(netId)
                         RemoteBitmaps.invalidateScope(netId)
                         setNetConn(netId) { it.copy(avatarUrls = emptyMap(), avatarAliasUrls = emptyMap(), legacyAvatarUrls = emptyMap(),
                             primaryAvatarNicks = emptySet(), avatarRevision = it.avatarRevision + 1) }
@@ -485,6 +486,10 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                     }
                     is IrcEvent.ServerText -> {
                         val code = ev.code
+                        if (code == "313") {
+                            val nick = ev.whoisNick ?: ev.whoisParams.getOrNull(1)
+                            if (nick != null) noteOper(netId, nick, true, ev.text.contains("admin", ignoreCase = true))
+                        }
                         if (code == "311") {
                             val who = ev.whoisNick ?: ev.whoisParams.getOrNull(1)
                             if (who != null && ev.whoisTrailing != null) noteWebPhoto(netId, who, ev.whoisTrailing)
@@ -916,9 +921,10 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         maybeRegisterWebPush(netId)
 
                         viewModelScope.launch {
+                            if (profile != null && !prepareChatZona(netId, profile)) return@launch
                             // Service auth command (e.g. /msg NickServ IDENTIFY password)
                             //    Runs first, before autojoin, so channels with +r can be joined.
-                            profile?.serviceAuthCommand?.takeIf { it.isNotBlank() }?.let { cmd ->
+                            profile?.serviceAuthCommand?.takeIf { it.isNotBlank() && profile.chatZonaAccount.isBlank() }?.let { cmd ->
                                 val trimmed = cmd.trim()
                                 if (trimmed.startsWith("/")) {
                                     // Client command aliases
@@ -995,6 +1001,13 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         }
                     }
                     is IrcEvent.NickChanged -> {
+                        if (!ev.isHistory) setNetConn(netId) { connection ->
+                            val old = casefoldText(netId, ev.oldNick)
+                            val next = casefoldText(netId, ev.newNick)
+                            connection.copy(
+                                operNicks = if (old in connection.operNicks) connection.operNicks - old + next else connection.operNicks,
+                                adminNicks = if (old in connection.adminNicks) connection.adminNicks - old + next else connection.adminNicks)
+                        }
                         if (!ev.isHistory) scriptEvent(
                             "NICK", netId, "", ev.oldNick,
                             isMe = isMyNick(netId, ev.oldNick) || isMyNick(netId, ev.newNick),

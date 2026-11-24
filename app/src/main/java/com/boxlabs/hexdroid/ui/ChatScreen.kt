@@ -1591,11 +1591,9 @@ fun ChatScreen(
             // Declared here (inside NicklistContent) so it captures sortedBaseNicks
             // and bgLum from the outer composable scope without needing to be passed
             // as a parameter. Rebuilds only when the nicklist or theme changes.
-            val nicklistBgLum = personalColors.color(ThemeRole.NICKLIST, MaterialTheme.colorScheme.surface).luminance()
-            val nicklistColorMap = remember(sortedBaseNicks, nicklistBgLum) {
-                val colors = NickColors.nicklistColors(sortedBaseNicks, nicklistBgLum)
-                sortedBaseNicks.zip(colors).toMap<String, Color>()
-            }
+            val nicklistBackground = personalColors.color(ThemeRole.NICKLIST, MaterialTheme.colorScheme.surface)
+            val nicklistBgLum = nicklistBackground.luminance()
+
 
             LazyColumn(Modifier.fillMaxSize()) {
                 items(nicklist) { n ->
@@ -1646,11 +1644,11 @@ fun ChatScreen(
                         }
                         Text(
                             n,
-                            color = if (state.settings.colorizeNicks)
-                                metadataNickColor(cleaned.lowercase(), nicklistBgLum)
-                                    ?: nicklistColorMap[cleaned.lowercase()]
-                                    ?: NickColors.colorForNick(cleaned.lowercase(), nicklistBgLum)
-                            else Color.Unspecified,
+                            color = Color(com.boxlabs.hexdroid.readableThemeText(nickListRoleColor(
+                                com.boxlabs.hexdroid.nickListRole(n, state.connections[selNetId] ?: com.boxlabs.hexdroid.NetConnState()),
+                                nicklistBgLum,
+                                MaterialTheme.colorScheme.onSurface
+                            ).toArgb(), nicklistBackground.toArgb())),
                             fontSize = nickFontSp.sp,
                             lineHeight = (nickFontSp * 1.15f).sp,
                             maxLines = 1,

@@ -9,7 +9,7 @@ internal fun isSystemConversation(name: String, bots: Set<String>, caseMapping: 
     if (name == MENTIONS_BUFFER) return false
     if (name.startsWith("*") || name.startsWith("DCCCHAT:")) return true
     val folded = ircCasefold(name, caseMapping)
-    val services = setOf("NickServ", "ChanServ", "MemoServ", "OperServ", "HostServ", "BotServ", "AuthServ", "HelpServ", "Global", "BouncerServ")
+    val services = setOf("Nick", "Chan", "IPVirtual", "NickServ", "ChanServ", "MemoServ", "OperServ", "HostServ", "BotServ", "AuthServ", "HelpServ", "Global", "BouncerServ")
     return services.any { ircCasefold(it, caseMapping) == folded } ||
         bots.any { ircCasefold(it, caseMapping) == folded }
 }

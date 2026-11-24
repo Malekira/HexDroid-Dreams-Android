@@ -41,6 +41,7 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
             if (isMe) {
                 val acct = ev.account.takeIf { it != "*" && it.isNotBlank() }
                 setNetConn(netId) { it.copy(myAccount = acct) }
+                if (acct != null) onChatZonaAccount(netId)
             }
             // Keep authentication state without announcing logins/logouts in chat.
         }
@@ -342,6 +343,7 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
 
         is IrcEvent.WhoxReply -> {
             ev.realname?.let { noteWebPhoto(netId, ev.nick, it) }
+            ev.isOper?.let { noteOper(netId, ev.nick, it) }
             // WHOX 354 reply: update away status from flags field.
             val fold = casefoldText(netId, ev.nick)
 

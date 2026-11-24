@@ -138,7 +138,7 @@ class NickCompletionWindowsUiTest {
         val nicklistLayouts = mutableListOf<TextLayoutResult>()
         compose.onNodeWithText("@Alice", useUnmergedTree = true)
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(nicklistLayouts) }
-        assertEquals(com.boxlabs.hexdroid.ui.NickColors.nicklistColors(listOf("alice"), 0f).single(), nicklistLayouts.single().layoutInput.style.color)
+        assertEquals(com.boxlabs.hexdroid.ui.nickListRoleColor(NickListRole.OP, 0f, Color.White), nicklistLayouts.single().layoutInput.style.color)
         fun nickColor(): Color {
             val layouts = mutableListOf<TextLayoutResult>()
             compose.onNodeWithText("mensaje de prueba", substring = true, useUnmergedTree = true)

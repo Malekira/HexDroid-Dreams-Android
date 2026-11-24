@@ -722,6 +722,7 @@ class IrcViewModel(
      * pay zero startup cost.
      */
     val e2eKeyStore = com.boxlabs.hexdroid.crypto.E2eKeyStore(repo.secretStore)
+    internal val chatZonaRuns = java.util.concurrent.ConcurrentHashMap<String, ChatZonaRun>()
     internal val dcc = DccManager(appContext)
 
     internal data class DccChatSession(
@@ -836,6 +837,7 @@ class IrcViewModel(
             }
         }
         viewModelScope.launch {
+            if (BuildConfig.LITE_BUILD) repo.ensureChatZonaOnly()
             repo.migrateLegacySecretsIfNeeded()
             repo.migrateLegacyQuitMessageIfNeeded()
             var prevLogFolderUri: String? = null
@@ -896,6 +898,7 @@ class IrcViewModel(
             }
         }
         viewModelScope.launch {
+            if (BuildConfig.LITE_BUILD) repo.ensureChatZonaOnly()
             repo.networksFlow.collect { nets ->
                 val st = _state.value
                 val active = st.activeNetworkId ?: nets.firstOrNull()?.id
@@ -1370,11 +1373,11 @@ class IrcViewModel(
     fun addAfterNetDefaults() {
         viewModelScope.launch {
             val st = _state.value
-            val exists = st.networks.any { it.id.equals("AfterNET", ignoreCase = true) || it.name.equals("AfterNET", ignoreCase = true) }
+            val exists = st.networks.any { isChatZonaHost(it.host) }
             if (exists) return@launch
 
             // The same profile a fresh install starts with.
-            val n = repo.defaultNetworks().firstOrNull { it.id == "AfterNET" } ?: return@launch
+            val n = repo.defaultNetworks().firstOrNull() ?: return@launch
             repo.upsertNetwork(n)
         }
     }
@@ -1437,7 +1440,8 @@ fun startAddNetwork() {
             val withSecrets = n.copy(
                 serverPassword = serverPass,
                 saslPassword = saslPass,
-                proxyPassword = proxyPass
+                proxyPassword = proxyPass,
+                chatZonaPassword = withContext(Dispatchers.IO) { repo.secretStore.getChatZonaPassword(id) }
             )
 
             val st1 = _state.value
@@ -1487,11 +1491,18 @@ fun startAddNetwork() {
     fun saveEditingNetwork(profile: NetworkProfile, clientCertDraft: ClientCertDraft?, removeClientCert: Boolean) {
         viewModelScope.launch {
             _state.value = _state.value.copy(networkEditError = null)
+            if (isChatZonaHost(profile.host) && !validChatZonaLogin(profile.chatZonaAccount, profile.chatZonaPassword.orEmpty())) {
+                _state.value = _state.value.copy(networkEditError = "Completa nick y clave de ChatZona o deja ambos vacíos.")
+                return@launch
+            }
             // SecretStore writes go through Android Keystore, which throws when the keystore has
             // been invalidated (lock-screen or fingerprint change, OEM corruption) and its one
             // internal retry also fails. Report that on the edit screen and leave the stored
             // credentials untouched.
             val secretsResult = withContext(Dispatchers.IO) { runCatching {
+                if (!profile.chatZonaPassword.isNullOrEmpty()) repo.secretStore.setChatZonaPassword(profile.id, profile.chatZonaPassword)
+                else repo.secretStore.clearChatZonaPassword(profile.id)
+
                 if (profile.saslEnabled) {
                     val p = profile.saslPassword?.trim()
                     if (!p.isNullOrBlank()) {
@@ -1532,7 +1543,8 @@ fun startAddNetwork() {
                 return@launch
             }
 
-            var updated = profile.copy(
+            var updated = profile.copy(chatZonaPassword = null,
+                nick = if (isChatZonaHost(profile.host) && profile.chatZonaAccount.isNotBlank()) profile.chatZonaAccount else profile.nick,
                 saslPassword = null,
                 serverPassword = null,
                 proxyPassword = null,
@@ -1578,6 +1590,7 @@ fun startAddNetwork() {
             }
 
             repo.upsertNetwork(updated)
+            applyChatZonaModes(updated)
             if (profileAvatarChanged(stored?.avatarUrl, updated.avatarUrl)) {
                 updated.avatarUrl?.let { setOwnMetadata(updated.id, "avatar", it.ifEmpty { null }) }
             }
@@ -1612,7 +1625,8 @@ fun startAddNetwork() {
 
     /** The account service to offer for [networkId]: AuthServ once it has spoken there, else NickServ. */
     fun accountService(networkId: String): String =
-        if (networkId in authServNetworks) "AuthServ" else "NickServ"
+        if (_state.value.networks.any { it.id == networkId && isChatZonaHost(it.host) }) "Nick"
+        else if (networkId in authServNetworks) "AuthServ" else "NickServ"
 
     /**
      * Ask the account service ([service], NickServ or AuthServ) to add [fingerprint] to the account
@@ -1631,6 +1645,7 @@ fun startAddNetwork() {
         viewModelScope.launch {
             repo.deleteNetwork(id)
             repo.secretStore.clearSaslPassword(id)
+            repo.secretStore.clearChatZonaPassword(id)
             repo.secretStore.clearServerPassword(id)
             repo.secretStore.clearProxyPassword(id)
             // Drop every E2E key configured for this network's targets - the profile
@@ -1836,6 +1851,7 @@ fun startAddNetwork() {
                         runCatching { repo.secretStore.clearSaslPassword(id) }
                         runCatching { repo.secretStore.clearServerPassword(id) }
                         runCatching { repo.secretStore.clearProxyPassword(id) }
+                        runCatching { repo.secretStore.clearChatZonaPassword(id) }
                         // Client cert lookup requires the certId stored on the (now-deleted) profile;
                         // we no longer have that reference after the import overwrites NETWORKS_JSON,
                         // so cert files under /client_certs/*.bin for deleted profiles may still
@@ -2721,6 +2737,7 @@ fun startAddNetwork() {
     // IRC event handling
 
     internal fun handleEvent(netId: String, ev: IrcEvent) {
+        if (ev is IrcEvent.Quit && !ev.isHistory) noteOper(netId, ev.nick, false)
         when (ev) {
             is IrcEvent.Status, is IrcEvent.Connected, is IrcEvent.LagUpdated,
             is IrcEvent.Disconnected, is IrcEvent.RawLine, is IrcEvent.SendResolved,

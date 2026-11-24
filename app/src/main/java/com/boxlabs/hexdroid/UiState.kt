@@ -516,6 +516,8 @@ data class NetConnState(
      * a `bot` message tag. Used to badge them in the member list and nick sheet.
      */
     val botNicks: Set<String> = emptySet(),
+    val operNicks: Set<String> = emptySet(),
+    val adminNicks: Set<String> = emptySet(),
 )
 
 /** Phase of a draft/account-registration flow, for the registration dialog. */

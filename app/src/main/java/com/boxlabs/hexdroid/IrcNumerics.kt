@@ -487,7 +487,7 @@ internal fun IrcClient.buildNumericHandlers(
                 if(ident.isNotBlank() && host.isNotBlank()) noteUser(nick,ident,host,account ?: "*")
                 send(IrcEvent.WhoxReply(nick,ident,host,account,
                     flags?.firstOrNull { it=='H' || it=='G' }?.let { it=='G' },
-                    botModeChar?.let { flags?.contains(it)==true } ?: false,fields['r']))
+                    botModeChar?.let { flags?.contains(it)==true } ?: false,fields['r'],flags?.contains('*')))
             }
             val buffer=request?.buffer ?: if(spec==null) currentWho()?.buffer else null
             if(buffer!=null) {
@@ -510,7 +510,7 @@ internal fun IrcClient.buildNumericHandlers(
             val isAway = flags?.firstOrNull { it == 'H' || it == 'G' }?.let { it == 'G' }
             val isBot = botModeChar?.let { bc -> flags?.contains(bc) == true } ?: false
             noteUser(nick, ident, host)
-            send(IrcEvent.WhoxReply(nick = nick, ident = ident, host = host, account = null, isAway = isAway, isBot = isBot, realname = msg.trailing?.substringAfter(' ', "")))
+            send(IrcEvent.WhoxReply(nick = nick, ident = ident, host = host, account = null, isAway = isAway, isBot = isBot, realname = msg.trailing?.substringAfter(' ', ""), isOper = flags?.contains('*')))
             val chan = msg.params.getOrNull(1) ?: "*"
             val buffer = currentWho(chan.takeIf { isChannelName(it) })?.buffer ?: return@handler
             val server = msg.params.getOrNull(4)?.let { " ($it)" } ?: ""
