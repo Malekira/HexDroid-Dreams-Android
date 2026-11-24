@@ -21,7 +21,14 @@ internal suspend fun IrcViewModel.prepareChatZona(net: String, profile: NetworkP
     val client = runtimes[net]?.client ?: return false
     val run = ChatZonaRun(client)
     chatZonaRuns[net] = run
-    val password = withContext(Dispatchers.IO) { repo.secretStore.getChatZonaPassword(net) }.orEmpty()
+    val passwordResult = withContext(Dispatchers.IO) { runCatching { repo.secretStore.getChatZonaPassword(net) } }
+    if (passwordResult.isFailure) {
+        run.pending = false
+        if (currentChatZonaRun(net,run)) append(bufKey(net,"*server*"),null,
+            "*** No se pudo leer la clave cifrada de ChatZona. Revisa la configuración del servidor.",doNotify=false)
+        return false
+    }
+    val password = passwordResult.getOrNull().orEmpty()
     if (profile.chatZonaAccount.isBlank() && password.isEmpty()) {
         run.pending = false
         if (_state.value.connections[net]?.myAccount != null) finishChatZona(net, profile, run)
@@ -42,7 +49,7 @@ internal suspend fun IrcViewModel.prepareChatZona(net: String, profile: NetworkP
     if (confirmed == null || !currentChatZonaRun(net,run)) {
         run.pending = false
         if (currentChatZonaRun(net,run)) append(bufKey(net,"*server*"),null,
-            "*** ChatZona no confirmó el login. Las entradas automáticas quedan pendientes.",doNotify=false)
+            "*** ChatZona no confirmó el login. No se enviaron entradas automáticas.",doNotify=false)
         return false
     }
     run.pending = false

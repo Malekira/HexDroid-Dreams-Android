@@ -78,7 +78,7 @@ internal fun IrcViewModel.handleMessageEvent(netId: String, ev: IrcEvent) {
             // Bot Mode: a `bot`-tagged message is proof the sender is a bot; remember it
             // so the member list and nick sheet can badge them even before a WHO.
             if (ev.fromBot) markBotInState(netId, ev.from)
-            if (ev.fromOper) noteOper(netId, ev.from, true)
+            if (ev.fromOper && !ev.isHistory) noteOper(netId, ev.from, true)
             // The echo of a line shown when it was sent, matched to its send by the client.
             val ownAnswer = ev.ownSendId?.let { takeOwnSend(netId, it) }
             if (ownAnswer?.finished == true) {
@@ -178,7 +178,7 @@ internal fun IrcViewModel.handleMessageEvent(netId: String, ev: IrcEvent) {
         }
         is IrcEvent.Notice -> {
             if (ev.fromBot) markBotInState(netId, ev.from)
-            if (ev.fromOper) noteOper(netId, ev.from, true)
+            if (ev.fromOper && !ev.isHistory) noteOper(netId, ev.from, true)
             // Drop empty-bodied notices, as for PRIVMSG above; encoding-mangled but non-empty
             // text is kept.
             if (ev.text.isEmpty()) return

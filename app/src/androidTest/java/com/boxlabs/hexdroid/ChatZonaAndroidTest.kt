@@ -90,6 +90,24 @@ class ChatZonaAndroidTest {
         flow(busy = false, replaceConnection = true)
     }
 
+    @Test fun operatorUpdatesPreserveAdminRankAndStayIsolatedByNetwork() = runBlocking {
+        val repo = SettingsRepository(context)
+        val store = ViewModelStore()
+        lateinit var vm: IrcViewModel
+        withContext(Dispatchers.Main) { vm = IrcViewModel(repo, context); store.put("roles", vm) }
+        try {
+            withTimeout(10000) { vm.state.first { it.settingsLoaded } }
+            withContext(Dispatchers.Main) {
+                vm.noteOper("roles-a", "[Admin]", true, true)
+                vm.noteOper("roles-a", "{admin}", true)
+                assertEquals(NickListRole.ADMIN, nickListRole("[Admin]", vm.state.value.connections.getValue("roles-a")))
+                assertEquals(NickListRole.NORMAL, nickListRole("[Admin]", NetConnState()))
+                vm.noteOper("roles-a", "[Admin]", false)
+                assertEquals(NickListRole.NORMAL, nickListRole("[Admin]", vm.state.value.connections.getValue("roles-a")))
+            }
+        } finally { withContext(Dispatchers.Main) { store.clear() } }
+    }
+
     private suspend fun flow(busy: Boolean, replaceConnection: Boolean = false) = coroutineScope {
         val server = LocalServer(busy)
         val client = IrcClient(IrcConfig(host = "127.0.0.1", port = server.port, useTls = false,

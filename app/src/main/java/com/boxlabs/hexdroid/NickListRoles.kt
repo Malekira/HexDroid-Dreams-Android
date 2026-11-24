@@ -22,12 +22,16 @@ internal fun nickListRole(display: String, connection: NetConnState): NickListRo
     }
 }
 
-internal fun IrcViewModel.noteOper(netId: String, nick: String, oper: Boolean, admin: Boolean = false) {
+internal fun IrcViewModel.noteOper(netId: String, nick: String, oper: Boolean, admin: Boolean? = null) {
     val key = casefoldText(netId, nick)
     setNetConn(netId) { connection ->
         connection.copy(
             operNicks = if (oper) connection.operNicks + key else connection.operNicks - key,
-            adminNicks = if (admin) connection.adminNicks + key else connection.adminNicks - key
+            adminNicks = when {
+                !oper || admin == false -> connection.adminNicks - key
+                admin == true -> connection.adminNicks + key
+                else -> connection.adminNicks
+            }
         )
     }
 }

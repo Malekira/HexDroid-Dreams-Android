@@ -1851,6 +1851,7 @@ fun startAddNetwork() {
                         runCatching { repo.secretStore.clearSaslPassword(id) }
                         runCatching { repo.secretStore.clearServerPassword(id) }
                         runCatching { repo.secretStore.clearProxyPassword(id) }
+                        runCatching { repo.secretStore.clearChatZonaPassword(id) }
                         // Client cert lookup requires the certId stored on the (now-deleted) profile;
                         // we no longer have that reference after the import overwrites NETWORKS_JSON,
                         // so cert files under /client_certs/*.bin for deleted profiles may still
@@ -2736,6 +2737,7 @@ fun startAddNetwork() {
     // IRC event handling
 
     internal fun handleEvent(netId: String, ev: IrcEvent) {
+        if (ev is IrcEvent.Quit && !ev.isHistory) noteOper(netId, ev.nick, false)
         when (ev) {
             is IrcEvent.Status, is IrcEvent.Connected, is IrcEvent.LagUpdated,
             is IrcEvent.Disconnected, is IrcEvent.RawLine, is IrcEvent.SendResolved,
