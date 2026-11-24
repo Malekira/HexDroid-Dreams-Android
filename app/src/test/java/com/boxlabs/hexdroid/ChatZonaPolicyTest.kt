@@ -14,7 +14,7 @@ class ChatZonaPolicyTest {
         assertEquals("MiNick01", chatZonaFallbackNick("MiNick", 1))
         assertEquals("MiNick02", chatZonaFallbackNick("MiNick", 2))
         assertEquals("MiNick101", chatZonaFallbackNick("MiNick", 101))
-        assertEquals("NickLo01", chatZonaFallbackNick("NickLargo", 1, 8))
+        assertEquals("NickLa01", chatZonaFallbackNick("NickLargo", 1, 8))
         assertEquals("[Nick]01", chatZonaFallbackNick("[Nick]", 1))
     }
     @Test fun credentialsAreOptionalButCannotInjectCommands() {

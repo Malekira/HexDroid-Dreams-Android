@@ -99,10 +99,6 @@ class ChatZonaAndroidTest {
         val repo = SettingsRepository(context)
         val store = ViewModelStore()
         val id = "chatzona-flow-" + System.nanoTime()
-        val server = LocalServer(busy)
-        val client = IrcClient(IrcConfig(host = "127.0.0.1", port = server.port,
-            useTls = false, allowInvalidCerts = false, nick = "MiNick01", altNick = null,
-            username = "u", realname = "r", isBouncer = true))
         val profile = repo.defaultNetworks().single().copy(id = id, nick = "MiNick", chatZonaAccount = "MiNick",
             chatZonaModes = "iIgR", chatZonaKeepModes = true, chatZonaExternalMessages = true)
         lateinit var vm: IrcViewModel
