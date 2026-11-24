@@ -86,7 +86,7 @@ internal fun parseMultilineLimits(raw: String?): MultilineLimits {
 }
 
 /** Nicknames that reach a network service, lowercased. */
-private val SERVICE_NICKS = setOf(
+private val SERVICE_NICKS = setOf("nick", "chan", 
     "nickserv", "chanserv", "authserv", "hostserv", "operserv", "botserv", "memoserv",
     "ns", "cs", "hs", "os", "bs", "ms", "x", "q", "l", "w",
 )
@@ -146,6 +146,7 @@ internal fun redactRawLine(line: String): String {
     return when {
         // PASS <password>, and the bouncer form PASS <user>/<network>:<password>.
         verb == "PASS" -> hide("")
+        verb == "LOGIN" -> hide(args.substringBefore(' '))
         // AUTHENTICATE <base64>. "+" and "*" are protocol markers and the first line is
         // the mechanism name, all of which are worth seeing; only the payload is secret.
         verb == "AUTHENTICATE" && args.isNotBlank() && args != "+" && args != "*" &&

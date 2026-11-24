@@ -9,8 +9,9 @@ android {
         applicationId = "com.malekira.hexdroid.personal"
         minSdk = 26
         targetSdk = 37
-        versionCode = 59
-        versionName = "1.0.20"
+        versionCode = 60
+        versionName = "1.0.21"
+        buildConfigField("boolean", "LITE_BUILD", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     // Release signing
@@ -114,6 +115,14 @@ android {
             // the signingConfigs block.
             signingConfig = if (signingRequested) signingConfigs.getByName("release") else null
         }
+    }
+    buildTypes.create("lite") {
+        initWith(buildTypes.getByName("release"))
+        applicationIdSuffix = ".debug"
+        signingConfig = signingConfigs.getByName("debug")
+        isDebuggable = false
+        matchingFallbacks += "release"
+        buildConfigField("boolean", "LITE_BUILD", "true")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

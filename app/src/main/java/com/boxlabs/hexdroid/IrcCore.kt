@@ -2495,6 +2495,7 @@ class IrcClient(val config: IrcConfig) {
             }
         }
 
+        var chatZonaNickAttempt = 0
         val irc = IrcSession(config, rng).also { it.strings = strings }
         sessionRef = irc
         // Read-loop state lives in class fields so the handlers outside events() can reach it.
@@ -2694,7 +2695,14 @@ class IrcClient(val config: IrcConfig) {
 						val sent = lastNickTried ?: config.nick
 						val rejected = msg.params.getOrNull(1)?.takeIf { it != "*" }
 						if (rejected != null && rejected.length < sent.length) observedNickLen = rejected.length
-						val alt = config.altNick
+						if (isChatZonaHost(config.host)) {
+                            val next = chatZonaFallbackNick(config.nick, ++chatZonaNickAttempt, observedNickLen ?: 30)
+                            lastNickTried = next
+                            writeLine("NICK $next")
+                            send(IrcEvent.Status(tr(R.string.core_nick_in_use_next, next)))
+                            continue
+                        }
+                        val alt = config.altNick
 						if (!triedAltNick && !alt.isNullOrBlank()) {
 							triedAltNick = true
 							lastNickTried = alt

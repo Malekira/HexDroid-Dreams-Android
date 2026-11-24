@@ -696,6 +696,10 @@ class SettingsRepository(private val ctx: Context) {
                         } ?: emptyList(),
     
                         autoCommandDelaySeconds = o.optInt("autoCommandDelaySeconds", 0),
+                        chatZonaAccount = o.optString("chatZonaAccount", ""),
+                        chatZonaModes = o.optString("chatZonaModes", "").filter { it in "iIgR" },
+                        chatZonaKeepModes = o.optBoolean("chatZonaKeepModes", false),
+                        chatZonaExternalMessages = o.optBoolean("chatZonaExternalMessages", false),
                         serviceAuthCommand = o.optString("serviceAuthCommand", "").takeIf { it.isNotBlank() },
                         autoCommandsText = o.optString("autoCommandsText", ""),
     
@@ -836,6 +840,10 @@ class SettingsRepository(private val ctx: Context) {
             }
 
             o.put("autoCommandDelaySeconds", n.autoCommandDelaySeconds)
+            o.put("chatZonaAccount", n.chatZonaAccount)
+            o.put("chatZonaModes", n.chatZonaModes.filter { it in "iIgR" })
+            o.put("chatZonaKeepModes", n.chatZonaKeepModes)
+            o.put("chatZonaExternalMessages", n.chatZonaExternalMessages)
             o.put("serviceAuthCommand", n.serviceAuthCommand ?: "")
             o.put("autoCommandsText", n.autoCommandsText)
 
@@ -875,146 +883,29 @@ class SettingsRepository(private val ctx: Context) {
     }
 
     internal fun defaultNetworks(): List<NetworkProfile> = listOf(
-        NetworkProfile(
-            id = "AfterNET",
-            name = "AfterNET",
-            host = "irc.afternet.org",
-            port = 6697,
-            useTls = true,
-            allowInvalidCerts = false,
-            serverPassword = null,
-            nick = "HexDroidUser",
-            altNick = "HexDroidUser",
-            username = "hexdroid",
-            realname = "HexDroid IRC for Android",
-            saslEnabled = false,
-            saslMechanism = SaslMechanism.PLAIN,
-            saslAuthcid = null,
-            saslPassword = null,
-            caps = CapPrefs(),
-            autoJoin = listOf(AutoJoinChannel("#hexdroid", null))
-        ),
-        NetworkProfile(
-            id = "Libera",
-            name = "Libera.Chat",
-            host = "irc.libera.chat",
-            port = 6697,
-            useTls = true,
-            allowInvalidCerts = false,
-            serverPassword = null,
-            nick = "HexDroidUser",
-            altNick = "HexDroidUser",
-            username = "hexdroid",
-            realname = "HexDroid IRC for Android",
-            saslEnabled = false,
-            saslMechanism = SaslMechanism.PLAIN,
-            saslAuthcid = null,
-            saslPassword = null,
-            caps = CapPrefs(),
-            autoJoin = emptyList(),
-            showInSidebar = false
-        ),
-        NetworkProfile(
-            id = "Rizon",
-            name = "Rizon",
-            host = "irc.rizon.net",
-            port = 6697,
-            useTls = true,
-            allowInvalidCerts = false,
-            serverPassword = null,
-            nick = "HexDroid",
-            altNick = "HexDroidUser",
-            username = "hexdroid",
-            realname = "HexDroid IRC for Android",
-            saslEnabled = false,
-            saslMechanism = SaslMechanism.PLAIN,
-            saslAuthcid = null,
-            saslPassword = null,
-            caps = CapPrefs(),
-            autoJoin = emptyList(),
-            showInSidebar = false
-        ),
-        NetworkProfile(
-            id = "Undernet",
-            name = "Undernet",
-            host = "irc.undernet.org",
-            port = 6697,
-            useTls = true,
-            allowInvalidCerts = false,
-            serverPassword = null,
-            nick = "HexDroid",
-            altNick = "HexDroidUser",
-            username = "hexdroid",
-            realname = "HexDroid IRC for Android",
-            saslEnabled = false,
-            saslMechanism = SaslMechanism.PLAIN,
-            saslAuthcid = null,
-            saslPassword = null,
-            caps = CapPrefs(),
-            autoJoin = emptyList(),
-            showInSidebar = false
-        ),
-        NetworkProfile(
-            id = "EFnet",
-            name = "EFnet",
-            host = "irc.efnet.org",
-            port = 6697,
-            useTls = true,
-            allowInvalidCerts = false,
-            serverPassword = null,
-            nick = "HexDroid",
-            altNick = "HexDroidUser",
-            username = "hexdroid",
-            realname = "HexDroid IRC for Android",
-            saslEnabled = false,
-            saslMechanism = SaslMechanism.PLAIN,
-            saslAuthcid = null,
-            saslPassword = null,
-            caps = CapPrefs(),
-            autoJoin = emptyList(),
-            showInSidebar = false
-        ),
-        NetworkProfile(
-            id = "QuakeNet",
-            name = "QuakeNet",
-            host = "irc.quakenet.org",
-            port = 6697,
-            useTls = true,
-            allowInvalidCerts = false,
-            serverPassword = null,
-            nick = "HexDroid",
-            altNick = "HexDroidUser",
-            username = "hexdroid",
-            realname = "HexDroid IRC for Android",
-            saslEnabled = false,
-            saslMechanism = SaslMechanism.PLAIN,
-            saslAuthcid = null,
-            saslPassword = null,
-            caps = CapPrefs(),
-            autoJoin = emptyList(),
-            showInSidebar = false
-        ),
-        NetworkProfile(
-            id = "DALnet",
-            name = "DALnet",
-            host = "irc.dal.net",
-            port = 6697,
-            useTls = true,
-            allowInvalidCerts = false,
-            serverPassword = null,
-            nick = "HexDroid",
-            altNick = "HexDroidUser",
-            username = "hexdroid",
-            realname = "HexDroid IRC for Android",
-            saslEnabled = false,
-            saslMechanism = SaslMechanism.PLAIN,
-            saslAuthcid = null,
-            saslPassword = null,
-            caps = CapPrefs(),
-            autoJoin = emptyList(),
-            showInSidebar = false
-        )
+        NetworkProfile(id = "ChatZona", name = "ChatZona", host = "irc.chatzona.org", port = 6697,
+            useTls = true, allowInvalidCerts = false, nick = "HexDreams", altNick = "HexDreams01",
+            username = "hexdreams", realname = "HexDreams IRC", saslEnabled = false,
+            saslMechanism = SaslMechanism.PLAIN, saslAuthcid = null, saslPassword = null,
+            autoJoin = emptyList())
     )
+
+    /** One-time Lite migration; retain the existing ChatZona identity, secrets and history ID. */
+    suspend fun ensureChatZonaOnly() {
+        val key = booleanPreferencesKey("chatzona_lite_network_v1")
+        ctx.dataStore.edit { prefs ->
+            if (prefs[key] == true) return@edit
+            val old = parseNetworks(prefs[Keys.NETWORKS_JSON])
+            val existing = old.firstOrNull { com.boxlabs.hexdroid.isChatZonaHost(it.host) }
+            val net = (existing ?: defaultNetworks().single()).copy(name = "ChatZona",
+                host = "irc.chatzona.org", port = 6697, useTls = true, allowInsecurePlaintext = false,
+                isBouncer = false, bouncerKind = com.boxlabs.hexdroid.BouncerKind.NONE)
+            prefs[Keys.NETWORKS_JSON] = toNetworksJson(listOf(net)).toString()
+            prefs[Keys.LAST_NETWORK_ID] = net.id
+            prefs[Keys.DESIRED_NETWORK_IDS_JSON] = "[]"
+            prefs[key] = true
+        }
+    }
 
     private fun parseAutoJoinLine(line: String): AutoJoinChannel? {
         val t = line.trim()
@@ -1030,7 +921,7 @@ class SettingsRepository(private val ctx: Context) {
     // -----------------------------------------------------------------------------------------
 
     /** A network's passwords, as carried in an encrypted backup. */
-    data class BackupSecrets(val server: String?, val sasl: String?, val proxy: String?)
+    data class BackupSecrets(val server: String?, val sasl: String?, val proxy: String?, val chatZona: String? = null)
 
     /** The passwords stored for each of [networks], leaving out networks with none. */
     fun collectSecrets(networks: List<NetworkProfile>): Map<String, BackupSecrets> =
@@ -1039,8 +930,9 @@ class SettingsRepository(private val ctx: Context) {
                 server = runCatching { secretStore.getServerPassword(n.id) }.getOrNull()?.takeIf { it.isNotEmpty() },
                 sasl = runCatching { secretStore.getSaslPassword(n.id) }.getOrNull()?.takeIf { it.isNotEmpty() },
                 proxy = runCatching { secretStore.getProxyPassword(n.id) }.getOrNull()?.takeIf { it.isNotEmpty() },
+                chatZona = runCatching { secretStore.getChatZonaPassword(n.id) }.getOrNull()?.takeIf { it.isNotEmpty() },
             )
-        }.filterValues { it.server != null || it.sasl != null || it.proxy != null }
+        }.filterValues { it.server != null || it.sasl != null || it.proxy != null || it.chatZona != null }
 
     /**
      * Produce a JSON string representing the current networks, settings and per-buffer settings.
@@ -1089,6 +981,7 @@ class SettingsRepository(private val ctx: Context) {
                     sec.server?.let { put("server", it) }
                     sec.sasl?.let { put("sasl", it) }
                     sec.proxy?.let { put("proxy", it) }
+                    sec.chatZona?.let { put("chatZona", it) }
                 })
             }
             val bytes = plain.toString().toByteArray(Charsets.UTF_8)
@@ -1138,6 +1031,7 @@ class SettingsRepository(private val ctx: Context) {
                     server = e.optString("server", "").takeIf { it.isNotEmpty() },
                     sasl = e.optString("sasl", "").takeIf { it.isNotEmpty() },
                     proxy = e.optString("proxy", "").takeIf { it.isNotEmpty() },
+                    chatZona = e.optString("chatZona", "").takeIf { it.isNotEmpty() },
                 )
             }
             return out
@@ -1260,6 +1154,7 @@ class SettingsRepository(private val ctx: Context) {
             sec.server?.let { pw -> runCatching { secretStore.setServerPassword(id, pw) } }
             sec.sasl?.let { pw -> runCatching { secretStore.setSaslPassword(id, pw) } }
             sec.proxy?.let { pw -> runCatching { secretStore.setProxyPassword(id, pw) } }
+            sec.chatZona?.let { pw -> runCatching { secretStore.setChatZonaPassword(id, pw) } }
         }
 
         return orphanedIds
@@ -1513,6 +1408,11 @@ data class NetworkProfile(
 
     // Post-connect commands
     val autoCommandDelaySeconds: Int = 0,
+    val chatZonaAccount: String = "",
+    val chatZonaPassword: String? = null, // editor-only; encrypted in SecretStore
+    val chatZonaModes: String = "",
+    val chatZonaKeepModes: Boolean = false,
+    val chatZonaExternalMessages: Boolean = false,
     val serviceAuthCommand: String? = null,
     val autoCommandsText: String = "",
 
