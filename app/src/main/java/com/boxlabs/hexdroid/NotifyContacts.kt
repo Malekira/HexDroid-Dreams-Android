@@ -91,7 +91,7 @@ internal fun IrcViewModel.noteNotifyContact(net: String, event: IrcEvent.Monitor
         viewModelScope.launch {
             val mask = if (!event.online) null else if (!event.ident.isNullOrBlank() && !event.host.isNullOrBlank())
                 event.nick + "!" + event.ident + "@" + event.host
-            else try { client?.lookupNotifyUserHost(event.nick) } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (_: Exception) { null }
+            else try { client?.lookupNotifyUserHost(event.nick)?.let { event.nick + "!" + it } } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (_: Exception) { null }
             val current = _state.value
             if (notifyContactEpochs[net to key] != epoch ||
                 current.connections[net]?.connected != true ||

@@ -72,12 +72,12 @@ class NickCompletionWindowsUiTest {
             room to UiBuffer(room,unread = 2,highlights = 1),
             ordinary to UiBuffer(ordinary,unread = 3,highlights = 0)))
         compose.setContent { Chat(phone = false) }
-        compose.onNodeWithTag("sidebar-mention-" + room).assertIsDisplayed()
-        compose.onNodeWithTag("sidebar-mention-" + ordinary).assertDoesNotExist()
+        compose.onNodeWithTag("sidebar-mention-" + room,useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("sidebar-mention-" + ordinary,useUnmergedTree = true).assertDoesNotExist()
         row("#demo").performClick()
         compose.runOnIdle { state = state.copy(buffers = state.buffers +
             (room to state.buffers.getValue(room).copy(unread = 0,highlights = 0))) }
-        compose.onNodeWithTag("sidebar-mention-" + room).assertDoesNotExist()
+        compose.onNodeWithTag("sidebar-mention-" + room,useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test fun systemKeepsBotsAndCommandsWhileMentionsRemainWithPrivateConversations() {
