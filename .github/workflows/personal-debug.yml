@@ -82,7 +82,7 @@ jobs:
           fi
 
       - name: Build debug APK and run unit tests
-        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest --no-daemon --max-workers=2 --no-configuration-cache
+        run: bash ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest --build-cache --no-daemon --max-workers=2 --no-configuration-cache
 
       - name: Check stable signing with disposable test keys
         if: github.ref == 'refs/heads/feat/hexdroid-dreams-release'
@@ -121,8 +121,8 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            bash ./gradlew :app:connectedDebugAndroidTest --no-daemon --max-workers=2 --no-configuration-cache
-            bash ./gradlew :app:assembleLite --no-daemon --max-workers=2 --no-configuration-cache
+            bash ./gradlew :app:connectedDebugAndroidTest --build-cache --no-daemon --max-workers=2 --no-configuration-cache
+            bash ./gradlew :app:assembleLite --build-cache --no-daemon --max-workers=2 --no-configuration-cache
             adb install -r app/build/outputs/apk/lite/app-lite.apk
             adb shell pm clear com.malekira.hexdroid.personal.debug
             adb logcat -c
@@ -229,7 +229,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Phase3-test-reports
+          name: Phase3-test-reports-attempt-${{ github.run_attempt }}
           path: |
             app/build/reports/tests/
             app/build/reports/androidTests/
@@ -374,7 +374,7 @@ jobs:
             echo "KEY_PASSWORD=$KEY_PASSWORD"
           } >> "$GITHUB_ENV"
       - name: Build optimized release with mandatory signing
-        run: bash ./gradlew :app:assembleRelease -PrequireSigning=true --no-daemon --max-workers=2 --no-configuration-cache
+        run: bash ./gradlew :app:assembleRelease -PrequireSigning=true --build-cache --no-daemon --max-workers=2 --no-configuration-cache
       - name: Verify final APK identity and signature
         shell: bash
         run: |
