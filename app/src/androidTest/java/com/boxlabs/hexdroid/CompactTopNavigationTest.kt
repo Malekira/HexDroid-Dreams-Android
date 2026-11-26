@@ -67,7 +67,7 @@ class CompactTopNavigationTest {
         compose.onNodeWithTag("nick-tab-button").assertIsDisplayed().assertTextContains("Tab").assertIsEnabled()
         compose.onNodeWithTag("chat-input").performTextInput("Demo")
         compose.onNodeWithTag("nick-tab-button").performClick()
-        compose.onNodeWithTag("chat-input").assertTextEquals("DemoNick01: ")
+        compose.onNodeWithTag("chat-input").assertTextEquals("DemoNick01 ")
         compose.onNodeWithTag("buffer-tree-button").performClick()
         val rooms = compose.onNodeWithTag("sidebar-group-$network-rooms")
         compose.waitUntil(timeoutMillis = 5_000) {
@@ -90,7 +90,7 @@ class CompactTopNavigationTest {
         compose.runOnIdle { assertTrue(commands.isEmpty()) }
         compose.onNodeWithTag("chat-input").performTextInput("Demo")
         compose.onNodeWithTag("nick-tab-button").performClick()
-        compose.onNodeWithTag("chat-input").assertTextEquals("DemoNick01: ")
+        compose.onNodeWithTag("chat-input").assertTextEquals("DemoNick01 ")
         privateTab.performTouchInput { longClick() }
         compose.onNodeWithText(context.getString(R.string.chat_cd_close_label, "DemoNick01")).performClick()
         compose.runOnIdle { assertEquals(listOf("/closekey $pv"), commands) }
