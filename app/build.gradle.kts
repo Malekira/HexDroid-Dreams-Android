@@ -9,8 +9,8 @@ android {
         applicationId = "com.malekira.hexdroid.personal"
         minSdk = 26
         targetSdk = 37
-        versionCode = 60
-        versionName = "1.0.21"
+        versionCode = 61
+        versionName = "1.0.22"
         buildConfigField("boolean", "LITE_BUILD", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

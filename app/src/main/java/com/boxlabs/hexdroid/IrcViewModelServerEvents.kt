@@ -99,6 +99,9 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                     }
                     is IrcEvent.Disconnected -> {
                         chatZonaRuns.remove(netId)
+                        notifySubscriptions.remove(netId)
+                        notifySubscriptionClients.remove(netId)
+                        setNetConn(netId) { it.copy(contactPresence = emptyMap()) }
                         RemoteBitmaps.invalidateScope(netId)
                         setNetConn(netId) { it.copy(avatarUrls = emptyMap(), avatarAliasUrls = emptyMap(), legacyAvatarUrls = emptyMap(),
                             primaryAvatarNicks = emptySet(), avatarRevision = it.avatarRevision + 1) }
@@ -724,9 +727,10 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                             RemoteBitmaps.invalidateScope(netId)
                             setNetConn(netId) { it.copy(avatarUrls=emptyMap(),avatarAliasUrls=emptyMap(),legacyAvatarUrls=emptyMap(),primaryAvatarNicks=emptySet(),avatarRevision=it.avatarRevision+1) }
                         }
-                        setNetConn(netId) { conn -> conn.copy(avatarCaseMapping = ev.caseMapping) }
+                        setNetConn(netId) { conn -> conn.copy(avatarCaseMapping = ev.caseMapping, monitorLimit = ev.monitorLimit) }
                         if (ev.networkName != null) setNetConn(netId) { it.copy(serverNetworkName = ev.networkName.take(128)) }
                         _state.update { it.copy(callerIdNetworks = if (ev.callerIdMode == "g") it.callerIdNetworks + netId else it.callerIdNetworks - netId) }
+                        viewModelScope.launch { syncNotifyContacts(netId) }
                         val rt = runtimes[netId]
                         if (rt != null) {
                             rt.support = NetSupport(
@@ -922,6 +926,7 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
 
                         viewModelScope.launch {
                             if (profile != null && !prepareChatZona(netId, profile)) return@launch
+                            syncNotifyContacts(netId)
                             // Service auth command (e.g. /msg NickServ IDENTIFY password)
                             //    Runs first, before autojoin, so channels with +r can be joined.
                             profile?.serviceAuthCommand?.takeIf { it.isNotBlank() && profile.chatZonaAccount.isBlank() }?.let { cmd ->

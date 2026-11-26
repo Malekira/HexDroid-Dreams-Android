@@ -100,6 +100,26 @@ class NickCompletionWindowsUiTest {
         }
     }
 
+    @Test fun noticeRecipientCompletionUsesTheButtonAndKeepsCommandsValid() {
+        fixture(tabs = false)
+        state = state.copy(showBufferList = false,selectedBuffer = "$first::*server*",
+            nicklists = mapOf("$first::#demo" to listOf("!Alice","+Alfred"),
+                "$second::&other" to listOf("AlienOtherNetwork")),
+            settings = state.settings.copy(nickCompletion = NickCompletionStyle(
+                startTemplate = "«{nick}» ",middleTemplate = "[{nick}] ",colors = "4,9",bold = true)))
+        compose.setContent { Chat(phone = true) }
+        val input = compose.onNodeWithTag("chat-input")
+        input.performTextReplacement("/notice Al")
+        compose.onNodeWithTag("nick-tab-button").performClick()
+        compose.onNodeWithTag("nick-tab-button").performClick()
+        input.performTextInput("hola")
+        compose.onNodeWithContentDescription(context.getString(R.string.chat_send_message)).performClick()
+        compose.runOnIdle {
+            assertEquals("/notice Alice hola",commands.single())
+            assertFalse(commands.single().any { it.isISOControl() })
+        }
+    }
+
     @Test fun quickMenuContainsOnlyTheRequestedEntries() {
         fixture(tabs = false); state = state.copy(showBufferList = false)
         compose.setContent { Chat(phone = true) }
@@ -111,6 +131,8 @@ class NickCompletionWindowsUiTest {
             R.string.menu_about, R.string.menu_float)) {
             compose.onNodeWithText(context.getString(id)).assertDoesNotExist()
         }
+        compose.onNodeWithText(context.getString(R.string.quick_metadata)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.contacts_notify)).assertIsDisplayed()
         compose.onNodeWithText("Secure Chat").assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.topic_edit_title)).assertDoesNotExist()
     }

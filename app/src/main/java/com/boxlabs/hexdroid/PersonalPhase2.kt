@@ -50,22 +50,47 @@ internal fun migrateWhoisDestinations(value: Int, presentationVersion: Int): Int
     else ReplyDestination.sanitize(if (value and ReplyDestination.PRIVATE != 0) (value and ReplyDestination.PRIVATE.inv()) or ReplyDestination.FLOATING else value, ReplyDestination.WHOIS_MASK, ReplyDestination.WHOIS_DEFAULT)
 
 internal data class NickToken(val start: Int, val cursor: Int, val end: Int, val prefix: String, val hadAt: Boolean)
+/** Command routing arguments are never decorated with message-completion templates. */
+internal fun plainNickArgument(text: String, start: Int): Boolean {
+    if (!text.startsWith("/") || text.startsWith("//") || start == 0) return false
+    val previous = text.substring(0, start).trim().split(Regex("\\s+"))
+    val command = previous.first().removePrefix("/").lowercase(java.util.Locale.ROOT)
+    val commandEnd = text.indexOfFirst { it.isWhitespace() }.let { if (it < 0) text.length else it }
+    var firstStart = commandEnd
+    while (firstStart < text.length && text[firstStart].isWhitespace()) firstStart++
+    var firstEnd = firstStart
+    while (firstEnd < text.length && !text[firstEnd].isWhitespace()) firstEnd++
+    val service = text.substring(firstStart,firstEnd).substringBefore('@').lowercase(java.util.Locale.ROOT)
+    val services = setOf("nick","chan","nickserv","chanserv","authserv","operserv","memoserv","botserv","hostserv","ipvirtual")
+    return when (command) {
+        "msg", "m", "notice", "query" -> start in firstStart..firstEnd || service in services
+        "me", "action", "say" -> false
+        else -> true
+    }
+}
+
 internal fun nickToken(text: String, cursor: Int): NickToken? {
     if (cursor !in 0..text.length) return null
+    val commaSeparates = text.startsWith("/") && !text.startsWith("//")
+    fun separator(c: Char) = c.isWhitespace() || (commaSeparates && c == ',')
     var start = cursor
-    while (start > 0 && !text[start - 1].isWhitespace()) start--
+    while (start > 0 && !separator(text[start - 1])) start--
     var end = cursor
-    while (end < text.length && !text[end].isWhitespace()) end++
-    val word = text.substring(start, cursor)
+    while (end < text.length && !separator(text[end])) end++
+    val word = stripIrcFormatting(text.substring(start, cursor))
+    if (word.startsWith("/")) return null
     val hadAt = word.startsWith('@')
     val prefix = word.removePrefix("@")
-    return prefix.takeIf { it.isNotEmpty() }?.let { NickToken(start, cursor, end, it, hadAt) }
+    if (prefix.isEmpty() && !plainNickArgument(text,start)) return null
+    return NickToken(start, cursor, end, prefix, hadAt)
 }
-internal fun bareMember(nick: String) = nick.trimStart('~', '&', '@', '%', '+')
+internal fun bareMember(nick: String) = nick.trimStart('~', '&', '!', '@', '%', '+')
 internal fun memberNames(members: List<String>): List<String> = members.map(::bareMember).filter(::isReplyNick).distinctBy { it.lowercase() }
 internal fun completeNickToken(text: String, token: NickToken, nick: String, style: NickCompletionStyle = NickCompletionStyle()): Pair<String, Int> {
-    val replacement = style.render(bareMember(nick), token.start == 0, token.hadAt,
-        token.end < text.length && text[token.end].isWhitespace())
+    val followedBySpace = token.end < text.length && text[token.end].isWhitespace()
+    val replacement = if (plainNickArgument(text,token.start))
+        bareMember(nick) + if (followedBySpace || text.getOrNull(token.end) == ',') "" else " "
+    else style.render(bareMember(nick), token.start == 0, token.hadAt, followedBySpace)
     return (text.substring(0, token.start) + replacement + text.substring(token.end)) to (token.start + replacement.length)
 }
 

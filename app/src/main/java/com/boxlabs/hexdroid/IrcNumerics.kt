@@ -313,6 +313,7 @@ internal fun IrcClient.buildNumericHandlers(
                 bouncerNetId = bouncerNetId,
                 safeRate = safeRate,
                 callerIdMode = callerIdMode,
+                monitorLimit = monitorLimit,
                 networkName = tokens.firstOrNull { it.startsWith("NETWORK=", true) }?.substringAfter('=')?.let(::unescapeIsupportValue)
                     ?: if (tokens.any { it.equals("-NETWORK", true) }) "" else null,
             ))

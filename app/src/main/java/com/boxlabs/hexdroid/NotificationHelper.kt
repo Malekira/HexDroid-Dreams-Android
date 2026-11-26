@@ -440,6 +440,22 @@ class NotificationHelper(private val ctx: Context) {
     }
 
     /** A notification that is not part of a conversation, such as an invite. */
+    /** Contact transitions have their own Android channel and never create or activate a query. */
+    fun notifyContact(networkId: String, nick: String, networkName: String, text: String) {
+        val channel = "hexdreams_contacts"
+        ctx.getSystemService(NotificationManager::class.java)?.createNotificationChannel(
+            NotificationChannel(channel,ctx.getString(R.string.contacts_notify),NotificationManager.IMPORTANCE_DEFAULT)
+        )
+        val builder = NotificationCompat.Builder(ctx,channel)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setContentTitle(ctx.getString(R.string.contacts_notify) + " · " + networkName)
+            .setContentText(text).setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+        openBufferPendingIntent(networkId,nick)?.let { builder.setContentIntent(it) }
+        NotificationManagerCompat.from(ctx).notify("contact:" + networkId + ":" + nick.lowercase(java.util.Locale.ROOT),
+            1102,builder.build())
+    }
+
     fun notifySimple(networkId: String, buffer: String, title: String, text: String) {
         ensureChannels()
         val builder = NotificationCompat.Builder(ctx, CH_HIGHLIGHT_SILENT)

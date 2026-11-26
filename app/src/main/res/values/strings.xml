@@ -2023,4 +2023,24 @@
     <string name="dreams_avatar_timeout">The photo request timed out. You can retry.</string>
     <string name="dreams_avatar_connection_error">Could not connect securely to the photo server. Check the address and connection, then retry.</string>
     <string name="dreams_avatar_redirect_error">The photo redirects to an unsupported address or redirects too many times.</string>
+    <string name="quick_metadata">Metadata</string>
+    <string name="contacts_notify">Contacts (notify)</string>
+    <string name="contacts_notify_help">Watch contacts on this network and receive online/offline alerts.</string>
+    <string name="contact_nick">Nicknames separated by commas</string>
+    <string name="contact_add">Add</string>
+    <string name="contact_remove">Remove</string>
+    <string name="contact_alerts">Online/offline notifications</string>
+    <string name="contact_invalid">Enter valid IRC nicknames without spaces.</string>
+    <string name="contact_notifications_disabled">Android alerts are disabled in app settings.</string>
+    <string name="contact_connect_to_track">Connect to update contact status.</string>
+    <string name="contact_monitor_unsupported">This server has not announced MONITOR support.</string>
+    <string name="contact_monitor_limit">This server allows %1$d watched contacts. Only the first entries are tracked.</string>
+    <string name="contact_empty">No contacts yet.</string>
+    <string name="contact_online">Online</string>
+    <string name="contact_offline">Offline</string>
+    <string name="contact_unknown">Unknown</string>
+    <string name="contact_online_event">%1$s connected</string>
+    <string name="contact_offline_event">%1$s disconnected</string>
+    <string name="contact_watch">Add to contacts (notify)</string>
+    <string name="contact_unwatch">Remove from contacts (notify)</string>
 </resources>

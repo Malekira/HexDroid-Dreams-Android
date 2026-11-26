@@ -2021,4 +2021,24 @@
     <string name="dreams_avatar_timeout">Se agotó el tiempo de espera de la foto. Podés reintentar.</string>
     <string name="dreams_avatar_connection_error">No se pudo conectar de forma segura al servidor de fotos. Revisá la dirección y la conexión y reintentá.</string>
     <string name="dreams_avatar_redirect_error">La foto redirige a una dirección no admitida o realiza demasiadas redirecciones.</string>
+    <string name="quick_metadata">Metadatos</string>
+    <string name="contacts_notify">Contactos (notify)</string>
+    <string name="contacts_notify_help">Sigue contactos de esta red y recibe avisos cuando se conecten o desconecten.</string>
+    <string name="contact_nick">Nicks separados por comas</string>
+    <string name="contact_add">Añadir</string>
+    <string name="contact_remove">Quitar</string>
+    <string name="contact_alerts">Avisar al conectar y desconectar</string>
+    <string name="contact_invalid">Introduce nicks IRC válidos, sin espacios.</string>
+    <string name="contact_notifications_disabled">Los avisos Android están desactivados en los ajustes de la app.</string>
+    <string name="contact_connect_to_track">Conéctate para actualizar el estado de los contactos.</string>
+    <string name="contact_monitor_unsupported">Este servidor no ha anunciado soporte para MONITOR.</string>
+    <string name="contact_monitor_limit">Este servidor permite seguir %1$d contactos. Se siguen los primeros de la lista.</string>
+    <string name="contact_empty">Todavía no hay contactos.</string>
+    <string name="contact_online">En línea</string>
+    <string name="contact_offline">Desconectado</string>
+    <string name="contact_unknown">Sin confirmar</string>
+    <string name="contact_online_event">%1$s se ha conectado</string>
+    <string name="contact_offline_event">%1$s se ha desconectado</string>
+    <string name="contact_watch">Añadir a contactos (notify)</string>
+    <string name="contact_unwatch">Quitar de contactos (notify)</string>
 </resources>
