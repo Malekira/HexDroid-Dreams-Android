@@ -131,6 +131,7 @@ class ContactsCompletionAndroidTest {
             }
             withTimeout(5000) { vm.state.first { it.notifyAlerts.isNotEmpty() } }
             val state = vm.state.value
+            assertTrue(vm.isPseudoBuffer(NOTIFY_BUFFER))
             assertEquals(1,state.notifyAlerts.size)
             assertTrue(state.notifyAlerts.single().text.contains("Alice!ident@full.visible.host"))
             assertTrue(state.buffers.getValue(profile.id + "::" + NOTIFY_BUFFER).messages.any { it.text.contains("Alice!ident@full.visible.host") })
