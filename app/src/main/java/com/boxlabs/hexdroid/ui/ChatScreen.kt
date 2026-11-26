@@ -5336,8 +5336,7 @@ fun ChatScreen(
                         subtitle = stringResource(R.string.contacts_notify_help),
                         enabled = viewModel != null || onSaveContacts != null,
                         onClick = {
-                            val contacts = if (watched) profile.notifyContacts.filterNot { it.equals(selectedNick,true) }
-                                else profile.notifyContacts + selectedNick
+                            val contacts = com.boxlabs.hexdroid.toggleNotifyContact(profile.notifyContacts,selectedNick,selConn?.avatarCaseMapping ?: "ascii")
                             if (onSaveContacts != null) onSaveContacts(selNetId,contacts,profile.notifyContactAlerts)
                             else viewModel?.saveNotifyContacts(selNetId,contacts,profile.notifyContactAlerts)
                             showNickActions = false

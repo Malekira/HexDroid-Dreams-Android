@@ -11,6 +11,13 @@ internal fun cleanNotifyContacts(nicks: List<String>, caseMapping: String = "asc
     nicks.map { bareMember(it.trim()) }.filter { it.length <= 130 && isReplyNick(it) }
         .distinctBy { ircCasefold(it,caseMapping) }.take(MAX_NOTIFY_CONTACTS)
 
+internal fun toggleNotifyContact(contacts: List<String>, nick: String, mapping: String): List<String> {
+    val key = ircCasefold(nick,mapping)
+    return if (contacts.any { ircCasefold(it,mapping) == key })
+        contacts.filterNot { ircCasefold(it,mapping) == key }
+    else cleanNotifyContacts(contacts + nick,mapping)
+}
+
 internal fun contactTransition(previous: Boolean?, online: Boolean): Boolean =
     previous != null && previous != online
 

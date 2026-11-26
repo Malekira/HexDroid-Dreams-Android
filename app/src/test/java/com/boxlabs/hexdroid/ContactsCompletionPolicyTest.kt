@@ -43,6 +43,8 @@ class ContactsCompletionPolicyTest {
         assertEquals(listOf("Alice","[Bob]","{Bob}"),cleanNotifyContacts(listOf("@Alice","alice","bad nick","[Bob]","{Bob}")))
         assertEquals(listOf("[Bob]"),cleanNotifyContacts(listOf("[Bob]","{Bob}"),"rfc1459"))
         assertEquals(64,cleanNotifyContacts((1..100).map { "Nick" + it }).size)
+        assertTrue(toggleNotifyContact(listOf("[Bob]"),"{bob}","rfc1459").isEmpty())
+        assertEquals(listOf("[Bob]","{bob}"),toggleNotifyContact(listOf("[Bob]"),"{bob}","ascii"))
     }
     @Test fun onlyRealContactTransitionsAlert() {
         assertFalse(contactTransition(null,true)); assertFalse(contactTransition(null,false))
