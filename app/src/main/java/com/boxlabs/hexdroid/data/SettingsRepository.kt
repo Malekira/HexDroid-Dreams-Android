@@ -696,6 +696,9 @@ class SettingsRepository(private val ctx: Context) {
                         } ?: emptyList(),
     
                         autoCommandDelaySeconds = o.optInt("autoCommandDelaySeconds", 0),
+                        notifyContacts = (o.optJSONArray("notifyContacts") ?: JSONArray()).let { list ->
+                            com.boxlabs.hexdroid.cleanNotifyContacts((0 until list.length()).map { list.optString(it) }, o.optString("caseMapping", "ascii")) },
+                        notifyContactAlerts = o.optBoolean("notifyContactAlerts", true),
                         chatZonaAccount = o.optString("chatZonaAccount", ""),
                         chatZonaModes = o.optString("chatZonaModes", "").filter { it in "iIgR" },
                         chatZonaKeepModes = o.optBoolean("chatZonaKeepModes", false),
@@ -840,6 +843,8 @@ class SettingsRepository(private val ctx: Context) {
             }
 
             o.put("autoCommandDelaySeconds", n.autoCommandDelaySeconds)
+            o.put("notifyContacts", JSONArray(com.boxlabs.hexdroid.cleanNotifyContacts(n.notifyContacts)))
+            o.put("notifyContactAlerts", n.notifyContactAlerts)
             o.put("chatZonaAccount", n.chatZonaAccount)
             o.put("chatZonaModes", n.chatZonaModes.filter { it in "iIgR" })
             o.put("chatZonaKeepModes", n.chatZonaKeepModes)
@@ -1408,6 +1413,8 @@ data class NetworkProfile(
 
     // Post-connect commands
     val autoCommandDelaySeconds: Int = 0,
+    val notifyContacts: List<String> = emptyList(),
+    val notifyContactAlerts: Boolean = true,
     val chatZonaAccount: String = "",
     val chatZonaPassword: String? = null, // editor-only; encrypted in SecretStore
     val chatZonaModes: String = "",

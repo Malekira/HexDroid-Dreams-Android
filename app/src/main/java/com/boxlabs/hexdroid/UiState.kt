@@ -518,6 +518,8 @@ data class NetConnState(
     val botNicks: Set<String> = emptySet(),
     val operNicks: Set<String> = emptySet(),
     val adminNicks: Set<String> = emptySet(),
+    val contactPresence: Map<String, Boolean> = emptyMap(),
+    val monitorLimit: Int = -1,
 )
 
 /** Phase of a draft/account-registration flow, for the registration dialog. */

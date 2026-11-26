@@ -17,6 +17,8 @@
 */
 
 package com.boxlabs.hexdroid.ui
+
+import com.boxlabs.hexdroid.saveNotifyContacts
 import com.boxlabs.hexdroid.ComposerRecall
 import com.boxlabs.hexdroid.RecallDraft
 import com.boxlabs.hexdroid.COMPOSER_RECALL_LIMIT
@@ -307,6 +309,8 @@ fun ChatScreen(
     onDccChat: ((targetNick: String) -> Unit)? = null,
     onOpenList: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenMetadata: (() -> Unit)? = null,
+    onSaveContacts: ((String, List<String>, Boolean) -> Unit)? = null,
     onOpenScripts: () -> Unit = {},
     onOpenLogViewer: (() -> Unit)? = null,
     scriptLaunchers: List<Pair<String, String>> = emptyList(),
@@ -719,12 +723,12 @@ fun ChatScreen(
      * Nicks offered by Tab and by the @ hint bar: a channel's member list, or the two people
      * in a private message, which has no member list of its own.
      */
-    val completionNicks = remember(isChannel, isPrivateMessage, nicklist, selBufName, myNick) {
-        when {
-            isChannel -> nicklist
-            isPrivateMessage -> listOf(selBufName, myNick).filter { it.isNotBlank() }.distinct()
-            else -> emptyList()
-        }
+    val completionNicks = remember(selNetId, nicklist, state.nicklists, state.buffers.keys, state.networks, selBufName, myNick) {
+        val known = state.nicklists.filterKeys { it.startsWith(selNetId + "::") }.values.flatten()
+        val queries = state.buffers.keys.filter { it.startsWith(selNetId + "::") }.map { it.substringAfter("::") }
+            .filter { !it.startsWith("*") && !it.startsWith("DCCCHAT:") && it.firstOrNull()?.let { first -> first !in (selConn?.chanTypes ?: "#&!+") } == true }
+        nicklist + known + queries + state.networks.firstOrNull { it.id == selNetId }?.notifyContacts.orEmpty() +
+            listOfNotNull(selBufName.takeIf { isPrivateMessage },myNick.takeIf { it.isNotBlank() })
     }
     val myDisplay = nicklist.firstOrNull { baseNick(it).equals(myNick, ignoreCase = true) }
     val myPrefix = myDisplay?.let { nickPrefix(it) }
@@ -906,6 +910,7 @@ fun ChatScreen(
     // Metadata editor and guided account-registration dialogs. Keyed to the selected
     // network so switching networks dismisses a stale dialog.
     var showMetadataEditor by remember(selNetId) { mutableStateOf(false) }
+    var showNotifyContacts by remember(selNetId) { mutableStateOf(false) }
     var expandedAvatar by remember(selNetId) { mutableStateOf<Pair<String, String>?>(null) }
     val manualAvatarRefresh = remember(selNetId) { androidx.compose.runtime.mutableStateMapOf<String,Int>() }
     fun avatarRefreshKey(nick:String)=com.boxlabs.hexdroid.ircCasefold(baseNick(nick),selConn?.avatarCaseMapping ?: "rfc1459")
@@ -2341,6 +2346,13 @@ fun ChatScreen(
                                         overflowExpanded = false; showRegistration = true
                                     })
                                 }
+                                add(MenuEntry(stringResource(R.string.quick_metadata), enabled = selNetId.isNotBlank() && (viewModel != null || onOpenMetadata != null)) {
+                                    overflowExpanded = false
+                                    if (onOpenMetadata != null) onOpenMetadata() else showMetadataEditor = true
+                                })
+                                add(MenuEntry(stringResource(R.string.contacts_notify), enabled = state.networks.any { it.id == selNetId }) {
+                                    overflowExpanded = false; showNotifyContacts = true
+                                })
                                 add(MenuEntry(stringResource(R.string.menu_settings)) { overflowExpanded = false; onOpenSettings() })
                                 add(MenuEntry("Scripts") { overflowExpanded = false; onOpenScripts() })
                                 add(MenuEntry(stringResource(R.string.menu_networks)) { overflowExpanded = false; onOpenNetworks() })
@@ -3118,8 +3130,23 @@ fun ChatScreen(
 
         var nickCycle by remember(selected) { mutableStateOf<NickCompletion?>(null) }
         fun completeNick(backwards: Boolean): Boolean {
-            if (!input.selection.collapsed) return false
-            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards, state.settings.nickCompletion) ?: return false
+            if (!input.selection.collapsed || !state.settings.nickCompletion.enabled) return false
+            if (cmdQuery != null && input.selection.start == input.text.length) {
+                val command = IRC_COMMANDS.firstOrNull { it.name.startsWith(cmdQuery,true) } ?: return false
+                val value = "/" + command.name + " "
+                input = TextFieldValue(value,TextRange(value.length)); nickCycle = null
+                return true
+            }
+            if (subCmdQuery != null && input.selection.start == input.text.length) {
+                val (parent,prefix) = subCmdQuery
+                val command = subCommandsFor(parent)?.firstOrNull { it.name.startsWith(prefix,true) }
+                if (command != null) {
+                    val value = "/" + parent + " " + command.name + " "
+                    input = TextFieldValue(value,TextRange(value.length)); nickCycle = null
+                    return true
+                }
+            }
+            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards, state.settings.nickCompletion, selConn?.avatarCaseMapping ?: "rfc1459") ?: return false
             input = TextFieldValue(result.text, TextRange(result.cursor))
             nickCycle = result
             return true
@@ -3139,7 +3166,7 @@ fun ChatScreen(
             // win on channels (user is mid-@mention). Subcommand hints win when
             // we're past the parent-command space. Command hints are the baseline.
             val liveCycle = nickCycle?.takeIf { it.text == input.text && it.cursor == input.selection.start }
-            val matches = (liveCycle?.prefix ?: nickQuery)?.let { completionMatches(completionNicks, it) }.orEmpty()
+            val matches = (liveCycle?.prefix ?: nickQuery)?.let { completionMatches(completionNicks, it, selConn?.avatarCaseMapping ?: "rfc1459") }.orEmpty()
             // Suggestions never edit the draft until the user chooses one or presses Tab.
             if (state.settings.nickCompletion.enabled && matches.isNotEmpty() && cmdQuery == null && subCmdQuery == null) {
                 NickChoiceList(matches, liveCycle?.let { it.matches[it.index] }) { nick ->
@@ -3292,8 +3319,8 @@ fun ChatScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ComposerNavigationButton(
-                    onClick = { completeNick(backwards = false); onTypingChanged(input.text) },
-                    enabled = state.settings.nickCompletion.enabled && completionNicks.isNotEmpty(),
+                    onClick = { completeNick(backwards = false); onTypingChanged(input.text); runCatching { inputFocus.requestFocus() } },
+                    enabled = state.settings.nickCompletion.enabled && (completionNicks.isNotEmpty() || cmdQuery != null || subCmdQuery != null),
                     description = stringResource(R.string.chat_complete_nick),
                     label = "Tab",
                     modifier = Modifier.testTag("nick-tab-button"),
@@ -3405,8 +3432,8 @@ fun ChatScreen(
                                 Key.Tab -> {
                                     // Consumed even when nothing matched, so Tab does not
                                     // move focus out of the input mid-word.
-                                    completeNick(backwards = ev.isShiftPressed) ||
-                                        completionNicks.isNotEmpty()
+                                    completeNick(backwards = ev.isShiftPressed)
+                                    true
                                 }
                                 else -> false
                             }
@@ -4797,6 +4824,16 @@ fun ChatScreen(
         // Closing the viewer leaves the room and any nick sheet open behind it.
         if (avatarFor(nick) == url) AvatarViewer(url, nick, onDismiss = { expandedAvatar = null; val key=avatarRefreshKey(nick);manualAvatarRefresh[key]=(manualAvatarRefresh[key] ?: 0)+1 }, scope=selNetId)
     }
+    if (showNotifyContacts) {
+        state.networks.firstOrNull { it.id == selNetId }?.let { profile ->
+            NotifyContactsDialog(profile,state.connections[selNetId],state.settings.notificationsEnabled,
+                onSave = { contacts,alerts ->
+                    if (onSaveContacts != null) onSaveContacts(selNetId,contacts,alerts)
+                    else viewModel?.saveNotifyContacts(selNetId,contacts,alerts)
+                    showNotifyContacts = false
+                }, onDismiss = { showNotifyContacts = false })
+        }
+    }
     if (showMetadataEditor && viewModel != null && selNetId.isNotBlank()) {
         MetadataEditorDialog(
             networkId = selNetId,
@@ -5288,6 +5325,24 @@ fun ChatScreen(
                     subtitle = stringResource(R.string.nick_mention_desc, selectedNick),
                     onClick = { mention(selectedNick); showNickActions = false }
                 )
+
+                state.networks.firstOrNull { it.id == selNetId }?.let { profile ->
+                    val watched = profile.notifyContacts.any {
+                        com.boxlabs.hexdroid.ircCasefold(it,selConn?.avatarCaseMapping ?: "ascii") ==
+                            com.boxlabs.hexdroid.ircCasefold(selectedNick,selConn?.avatarCaseMapping ?: "ascii")
+                    }
+                    ActionRow(icon = Icons.Default.NotificationsActive,
+                        label = stringResource(if (watched) R.string.contact_unwatch else R.string.contact_watch),
+                        subtitle = stringResource(R.string.contacts_notify_help),
+                        enabled = viewModel != null || onSaveContacts != null,
+                        onClick = {
+                            val contacts = if (watched) profile.notifyContacts.filterNot { it.equals(selectedNick,true) }
+                                else profile.notifyContacts + selectedNick
+                            if (onSaveContacts != null) onSaveContacts(selNetId,contacts,profile.notifyContactAlerts)
+                            else viewModel?.saveNotifyContacts(selNetId,contacts,profile.notifyContactAlerts)
+                            showNickActions = false
+                        })
+                }
 
                 // ── DCC ─────────────────────────────────────────────────────
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

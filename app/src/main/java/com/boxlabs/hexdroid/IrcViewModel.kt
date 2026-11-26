@@ -722,6 +722,8 @@ class IrcViewModel(
      * pay zero startup cost.
      */
     val e2eKeyStore = com.boxlabs.hexdroid.crypto.E2eKeyStore(repo.secretStore)
+    internal val notifySubscriptions = mutableMapOf<String, Set<String>>()
+    internal val notifySubscriptionClients = mutableMapOf<String, IrcClient>()
     internal val chatZonaRuns = java.util.concurrent.ConcurrentHashMap<String, ChatZonaRun>()
     internal val dcc = DccManager(appContext)
 
@@ -1646,6 +1648,8 @@ fun startAddNetwork() {
             repo.deleteNetwork(id)
             repo.secretStore.clearSaslPassword(id)
             repo.secretStore.clearChatZonaPassword(id)
+            notifySubscriptions.remove(id)
+            notifySubscriptionClients.remove(id)
             repo.secretStore.clearServerPassword(id)
             repo.secretStore.clearProxyPassword(id)
             // Drop every E2E key configured for this network's targets - the profile

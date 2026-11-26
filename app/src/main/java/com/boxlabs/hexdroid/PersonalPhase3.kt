@@ -106,18 +106,18 @@ internal object Phase3Codec {
     }
 }
 
-internal fun completionMatches(nicks: List<String>, prefix: String): List<String> =
-    nicks.map(::bareMember).filter { it.startsWith(prefix, true) && isReplyNick(it) }
-        .distinctBy { it.lowercase(java.util.Locale.ROOT) }.sortedBy { it.lowercase(java.util.Locale.ROOT) }
+internal fun completionMatches(nicks: List<String>, prefix: String, caseMapping: String = "rfc1459"): List<String> =
+    nicks.map(::bareMember).filter { ircCasefold(it,caseMapping).startsWith(ircCasefold(prefix,caseMapping)) && isReplyNick(it) }
+        .distinctBy { ircCasefold(it,caseMapping) }.sortedBy { ircCasefold(it,caseMapping) }
 
 internal data class NickCompletion(val start: Int, val hadAt: Boolean, val matches: List<String>, val index: Int, val text: String, val cursor: Int, val prefix: String)
-internal fun advanceNickCompletion(text: String, cursor: Int, nicks: List<String>, previous: NickCompletion?, backwards: Boolean = false, style: NickCompletionStyle = NickCompletionStyle()): NickCompletion? {
+internal fun advanceNickCompletion(text: String, cursor: Int, nicks: List<String>, previous: NickCompletion?, backwards: Boolean = false, style: NickCompletionStyle = NickCompletionStyle(), caseMapping: String = "rfc1459"): NickCompletion? {
     if (!style.enabled) return null
     val cycle = previous?.takeIf { it.text == text && it.cursor == cursor }
     val token = if (cycle == null) nickToken(text, cursor) ?: return null
         else NickToken(cycle.start, cursor, cursor, "", cycle.hadAt)
     val prefix = cycle?.prefix ?: token.prefix
-    val matches = completionMatches(nicks, prefix)
+    val matches = completionMatches(nicks, prefix, caseMapping)
     if (matches.isEmpty()) return null
     val previousIndex = cycle?.let { matches.indexOf(it.matches[it.index]) } ?: -1
     val index = if (previousIndex < 0) if (backwards) matches.lastIndex else 0

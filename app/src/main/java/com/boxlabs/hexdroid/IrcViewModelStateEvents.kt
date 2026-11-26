@@ -146,6 +146,7 @@ internal fun IrcViewModel.handleStateEvent(netId: String, ev: IrcEvent) {
         is IrcEvent.MetadataSubscribed -> if (ev.key == SOJU_MUTED_KEY) finishMuteSync(netId)
 
         is IrcEvent.MonitorStatus -> {
+            if (noteNotifyContact(netId,ev)) return
             scriptEvent(if (ev.online) "NOTIFY" else "UNOTIFY", netId, "", ev.nick)
             // MONITOR: a watched nick came online or went offline.
             // Show a brief status line in the server buffer (and PM buffer if open).

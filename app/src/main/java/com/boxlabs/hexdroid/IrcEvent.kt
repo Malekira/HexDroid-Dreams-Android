@@ -142,6 +142,7 @@ sealed class IrcEvent {
         val safeRate: Boolean = false,
         val callerIdMode: String? = null,
         val networkName: String? = null,
+        val monitorLimit: Int = -1,
     ) : IrcEvent()
 
     // Join failure numerics (e.g. 471-477) with the channel extracted
