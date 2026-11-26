@@ -113,9 +113,12 @@ internal fun completionMatches(nicks: List<String>, prefix: String, caseMapping:
 internal data class NickCompletion(val start: Int, val hadAt: Boolean, val matches: List<String>, val index: Int, val text: String, val cursor: Int, val prefix: String)
 internal fun advanceNickCompletion(text: String, cursor: Int, nicks: List<String>, previous: NickCompletion?, backwards: Boolean = false, style: NickCompletionStyle = NickCompletionStyle(), caseMapping: String = "rfc1459", writingStyle: WritingStyle = WritingStyle()): NickCompletion? {
     if (!style.enabled) return null
-    val cycle = previous?.takeIf { it.text == text && it.cursor == cursor }
+    val cycle = previous?.takeIf {
+        it.text == text && cursor in 0..text.length && it.cursor in 0..text.length &&
+            (it.cursor == cursor || stripIrcFormatting(text.substring(minOf(it.cursor,cursor),maxOf(it.cursor,cursor))).isEmpty())
+    }
     val token = if (cycle == null) nickToken(text, cursor) ?: return null
-        else NickToken(cycle.start, cursor, cursor, "", cycle.hadAt)
+        else NickToken(cycle.start, cycle.cursor, cycle.cursor, "", cycle.hadAt)
     val prefix = cycle?.prefix ?: token.prefix
     val matches = completionMatches(nicks, prefix, caseMapping)
     if (matches.isEmpty()) return null

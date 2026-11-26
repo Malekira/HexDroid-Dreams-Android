@@ -75,4 +75,13 @@ class ContactsCompletionPolicyTest {
         assertEquals(4,completionWritingState(result,writing).foreground)
         assertEquals("Hola Galer- resto",stripIrcFormatting(result))
     }
+    @Test fun tabKeepsCyclingWhenTheKeyboardMovesBeforeInvisibleRestoreCodes() {
+        val style = NickCompletionStyle(startTemplate = "«{nick}» ",colors = "13,11")
+        val first = advanceNickCompletion("Al",2,listOf("Alice","Alfred"),null,style = style)!!
+        val visibleEnd = first.text.indexOf('\u000f')
+        assertTrue(visibleEnd >= 0 && visibleEnd < first.cursor)
+        val next = advanceNickCompletion(first.text,visibleEnd,listOf("Alice","Alfred"),first,style = style)!!
+        assertEquals("«Alice» ",stripIrcFormatting(next.text))
+        assertEquals(1,next.text.count { it == '\u000f' })
+    }
 }
