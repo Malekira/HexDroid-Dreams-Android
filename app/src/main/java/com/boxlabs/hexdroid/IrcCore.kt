@@ -400,6 +400,8 @@ class IrcClient(val config: IrcConfig) {
      * CHGHOST and account tags, so a ban can be built without a WHOIS. Least recently used entries
      * are dropped past [MAX_KNOWN_USERS].
      */
+    internal val notifyHostRequests = mutableMapOf<String, kotlinx.coroutines.CompletableDeferred<String?>>()
+
     private val knownUsers = object : LinkedHashMap<String, KnownUser>(256, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, KnownUser>?) =
             size > MAX_KNOWN_USERS

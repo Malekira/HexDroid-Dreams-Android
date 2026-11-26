@@ -86,11 +86,16 @@ internal fun nickToken(text: String, cursor: Int): NickToken? {
 }
 internal fun bareMember(nick: String) = nick.trimStart('~', '&', '!', '@', '%', '+')
 internal fun memberNames(members: List<String>): List<String> = members.map(::bareMember).filter(::isReplyNick).distinctBy { it.lowercase() }
-internal fun completeNickToken(text: String, token: NickToken, nick: String, style: NickCompletionStyle = NickCompletionStyle()): Pair<String, Int> {
+internal fun completeNickToken(text: String, token: NickToken, nick: String, style: NickCompletionStyle = NickCompletionStyle(), writingStyle: WritingStyle = WritingStyle()): Pair<String, Int> {
     val followedBySpace = token.end < text.length && text[token.end].isWhitespace()
     val replacement = if (plainNickArgument(text,token.start))
         bareMember(nick) + if (followedBySpace || text.getOrNull(token.end) == ',') "" else " "
-    else style.render(bareMember(nick), token.start == 0, token.hadAt, followedBySpace)
+    else style.render(bareMember(nick), token.start == 0, token.hadAt, followedBySpace).let { rendered ->
+        if (rendered.any { it.isISOControl() }) rendered + "\u000f" +
+            completionWritingState(text.substring(0, token.start),
+                if (text.startsWith("/")) WritingStyle() else writingStyle).apply("") + "\u0002\u0002"
+        else rendered
+    }
     return (text.substring(0, token.start) + replacement + text.substring(token.end)) to (token.start + replacement.length)
 }
 

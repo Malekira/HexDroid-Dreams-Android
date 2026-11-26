@@ -60,4 +60,19 @@ class ContactsCompletionPolicyTest {
         assertEquals(listOf("MONITOR - Alice"),monitorContactCommands('-',listOf("Alice")))
         assertTrue(monitorContactCommands('+',emptyList()).isEmpty())
     }
+    @Test fun completionRestoresWritingColorBackgroundAndStyleAtStartAndInBody() {
+        val writing = WritingStyle(foreground = 13,background = 1,bold = true,italic = true)
+        for (draft in listOf("Gal", "Hola Gal")) {
+            val result = advanceNickCompletion(draft,draft.length,listOf("Galer-"),null,
+                style = NickCompletionStyle(colors = "4,9,12"),writingStyle = writing)!!
+            assertFalse(stripIrcFormatting(result.text).contains(':'))
+            assertEquals(writing,completionWritingState(result.text,writing))
+        }
+        val inline = "\u000304Hola Gal resto"
+        val at = inline.indexOf(" resto")
+        val result = completeNickToken(inline,nickToken(inline,at)!!,"Galer-",
+            NickCompletionStyle(colors = "4,9"),writing).first
+        assertEquals(4,completionWritingState(result,writing).foreground)
+        assertEquals("Hola Galer- resto",stripIrcFormatting(result))
+    }
 }

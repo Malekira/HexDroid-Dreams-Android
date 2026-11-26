@@ -111,7 +111,7 @@ internal fun completionMatches(nicks: List<String>, prefix: String, caseMapping:
         .distinctBy { ircCasefold(it,caseMapping) }.sortedBy { ircCasefold(it,caseMapping) }
 
 internal data class NickCompletion(val start: Int, val hadAt: Boolean, val matches: List<String>, val index: Int, val text: String, val cursor: Int, val prefix: String)
-internal fun advanceNickCompletion(text: String, cursor: Int, nicks: List<String>, previous: NickCompletion?, backwards: Boolean = false, style: NickCompletionStyle = NickCompletionStyle(), caseMapping: String = "rfc1459"): NickCompletion? {
+internal fun advanceNickCompletion(text: String, cursor: Int, nicks: List<String>, previous: NickCompletion?, backwards: Boolean = false, style: NickCompletionStyle = NickCompletionStyle(), caseMapping: String = "rfc1459", writingStyle: WritingStyle = WritingStyle()): NickCompletion? {
     if (!style.enabled) return null
     val cycle = previous?.takeIf { it.text == text && it.cursor == cursor }
     val token = if (cycle == null) nickToken(text, cursor) ?: return null
@@ -122,7 +122,7 @@ internal fun advanceNickCompletion(text: String, cursor: Int, nicks: List<String
     val previousIndex = cycle?.let { matches.indexOf(it.matches[it.index]) } ?: -1
     val index = if (previousIndex < 0) if (backwards) matches.lastIndex else 0
         else (previousIndex + if (backwards) matches.size - 1 else 1) % matches.size
-    val (value, position) = completeNickToken(text, token, matches[index], style)
+    val (value, position) = completeNickToken(text, token, matches[index], style, writingStyle)
     return NickCompletion(token.start, token.hadAt, matches, index, value, position, prefix)
 }
 

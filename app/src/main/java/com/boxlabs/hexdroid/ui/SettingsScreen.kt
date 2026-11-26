@@ -128,7 +128,6 @@ import com.boxlabs.hexdroid.NickStyle
 import com.boxlabs.hexdroid.R
 import com.boxlabs.hexdroid.ReplyDestination
 import androidx.compose.material3.Checkbox
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import com.boxlabs.hexdroid.SmartFilter
 import com.boxlabs.hexdroid.data.eventPrefs
@@ -353,6 +352,7 @@ enum class SettingsCategory(
     MEDIA(R.string.section_media_previews, R.string.settings_cat_media_desc, Icons.Filled.Image),
     ALIASES(R.string.settings_custom_aliases, R.string.settings_cat_aliases_desc, Icons.Filled.Terminal),
     HIGHLIGHTS(R.string.section_highlights, R.string.settings_cat_highlights_desc, Icons.Filled.AlternateEmail),
+    SYSTEM(R.string.settings_system, R.string.settings_system_desc, Icons.Filled.Terminal),
     IRC(R.string.section_irc, R.string.settings_cat_irc_desc, Icons.Filled.Dns),
     NOTIFICATIONS(R.string.section_notifications, R.string.settings_cat_notifications_desc, Icons.Filled.Notifications),
     LOGGING(R.string.section_logging, R.string.settings_cat_logging_desc, Icons.AutoMirrored.Filled.Article),
@@ -1058,7 +1058,6 @@ fun SettingsScreen(
 
             if (onePage || current == SettingsCategory.CHAT) {
             if (onePage) item(key = "hdr_CHAT") { OnePageHeader(SettingsCategory.CHAT) }
-            item { DreamsChatSettings(state, onUpdate, onNativePrivateMode, onProfileAvatar) }
             item { NickCompletionSettings(s.nickCompletion, { value -> onUpdate { copy(nickCompletion = value) } }, state.myNick) }
             item {
                 SettingToggle(stringResource(R.string.setting_colorise_nicks), s.colorizeNicks) { onUpdate { copy(colorizeNicks = !colorizeNicks) } }
@@ -1351,8 +1350,8 @@ fun SettingsScreen(
                 }
             }
 
-            if (onePage || current == SettingsCategory.IRC) {
-            if (onePage) item(key = "hdr_IRC") { OnePageHeader(SettingsCategory.IRC) }
+            if (onePage || current == SettingsCategory.SYSTEM) {
+                if (onePage) item(key = "hdr_SYSTEM") { OnePageHeader(SettingsCategory.SYSTEM) }
             item {
                 Text(stringResource(R.string.personal_presentation), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.personal_reply_destinations_desc), style = MaterialTheme.typography.bodySmall)
@@ -1379,6 +1378,11 @@ fun SettingsScreen(
                 }
                 Text(stringResource(R.string.personal_whois_request_idle_desc), style = MaterialTheme.typography.bodySmall)
             }
+
+            }
+
+            if (onePage || current == SettingsCategory.IRC) {
+            if (onePage) item(key = "hdr_IRC") { OnePageHeader(SettingsCategory.IRC) }
 
 
             item {
@@ -1755,6 +1759,7 @@ fun SettingsScreen(
 
             if (onePage || current == SettingsCategory.PRIVACY) {
             if (onePage) item(key = "hdr_PRIVACY") { OnePageHeader(SettingsCategory.PRIVACY) }
+            item { DreamsChatSettings(state, onUpdate, onNativePrivateMode, onProfileAvatar) }
 
             item {
                 Column(Modifier.fillMaxWidth()) {
@@ -2481,25 +2486,12 @@ private fun ReplyDestinationSettings(title: String, mask: Int, whois: Boolean, o
         ReplyDestination.WINDOW to if (whois) R.string.personal_destination_whois else R.string.personal_destination_notices,
         ReplyDestination.ACTIVE to R.string.personal_destination_active,
     ) + if (whois) emptyList() else listOf(ReplyDestination.PRIVATE to R.string.personal_destination_private, ReplyDestination.ORIGINAL to R.string.personal_destination_original)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            for ((bit, label) in choices) {
-                val checked = mask and bit != 0
-                // Keep at least one destination selected; clicking a checked final box is a no-op.
-                Row(
-                    Modifier.fillMaxWidth().toggleable(
-                        value = checked, role = Role.Checkbox,
-                        onValueChange = { want ->
-                            val next = if (want) mask or bit else mask and bit.inv()
-                            if (next != 0) onChange(next)
-                        },
-                    ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(checked = checked, onCheckedChange = null)
-                    Text(stringResource(label), modifier = Modifier.weight(1f))
-                }
+    Column(Modifier.fillMaxWidth(),verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title,style = MaterialTheme.typography.titleSmall)
+        for ((bit,label) in choices) {
+            FullWidthSettingToggle(stringResource(label),mask and bit != 0) {
+                val next = if (mask and bit != 0) mask and bit.inv() else mask or bit
+                if (next != 0) onChange(next)
             }
         }
     }

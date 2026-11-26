@@ -3,6 +3,8 @@ package com.boxlabs.hexdroid
 
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.flow.update
 
 internal const val MAX_NOTIFY_CONTACTS = 64
@@ -69,6 +71,7 @@ fun IrcViewModel.saveNotifyContacts(net: String, nicks: List<String>, alerts: Bo
         }) }
         val keys = cleaned.map { casefoldText(net,it) }.toSet()
         setNetConn(net) { it.copy(contactPresence = it.contactPresence.filterKeys { key -> key in keys }) }
+        notifyContactEpochs.keys.filter { it.first == net && it.second !in keys }.toList().forEach { notifyContactEpochs.remove(it) }
         syncNotifyContacts(net)
     }
 }
@@ -81,9 +84,43 @@ internal fun IrcViewModel.noteNotifyContact(net: String, event: IrcEvent.Monitor
     val previous = _state.value.connections[net]?.contactPresence?.get(key)
     if (previous == event.online) return true
     setNetConn(net) { it.copy(contactPresence = it.contactPresence + (key to event.online)) }
-    if (contactTransition(previous,event.online) && profile.notifyContactAlerts && _state.value.settings.notificationsEnabled) {
-        val message = appContext.getString(if (event.online) R.string.contact_online_event else R.string.contact_offline_event,contact)
-        runCatching { notifier.notifyContact(net,contact,profile.name,message) }
+    val epoch = nextUiMsgId.getAndIncrement()
+    notifyContactEpochs[net to key] = epoch
+    if (contactTransition(previous,event.online)) {
+        val client = runtimes[net]?.client
+        viewModelScope.launch {
+            val mask = if (!event.online) null else if (!event.ident.isNullOrBlank() && !event.host.isNullOrBlank())
+                event.nick + "!" + event.ident + "@" + event.host
+            else try { client?.lookupNotifyUserHost(event.nick) } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (_: Exception) { null }
+            val current = _state.value
+            if (notifyContactEpochs[net to key] != epoch ||
+                current.connections[net]?.connected != true ||
+                current.connections[net]?.contactPresence?.get(key) != event.online ||
+                runtimes[net]?.client !== client ||
+                current.networks.firstOrNull { it.id == net }?.notifyContacts?.none { casefoldText(net,it) == key } != false) return@launch
+            val status = appContext.getString(if (event.online) R.string.contact_online_event else R.string.contact_offline_event,contact)
+            val text = if (event.online) status + " · " + (mask ?: appContext.getString(R.string.contact_host_unavailable)) else status
+            val buffer = bufKey(net,NOTIFY_BUFFER)
+            ensureBuffer(buffer)
+            append(buffer,from = null,text = text,timeMs = event.timeMs,doNotify = false,isLocal = true)
+            val alerts = current.networks.firstOrNull { it.id == net }?.notifyContactAlerts == true
+            if (event.online && alerts) {
+                val alert = PrivateAttemptAlert(epoch,net,contact,text)
+                _state.update { it.copy(notifyAlerts = (it.notifyAlerts + alert).takeLast(8)) }
+            }
+            if (alerts && current.settings.notificationsEnabled)
+                runCatching { notifier.notifyContact(net,contact,profile.name,text) }
+        }
     }
     return false
 }
+
+fun IrcViewModel.dismissNotifyContact(id: Long) {
+    _state.update { it.copy(notifyAlerts = it.notifyAlerts.filterNot { alert -> alert.id == id }) }
+}
+
+/** Portable contact list only: never include network passwords or authentication settings. */
+internal fun notifyContactsDocument(profile: com.boxlabs.hexdroid.data.NetworkProfile, contacts: List<String>, alerts: Boolean): String =
+    JSONObject().put("format","hexdreams-notify").put("version",1)
+        .put("network",profile.name).put("server",profile.host)
+        .put("contacts",JSONArray(cleanNotifyContacts(contacts))).put("alerts",alerts).toString(2)

@@ -44,7 +44,7 @@ class PersonalPhase3Test {
         assertEquals(listOf("DemoNick03"), changedMembers.matches)
         val newRoom = advanceNickCompletion("dem", 3, listOf("+DemoNick03"), null)!!
         assertEquals(listOf("DemoNick03"), newRoom.matches)
-        assertEquals("DemoNick03: ", newRoom.text)
+        assertEquals("DemoNick03 ", newRoom.text)
         assertNull(advanceNickCompletion("zzz", 3, nicks, null))
     }
     @Test fun completionIsNotLimitedToSixteenMatchesAndRecognizesOperatorAndVoice() {

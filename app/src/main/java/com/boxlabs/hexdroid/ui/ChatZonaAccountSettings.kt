@@ -30,17 +30,17 @@ internal fun ChatZonaAccountSettings(
     Text("Modos después del login", style = MaterialTheme.typography.titleSmall)
     for ((mode,label) in listOf('i' to "+i · Invisible", 'I' to "+I", 'g' to "+g · Control de privados", 'R' to "+R · Solo usuarios registrados")) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(mode in modes, { enabled -> onModes(if (enabled) (modes + mode).toSet().joinToString("") else modes.replace(mode.toString(),"")) },
+            Text(label,Modifier.weight(1f))
+            Switch(mode in modes, { enabled -> onModes(if (enabled) (modes + mode).toSet().joinToString("") else modes.replace(mode.toString(),"")) },
                 modifier = Modifier.testTag("chatzona-mode-" + mode))
-            Text(label)
         }
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(keepModes,onKeep,modifier = Modifier.testTag("chatzona-keep-modes")); Text("Guardar modos")
+        Text("Guardar modos",Modifier.weight(1f)); Switch(keepModes,onKeep,modifier = Modifier.testTag("chatzona-keep-modes"))
     }
     Text("Configura set keepmodes on/off en el bot Nick.",style = MaterialTheme.typography.bodySmall)
     Row(Modifier.fillMaxWidth(),verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(external,onExternal,modifier = Modifier.testTag("chatzona-external-messages"))
         Text("Permitir mensajes de usuarios de otras salas",modifier = Modifier.weight(1f))
+        Switch(external,onExternal,modifier = Modifier.testTag("chatzona-external-messages"))
     }
 }

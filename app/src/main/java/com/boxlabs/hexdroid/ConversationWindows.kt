@@ -2,6 +2,7 @@
 package com.boxlabs.hexdroid
 
 const val MENTIONS_BUFFER = "*mentions*"
+const val NOTIFY_BUFFER = "*notify*"
 const val COMMANDS_BUFFER = "*commands*"
 
 /** Classification changes the tree only; bot detection never bypasses private-message policy. */

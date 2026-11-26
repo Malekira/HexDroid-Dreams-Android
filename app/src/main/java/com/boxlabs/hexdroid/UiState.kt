@@ -609,6 +609,7 @@ data class LogSearchState(
 
 data class UiState(
     val profileAvatarUrls: Map<String, String> = emptyMap(),
+    val notifyAlerts: List<PrivateAttemptAlert> = emptyList(),
     val privateAttemptAlerts: List<PrivateAttemptAlert> = emptyList(),
     val privateModeMessages: Map<String, String> = emptyMap(),
     val privateRequests: List<PrivateRequest> = emptyList(),

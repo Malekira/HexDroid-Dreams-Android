@@ -1020,7 +1020,7 @@ fun NetworkEditScreen(
             }
 
             if (com.boxlabs.hexdroid.isChatZonaHost(host)) {
-                CardSection("Cuenta y modos de ChatZona", visible = shown(NetEditSection.IDENTITY) || shown(NetEditSection.SASL)) {
+                CardSection("Cuenta y modos de ChatZona", visible = shown(NetEditSection.SASL)) {
                     ChatZonaAccountSettings(chatZonaAccount, chatZonaPassword, chatZonaModes, chatZonaKeepModes, chatZonaExternalMessages,
                         onAccount = { chatZonaAccount = it }, onPassword = { chatZonaPassword = it },
                         onModes = { chatZonaModes = it }, onKeep = { chatZonaKeepModes = it }, onExternal = { chatZonaExternalMessages = it })

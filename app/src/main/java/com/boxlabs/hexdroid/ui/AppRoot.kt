@@ -17,6 +17,7 @@
 */
 
 package com.boxlabs.hexdroid.ui
+import com.boxlabs.hexdroid.dismissNotifyContact
 import com.boxlabs.hexdroid.moveWhois
 import com.boxlabs.hexdroid.minimizeWhois
 import com.boxlabs.hexdroid.closeWhois
@@ -73,8 +74,6 @@ import com.boxlabs.hexdroid.data.ThemeMode
 import com.boxlabs.hexdroid.ui.theme.HexDroidIRCTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import com.boxlabs.hexdroid.INTRO_TOUR_VERSION
@@ -509,6 +508,9 @@ fun AppRoot(
     if (state.screen == AppScreen.CHAT) {
         WhoisOverlay(state.whoisWindows, state.networks.associate { it.id to it.name },
             onMinimize = vm::minimizeWhois, onClose = vm::closeWhois, onMove = vm::moveWhois)
+        val notifyAlert = state.notifyAlerts.firstOrNull()
+        NotifyContactOverlay(notifyAlert,state.networks.firstOrNull { it.id == notifyAlert?.network }?.name.orEmpty(),
+            vm::dismissNotifyContact, { notifyAlert?.let { vm.openBuffer(it.network + "::" + com.boxlabs.hexdroid.NOTIFY_BUFFER) } })
         val privateAlert = state.privateAttemptAlerts.firstOrNull { it.network == state.selectedBuffer.substringBefore("::") }
         PrivateAttemptOverlay(privateAlert, state.networks.firstOrNull { it.id == privateAlert?.network }?.name.orEmpty(), vm::dismissPrivateAttempt)
     }

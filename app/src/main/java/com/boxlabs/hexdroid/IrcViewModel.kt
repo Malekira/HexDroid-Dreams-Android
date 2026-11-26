@@ -722,6 +722,7 @@ class IrcViewModel(
      * pay zero startup cost.
      */
     val e2eKeyStore = com.boxlabs.hexdroid.crypto.E2eKeyStore(repo.secretStore)
+    internal val notifyContactEpochs = mutableMapOf<Pair<String,String>, Long>()
     internal val notifySubscriptions = mutableMapOf<String, Set<String>>()
     internal val notifySubscriptionClients = mutableMapOf<String, IrcClient>()
     internal val chatZonaRuns = java.util.concurrent.ConcurrentHashMap<String, ChatZonaRun>()
@@ -1648,6 +1649,8 @@ fun startAddNetwork() {
             repo.deleteNetwork(id)
             repo.secretStore.clearSaslPassword(id)
             repo.secretStore.clearChatZonaPassword(id)
+            notifyContactEpochs.keys.filter { it.first == id }.toList().forEach { notifyContactEpochs.remove(it) }
+            _state.update { it.copy(notifyAlerts = it.notifyAlerts.filterNot { alert -> alert.network == id }) }
             notifySubscriptions.remove(id)
             notifySubscriptionClients.remove(id)
             repo.secretStore.clearServerPassword(id)

@@ -96,6 +96,9 @@ class ContactsCompletionAndroidTest {
             client!!.sendRaw("PING :contact-check")
             withContext(Dispatchers.IO) { server!!.awaitLine("PING :contact-check") }
             assertEquals(1,server!!.lines.count { it == "MONITOR + Alice" })
+            val host = activeNotifyHost(client!!)
+            assertEquals("ident@full.visible.host",host)
+            assertFalse(server!!.lines.any { it.startsWith("WHOIS ") })
             client!!.forceClose(); server!!.close(); collector?.cancelAndJoin()
             // Deliberately do not deliver Disconnected: forced reconnection may cancel that event.
             val second = connect(); client = second.first; server = second.second
@@ -108,6 +111,72 @@ class ContactsCompletionAndroidTest {
             withContext(Dispatchers.Main) { vm.runtimes.remove(id); store.clear() }
             repo.saveNetworks(old)
         }
+    }
+
+    private suspend fun activeNotifyHost(client: IrcClient): String? = client.lookupNotifyUserHost("Alice")
+
+    @Test fun onlineContactCreatesOneFullHostBannerAndNotifyLogWithoutOpeningPeer() = runBlocking {
+        val repo = SettingsRepository(context); val holder = ViewModelStore()
+        lateinit var vm: IrcViewModel
+        withContext(Dispatchers.Main) { vm = IrcViewModel(repo,context); holder.put("banner",vm) }
+        try {
+            withTimeout(10000) { vm.state.first { it.settingsLoaded } }
+            val profile = repo.defaultNetworks().single().copy(id = "notify-banner",notifyContacts = listOf("Alice"))
+            withContext(Dispatchers.Main) {
+                vm._state.update { it.copy(networks = listOf(profile),settings = it.settings.copy(notificationsEnabled = false),
+                    connections = mapOf(profile.id to NetConnState(connected = true,contactPresence = mapOf("alice" to false)))) }
+                val event = IrcEvent.MonitorStatus("Alice",true,ident = "ident",host = "full.visible.host")
+                vm.noteNotifyContact(profile.id,event)
+                vm.noteNotifyContact(profile.id,event)
+            }
+            withTimeout(5000) { vm.state.first { it.notifyAlerts.isNotEmpty() } }
+            val state = vm.state.value
+            assertEquals(1,state.notifyAlerts.size)
+            assertTrue(state.notifyAlerts.single().text.contains("Alice!ident@full.visible.host"))
+            assertTrue(state.buffers.getValue(profile.id + "::" + NOTIFY_BUFFER).messages.any { it.text.contains("Alice!ident@full.visible.host") })
+            assertFalse(state.buffers.containsKey(profile.id + "::Alice"))
+            assertFalse(state.selectedBuffer.endsWith("::Alice"))
+        } finally { withContext(Dispatchers.Main) { holder.clear() } }
+    }
+
+    @Test fun exportedContactsContainNoLoginSecretsAndDefaultColonMigrates() {
+        val profile = SettingsRepository(context).defaultNetworks().single().copy(
+            notifyContacts = listOf("Alice","[Bob]"),chatZonaAccount = "secret-account",chatZonaPassword = "secret-password")
+        val document = org.json.JSONObject(notifyContactsDocument(profile,profile.notifyContacts,false))
+        assertEquals("hexdreams-notify",document.getString("format"))
+        assertEquals(2,document.getJSONArray("contacts").length())
+        assertFalse(document.getBoolean("alerts"))
+        assertFalse(document.toString().contains("secret-"))
+        val style = NickCompletionStyle.fromJson(org.json.JSONObject().put("startTemplate","{nick}: "))
+        assertEquals("{nick} ",style.startTemplate)
+        val custom = NickCompletionStyle.fromJson(org.json.JSONObject().put("startTemplate","«{nick}» "))
+        assertEquals("«{nick}» ",custom.startTemplate)
+    }
+
+    @Test fun contactOnlineCreatesNotifyLogAndFloatingBannerWithFullHostWithoutOpeningPeer() = runBlocking {
+        val repo = SettingsRepository(context); val store = ViewModelStore()
+        lateinit var vm: IrcViewModel
+        withContext(Dispatchers.Main) { vm = IrcViewModel(repo,context); store.put("notify-log",vm) }
+        try {
+            withTimeout(10000) { vm.state.first { it.settingsLoaded } }
+            val profile = repo.defaultNetworks().single().copy(id = "notify-log",notifyContacts = listOf("Alice"))
+            withContext(Dispatchers.Main) {
+                vm._state.update { it.copy(networks = listOf(profile),settings = it.settings.copy(notificationsEnabled = false),
+                    connections = mapOf(profile.id to NetConnState(connected = true))) }
+                vm.noteNotifyContact(profile.id,IrcEvent.MonitorStatus("Alice",false))
+                vm.noteNotifyContact(profile.id,IrcEvent.MonitorStatus("Alice",true,ident = "ident",host = "full.visible.host"))
+            }
+            withTimeout(5000) { vm.state.first { it.notifyAlerts.any { alert -> alert.nick == "Alice" } } }
+            withContext(Dispatchers.Main) {
+                val state = vm.state.value
+                val alert = state.notifyAlerts.single()
+                assertTrue(alert.text.contains("Alice!ident@full.visible.host"))
+                assertTrue(state.buffers.getValue(profile.id + "::" + NOTIFY_BUFFER).messages.any { it.text.contains("Alice!ident@full.visible.host") })
+                assertFalse(state.buffers.containsKey(profile.id + "::Alice"))
+                assertTrue(vm.noteNotifyContact(profile.id,IrcEvent.MonitorStatus("Alice",true)))
+                assertEquals(1,vm.state.value.notifyAlerts.size)
+            }
+        } finally { withContext(Dispatchers.Main) { store.clear() } }
     }
 
     private class ContactServer {
@@ -129,6 +198,7 @@ class ContactsCompletionAndroidTest {
                                 line.startsWith("CAP LS") -> send(":srv CAP * LS :echo-message")
                                 line.startsWith("CAP REQ") -> send(":srv CAP * ACK :" + line.substringAfter(':'))
                                 line == "CAP END" -> { send(":srv 001 me :Welcome"); send(":srv 005 me MONITOR=30 CASEMAPPING=ascii :supported") }
+                                line == "USERHOST Alice" -> send(":srv 302 me :Alice*=+ident@full.visible.host")
                                 line.startsWith("PING ") -> send(":srv PONG srv :" + line.substringAfter(':'))
                             }
                         }
@@ -136,7 +206,7 @@ class ContactsCompletionAndroidTest {
                 }
             }
         }
-        @Synchronized private fun send(line: String) { writer!!.write(line + "\r\n"); writer!!.flush() }
+        @Synchronized fun send(line: String) { writer!!.write(line + "\r\n"); writer!!.flush() }
         fun awaitLine(expected: String) {
             val deadline = System.currentTimeMillis() + 10000
             while (System.currentTimeMillis() < deadline) {

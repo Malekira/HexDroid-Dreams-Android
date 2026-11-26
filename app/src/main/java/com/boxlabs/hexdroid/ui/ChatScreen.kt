@@ -397,6 +397,7 @@ fun ChatScreen(
     fun conversationLabel(key: String): String = when (splitKey(key).second) {
         com.boxlabs.hexdroid.MENTIONS_BUFFER -> "Menciones"
         com.boxlabs.hexdroid.COMMANDS_BUFFER -> "Comandos"
+        com.boxlabs.hexdroid.NOTIFY_BUFFER -> "Notify"
         else -> bufferLabel(key, state.networks)
     }
 
@@ -3146,7 +3147,7 @@ fun ChatScreen(
                     return true
                 }
             }
-            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards, state.settings.nickCompletion, selConn?.avatarCaseMapping ?: "rfc1459") ?: return false
+            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards, state.settings.nickCompletion, selConn?.avatarCaseMapping ?: "rfc1459", savedStyle) ?: return false
             input = TextFieldValue(result.text, TextRange(result.cursor))
             nickCycle = result
             return true
@@ -3172,7 +3173,7 @@ fun ChatScreen(
                 NickChoiceList(matches, liveCycle?.let { it.matches[it.index] }) { nick ->
                     val token = liveCycle?.let { NickToken(it.start, it.cursor, it.cursor, "", it.hadAt) } ?: completionToken
                     if (token != null) {
-                        val (newText, cursor) = completeNickToken(input.text, token, nick, state.settings.nickCompletion)
+                        val (newText, cursor) = completeNickToken(input.text, token, nick, state.settings.nickCompletion, savedStyle)
                         input = TextFieldValue(newText, TextRange(cursor)); nickCycle = null
                         onTypingChanged(newText)
                     }

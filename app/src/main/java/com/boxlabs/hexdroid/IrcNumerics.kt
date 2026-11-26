@@ -606,6 +606,11 @@ internal fun IrcClient.buildNumericHandlers(
 
         // MONITOR numerics: 730 online (target[!user@host] [account], comma-separated), 731 offline,
         // 732 list page, 733 end of list, 734 list full (with the targets that could not be added).
+        "302" to handler@{ msg, _, _, _ ->
+            if (!consumeNotifyUserHosts(msg)) {
+                send(IrcEvent.ServerText(text = formatNumeric(msg) ?: (msg.trailing ?: msg.params.drop(1).joinToString(" ")), code = "302"))
+            }
+        },
         "730" to handler@{ msg, serverTime, _, _ ->
             val raw = (msg.trailing ?: msg.params.drop(1).joinToString(","))
             for (entry in raw.split(",").map { it.trim() }.filter { it.isNotBlank() }) {
