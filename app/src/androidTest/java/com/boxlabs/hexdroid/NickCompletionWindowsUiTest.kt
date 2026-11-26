@@ -72,6 +72,7 @@ class NickCompletionWindowsUiTest {
             room to UiBuffer(room,unread = 2,highlights = 1),
             ordinary to UiBuffer(ordinary,unread = 3,highlights = 0)))
         compose.setContent { Chat(phone = false) }
+        row("#demo").performScrollTo()
         compose.onNodeWithTag("sidebar-mention-" + room,useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag("sidebar-mention-" + ordinary,useUnmergedTree = true).assertDoesNotExist()
         row("#demo").performClick()
@@ -107,8 +108,8 @@ class NickCompletionWindowsUiTest {
         compose.setContent { Chat(phone = true) }
         val input = compose.onNodeWithTag("chat-input")
         input.performTextReplacement("Al")
-        compose.onNodeWithTag("nick-tab-button").performClick()
-        compose.onNodeWithTag("nick-tab-button").performClick()
+        compose.onNodeWithTag("nick-tab-button").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithTag("nick-tab-button").performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.onNodeWithContentDescription(context.getString(R.string.chat_send_message)).performClick()
         compose.runOnIdle {
             assertEquals("«Alice»", stripIrcFormatting(commands.single()).trim())

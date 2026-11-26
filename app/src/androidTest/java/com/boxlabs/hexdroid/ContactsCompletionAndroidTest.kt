@@ -152,6 +152,8 @@ class ContactsCompletionAndroidTest {
         assertEquals("{nick} ",style.startTemplate)
         val custom = NickCompletionStyle.fromJson(org.json.JSONObject().put("startTemplate","«{nick}» "))
         assertEquals("«{nick}» ",custom.startTemplate)
+        val explicitColon = NickCompletionStyle(startTemplate = "{nick}: ")
+        assertEquals(explicitColon,NickCompletionStyle.fromJson(explicitColon.toJson()))
     }
 
     @Test fun contactOnlineCreatesNotifyLogAndFloatingBannerWithFullHostWithoutOpeningPeer() = runBlocking {

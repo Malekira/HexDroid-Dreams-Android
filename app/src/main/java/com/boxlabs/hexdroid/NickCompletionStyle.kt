@@ -37,7 +37,7 @@ data class NickCompletionStyle(
         return template.replace("{nick}", (if (hadAt) "@" else "") + styled)
     }
 
-    fun toJson(): JSONObject = JSONObject().put("paletteVersion", 2)
+    fun toJson(): JSONObject = JSONObject().put("paletteVersion", 2).put("templateVersion", 2)
         .put("enabled", enabled).put("startTemplate", cleanCompletionTemplate(startTemplate))
         .put("middleTemplate", cleanCompletionTemplate(middleTemplate))
         .put("colors", palette().joinToString(","))
@@ -48,7 +48,7 @@ data class NickCompletionStyle(
             if (o == null) return NickCompletionStyle()
             val raw = o.optString("colors", "").take(256)
             return NickCompletionStyle(
-                o.optBoolean("enabled", true), cleanCompletionTemplate(o.optString("startTemplate", "{nick} ")).let { if (it == "{nick}: ") "{nick} " else it },
+                o.optBoolean("enabled", true), cleanCompletionTemplate(o.optString("startTemplate", "{nick} ")).let { if (o.optInt("templateVersion", 1) < 2 && it == "{nick}: ") "{nick} " else it },
                 cleanCompletionTemplate(o.optString("middleTemplate", "{nick} ")),
                 if (o.optInt("paletteVersion", 1) < 2) migrateCompletionPalette(raw) else raw,
                 o.optBoolean("bold", false), o.optBoolean("italic", false), o.optBoolean("underline", false),
