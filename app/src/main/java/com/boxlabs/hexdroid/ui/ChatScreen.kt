@@ -470,6 +470,13 @@ fun ChatScreen(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val (rowNet,rowName) = splitKey(key)
+                if (hi > 0 && rowName.firstOrNull()?.let { it in (state.connections[rowNet]?.chanTypes ?: "#&!+") } == true) {
+                    Box(Modifier.padding(end = 8.dp).width(3.dp).height(24.dp)
+                        .clip(RoundedCornerShape(2.dp)).background(Color(0xFFFF9800))
+                        .testTag("sidebar-mention-" + key)
+                        .semantics { contentDescription = "Mención sin leer" })
+                }
                 if (networkIconUrl != null) {
                     var iconBmp by remember(networkIconUrl) { mutableStateOf(RemoteImage.cached(networkIconUrl)) }
                     LaunchedEffect(networkIconUrl) { if (iconBmp == null) iconBmp = RemoteImage.fetch(networkIconUrl) }
@@ -1065,7 +1072,7 @@ fun ChatScreen(
                 val conn = state.connections[net.id]
                 val privates = remaining.filter {
                     val name = splitKey(it).second
-                    name == com.boxlabs.hexdroid.MENTIONS_BUFFER ||
+                    name == com.boxlabs.hexdroid.MENTIONS_BUFFER || name == com.boxlabs.hexdroid.NOTIFY_BUFFER ||
                         !com.boxlabs.hexdroid.isSystemConversation(name, conn?.botNicks.orEmpty(), conn?.avatarCaseMapping ?: "rfc1459")
                 }.sortedBy { if (splitKey(it).second == com.boxlabs.hexdroid.MENTIONS_BUFFER) 0 else 1 }
                 val others = remaining - privates.toSet()

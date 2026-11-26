@@ -7,7 +7,7 @@ const val COMMANDS_BUFFER = "*commands*"
 
 /** Classification changes the tree only; bot detection never bypasses private-message policy. */
 internal fun isSystemConversation(name: String, bots: Set<String>, caseMapping: String): Boolean {
-    if (name == MENTIONS_BUFFER) return false
+    if (name == MENTIONS_BUFFER || name == NOTIFY_BUFFER) return false
     if (name.startsWith("*") || name.startsWith("DCCCHAT:")) return true
     val folded = ircCasefold(name, caseMapping)
     val services = setOf("Nick", "Chan", "IPVirtual", "NickServ", "ChanServ", "MemoServ", "OperServ", "HostServ", "BotServ", "AuthServ", "HelpServ", "Global", "BouncerServ")
