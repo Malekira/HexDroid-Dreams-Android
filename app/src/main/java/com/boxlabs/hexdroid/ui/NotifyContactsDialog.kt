@@ -1,6 +1,13 @@
 /* HexDreams IRC — GPL-3.0-or-later. */
 package com.boxlabs.hexdroid.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -20,6 +27,18 @@ internal fun NotifyContactsDialog(
     profile: NetworkProfile, connection: NetConnState?, notificationsEnabled: Boolean,
     onSave: (List<String>, Boolean) -> Unit, onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var exportSnapshot by remember { mutableStateOf("") }
+    val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) scope.launch {
+            val ok = withContext(Dispatchers.IO) { runCatching {
+                val output = context.contentResolver.openOutputStream(uri) ?: error("No output stream")
+                output.bufferedWriter(Charsets.UTF_8).use { it.write(exportSnapshot) }
+            }.isSuccess }
+            Toast.makeText(context,context.getString(if (ok) R.string.contact_export_ok else R.string.contact_export_failed),Toast.LENGTH_LONG).show()
+        }
+    }
     val mapping = connection?.avatarCaseMapping ?: "ascii"
     var contacts by remember(profile.id) { mutableStateOf(profile.notifyContacts) }
     var alerts by remember(profile.id) { mutableStateOf(profile.notifyContactAlerts) }
@@ -41,6 +60,10 @@ internal fun NotifyContactsDialog(
                     modifier = Modifier.fillMaxWidth().testTag("notify-contact-input"))
                 TextButton(onClick = ::add, enabled = entry.isNotBlank() && !invalid && contacts.size < MAX_NOTIFY_CONTACTS,
                     modifier = Modifier.testTag("notify-add-contact")) { Text(stringResource(R.string.contact_add)) }
+                OutlinedButton(onClick = {
+                    exportSnapshot = notifyContactsDocument(profile,cleanNotifyContacts(contacts + entries(),mapping),alerts)
+                    exporter.launch("HexDreams-notify.json")
+                },enabled = !invalid,modifier = Modifier.testTag("notify-export")) { Text(stringResource(R.string.contact_export)) }
                 if (invalid) Text(stringResource(R.string.contact_invalid),color = MaterialTheme.colorScheme.error)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.contact_alerts),Modifier.weight(1f))

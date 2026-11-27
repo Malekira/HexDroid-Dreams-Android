@@ -28,6 +28,7 @@ class NickCompletionWindowsUiTest {
     private var state by mutableStateOf(UiState())
     private val selections = mutableListOf<String>()
     private val commands = mutableListOf<String>()
+    private var aboutOpened = 0
 
     private fun fixture(tabs: Boolean) {
         val base = SettingsRepository(context).defaultNetworks().first().copy(host = "irc.example.invalid", autoConnect = false)
@@ -51,7 +52,7 @@ class NickCompletionWindowsUiTest {
                 onDisconnect = {}, onReconnect = {}, onExit = {}, onToggleBufferList = { state = state.copy(showBufferList = !state.showBufferList) },
                 onToggleNickList = {}, onToggleChannelsOnly = {}, onWhois = {}, onIgnoreNick = { _, _ -> }, onUnignoreNick = { _, _ -> },
                 onIgnoreNotifications = { _, _ -> }, onUnignoreNotifications = { _, _ -> }, onRefreshNicklist = {}, onRefreshChannelModes = {},
-                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {}, onAbout = {}, onUpdateSettings = {},
+                onOpenList = {}, onOpenSettings = {}, onOpenNetworks = {}, onSysInfo = {}, onAbout = { aboutOpened++ }, onUpdateSettings = {},
                 onToggleNetworkExpanded = { id -> state = state.copy(collapsedNetworkIds = if (id in state.collapsedNetworkIds) state.collapsedNetworkIds - id else state.collapsedNetworkIds + id) })
         } }
     }
@@ -63,6 +64,23 @@ class NickCompletionWindowsUiTest {
         group(kind, network).assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, context.getString(R.string.dreams_sidebar_collapsed)))
     }
 
+
+    @Test fun orangeMentionMarkerDistinguishesMentionsAndClearsWhenRead() {
+        fixture(tabs = false)
+        val room = first + "::#demo"
+        val ordinary = first + "::#ordinary"
+        state = state.copy(buffers = state.buffers + mapOf(
+            room to UiBuffer(room,unread = 2,highlights = 1),
+            ordinary to UiBuffer(ordinary,unread = 3,highlights = 0)))
+        compose.setContent { Chat(phone = false) }
+        row("#demo").performScrollTo()
+        compose.onNodeWithTag("sidebar-mention-" + room,useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("sidebar-mention-" + ordinary,useUnmergedTree = true).assertDoesNotExist()
+        row("#demo").performClick()
+        compose.runOnIdle { state = state.copy(buffers = state.buffers +
+            (room to state.buffers.getValue(room).copy(unread = 0,highlights = 0))) }
+        compose.onNodeWithTag("sidebar-mention-" + room,useUnmergedTree = true).assertDoesNotExist()
+    }
 
     @Test fun systemKeepsBotsAndCommandsWhileMentionsRemainWithPrivateConversations() {
         fixture(tabs = false)
@@ -91,8 +109,8 @@ class NickCompletionWindowsUiTest {
         compose.setContent { Chat(phone = true) }
         val input = compose.onNodeWithTag("chat-input")
         input.performTextReplacement("Al")
-        compose.onNodeWithTag("nick-tab-button").performClick()
-        compose.onNodeWithTag("nick-tab-button").performClick()
+        compose.onNodeWithTag("nick-tab-button").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithTag("nick-tab-button").performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.onNodeWithContentDescription(context.getString(R.string.chat_send_message)).performClick()
         compose.runOnIdle {
             assertEquals("«Alice»", stripIrcFormatting(commands.single()).trim())
@@ -128,13 +146,15 @@ class NickCompletionWindowsUiTest {
         compose.onNodeWithText(context.getString(R.string.menu_settings)).assertIsDisplayed()
         for (id in listOf(R.string.menu_file_transfers, R.string.menu_search_logs,
             R.string.menu_conversation_settings, R.string.menu_edit_metadata,
-            R.string.menu_about, R.string.menu_float)) {
+            R.string.menu_float)) {
             compose.onNodeWithText(context.getString(id)).assertDoesNotExist()
         }
         compose.onNodeWithText(context.getString(R.string.quick_metadata)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.contacts_notify)).assertIsDisplayed()
         compose.onNodeWithText("Secure Chat").assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.topic_edit_title)).assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.menu_about)).performScrollTo().assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1,aboutOpened) }
     }
 
     @Test fun nickColorsRemainDistinctWithACustomThemeAndRefreshWhenMetadataChanges() {

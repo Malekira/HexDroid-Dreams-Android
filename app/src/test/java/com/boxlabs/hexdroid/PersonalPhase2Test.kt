@@ -75,7 +75,7 @@ class PersonalPhase2Test {
         val (result, cursor) = completeNickToken(text, token, "@Alex")
         assertEquals("Hola Alex resto", result)
         assertEquals(9, cursor)
-        assertEquals("Alex: ", completeNickToken("ale", nickToken("ale", 3)!!, "+Alex").first)
+        assertEquals("Alex ", completeNickToken("ale", nickToken("ale", 3)!!, "+Alex").first)
         assertEquals("Hola @Alex resto", completeNickToken("Hola @ale resto", nickToken("Hola @ale resto", 9)!!, "Alex").first)
         assertNull(nickToken("hola ", 5))
     }

@@ -574,7 +574,7 @@
     <string name="network_section_ircv3_desc">Capacidades que se solicitan al servidor</string>
     <string name="network_section_identity">Identidad</string>
     <string name="network_section_autoconnect">Conexión automática &amp; Contraseña</string>
-    <string name="network_section_sasl">Autenticación SASL</string>
+    <string name="network_section_sasl">Autenticación</string>
     <string name="network_section_tls_cert">Certificado de cliente TLS</string>
     <string name="network_section_autojoin">Canales de unión automática</string>
     <string name="network_section_postcmds">Comandos post-conexión</string>
@@ -2041,4 +2041,10 @@
     <string name="contact_offline_event">%1$s se ha desconectado</string>
     <string name="contact_watch">Añadir a contactos (notify)</string>
     <string name="contact_unwatch">Quitar de contactos (notify)</string>
+    <string name="contact_host_unavailable">host no disponible</string>
+    <string name="contact_export">Exportar contactos</string>
+    <string name="contact_export_ok">Lista de contactos exportada</string>
+    <string name="contact_export_failed">No se pudo exportar la lista</string>
+    <string name="settings_system">Sistema</string>
+    <string name="settings_system_desc">Presentación de WHO, WHOIS y NOTICE</string>
 </resources>

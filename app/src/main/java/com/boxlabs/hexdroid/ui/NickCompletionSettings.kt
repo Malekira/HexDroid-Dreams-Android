@@ -54,7 +54,7 @@ fun NickCompletionSettings(value: NickCompletionStyle, onChange: (NickCompletion
         if (field == 0) { start = safe; onChange(value.copy(startTemplate = text)) }
         else { middle = safe; onChange(value.copy(middleTemplate = text)) }
     }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         TextButton(onClick = { expanded = !expanded }, modifier = Modifier.testTag("completion-settings")) {
             Text(if (expanded) "Autocompletado de nicks ▴" else "Autocompletado de nicks ▾")

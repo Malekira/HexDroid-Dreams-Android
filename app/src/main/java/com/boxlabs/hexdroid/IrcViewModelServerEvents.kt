@@ -101,6 +101,8 @@ internal fun IrcViewModel.handleServerEvent(netId: String, ev: IrcEvent) {
                         chatZonaRuns.remove(netId)
                         notifySubscriptions.remove(netId)
                         notifySubscriptionClients.remove(netId)
+                        notifyContactEpochs.keys.removeAll { it.first == netId }
+                        _state.update { it.copy(notifyAlerts = it.notifyAlerts.filterNot { alert -> alert.network == netId }) }
                         setNetConn(netId) { it.copy(contactPresence = emptyMap()) }
                         RemoteBitmaps.invalidateScope(netId)
                         setNetConn(netId) { it.copy(avatarUrls = emptyMap(), avatarAliasUrls = emptyMap(), legacyAvatarUrls = emptyMap(),

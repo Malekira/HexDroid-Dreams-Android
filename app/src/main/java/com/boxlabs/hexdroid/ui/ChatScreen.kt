@@ -397,6 +397,7 @@ fun ChatScreen(
     fun conversationLabel(key: String): String = when (splitKey(key).second) {
         com.boxlabs.hexdroid.MENTIONS_BUFFER -> "Menciones"
         com.boxlabs.hexdroid.COMMANDS_BUFFER -> "Comandos"
+        com.boxlabs.hexdroid.NOTIFY_BUFFER -> "Notify"
         else -> bufferLabel(key, state.networks)
     }
 
@@ -469,6 +470,13 @@ fun ChatScreen(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val (rowNet,rowName) = splitKey(key)
+                if (hi > 0 && rowName.firstOrNull()?.let { it in (state.connections[rowNet]?.chanTypes ?: "#&!+") } == true) {
+                    Box(Modifier.padding(end = 8.dp).width(3.dp).height(24.dp)
+                        .clip(RoundedCornerShape(2.dp)).background(Color(0xFFFF9800))
+                        .testTag("sidebar-mention-" + key)
+                        .semantics { contentDescription = "Mención sin leer" })
+                }
                 if (networkIconUrl != null) {
                     var iconBmp by remember(networkIconUrl) { mutableStateOf(RemoteImage.cached(networkIconUrl)) }
                     LaunchedEffect(networkIconUrl) { if (iconBmp == null) iconBmp = RemoteImage.fetch(networkIconUrl) }
@@ -1064,7 +1072,7 @@ fun ChatScreen(
                 val conn = state.connections[net.id]
                 val privates = remaining.filter {
                     val name = splitKey(it).second
-                    name == com.boxlabs.hexdroid.MENTIONS_BUFFER ||
+                    name == com.boxlabs.hexdroid.MENTIONS_BUFFER || name == com.boxlabs.hexdroid.NOTIFY_BUFFER ||
                         !com.boxlabs.hexdroid.isSystemConversation(name, conn?.botNicks.orEmpty(), conn?.avatarCaseMapping ?: "rfc1459")
                 }.sortedBy { if (splitKey(it).second == com.boxlabs.hexdroid.MENTIONS_BUFFER) 0 else 1 }
                 val others = remaining - privates.toSet()
@@ -2356,6 +2364,7 @@ fun ChatScreen(
                                 add(MenuEntry(stringResource(R.string.menu_settings)) { overflowExpanded = false; onOpenSettings() })
                                 add(MenuEntry("Scripts") { overflowExpanded = false; onOpenScripts() })
                                 add(MenuEntry(stringResource(R.string.menu_networks)) { overflowExpanded = false; onOpenNetworks() })
+                                add(MenuEntry(stringResource(R.string.menu_about)) { overflowExpanded = false; onAbout() })
                                 if (isIrcOper) {
                                     add(MenuEntry(stringResource(R.string.menu_ircop_tools)) { overflowExpanded = false; showIrcOpTools = true })
                                 }
@@ -3146,7 +3155,7 @@ fun ChatScreen(
                     return true
                 }
             }
-            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards, state.settings.nickCompletion, selConn?.avatarCaseMapping ?: "rfc1459") ?: return false
+            val result = advanceNickCompletion(input.text, input.selection.start, completionNicks, nickCycle, backwards, state.settings.nickCompletion, selConn?.avatarCaseMapping ?: "rfc1459", savedStyle) ?: return false
             input = TextFieldValue(result.text, TextRange(result.cursor))
             nickCycle = result
             return true
@@ -3172,7 +3181,7 @@ fun ChatScreen(
                 NickChoiceList(matches, liveCycle?.let { it.matches[it.index] }) { nick ->
                     val token = liveCycle?.let { NickToken(it.start, it.cursor, it.cursor, "", it.hadAt) } ?: completionToken
                     if (token != null) {
-                        val (newText, cursor) = completeNickToken(input.text, token, nick, state.settings.nickCompletion)
+                        val (newText, cursor) = completeNickToken(input.text, token, nick, state.settings.nickCompletion, savedStyle)
                         input = TextFieldValue(newText, TextRange(cursor)); nickCycle = null
                         onTypingChanged(newText)
                     }

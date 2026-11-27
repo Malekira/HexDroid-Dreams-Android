@@ -6,7 +6,7 @@ import org.junit.Test
 class NickCompletionCustomizationTest {
     @Test fun defaultsAndMiddleOfSentenceStayCompatible() {
         val first = advanceNickCompletion("Ali", 3, listOf("@Alice"), null)!!
-        assertEquals("Alice: ", first.text)
+        assertEquals("Alice ", first.text)
         val text = "Hola Ali después"
         val token = nickToken(text, 8)!!
         assertEquals("Hola Alice después", completeNickToken(text, token, "Alice").first)
@@ -20,7 +20,7 @@ class NickCompletionCustomizationTest {
         assertTrue(result.text.contains('\u0002'))
         assertTrue(result.text.contains('\u001d'))
         assertTrue(result.text.contains('\u001f'))
-        assertTrue(result.text.endsWith("» resto"))
+        assertEquals("«Alice» resto", stripIrcFormatting(result.text))
     }
     @Test fun cyclingBothDirectionsWorksWithColoredTemplatesAndChangedMembership() {
         val style = NickCompletionStyle(startTemplate = "<{nick}> ", colors = "4,9")
@@ -42,7 +42,7 @@ class NickCompletionCustomizationTest {
     }
     @Test fun specialNicksAndUnicodeAreNotSplitOrRewritten() {
         val result = NickCompletionStyle(colors = "4,7").render("[Álice]😀", true, false, false)
-        assertEquals("[Álice]😀: ", stripIrcFormatting(result))
+        assertEquals("[Álice]😀 ", stripIrcFormatting(result))
         assertFalse(result.contains("\uD83D\u0004"))
     }
     @Test fun systemClassificationUsesTheNetworksCaseMappingAndNotNickSubstrings() {

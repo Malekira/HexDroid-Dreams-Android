@@ -47,7 +47,7 @@ class PersonalPhase3UiTest {
         input.assertTextEquals("demora")
         input.performTextReplacement("dem")
         compose.onNodeWithText("DemoNick01", useUnmergedTree = true).performClick()
-        input.assertTextEquals("DemoNick01: ")
+        input.assertTextEquals("DemoNick01 ")
         input.performTextReplacement("Hola dem después")
         input.performSemanticsAction(SemanticsActions.SetSelection) { it(8, 8, false) }
         compose.onNodeWithTag("nick-tab-button").performClick()
@@ -195,20 +195,21 @@ class PersonalPhase3UiTest {
         }
     }
 
-    @Test fun dreamsMentionColorWheelAndHexStayInSyncWithoutNamedExamples() {
+    @Test fun dreamsMentionPaletteButtonAndHexStayInSyncWithoutNamedExamples() {
         var settings by mutableStateOf(UiSettings())
         compose.setContent { MaterialTheme { androidx.compose.foundation.layout.Column {
             MentionColorSettings(settings) { update -> settings = settings.update() }
         } } }
-        compose.onNodeWithTag("mention-color-hex").performTextReplacement("#FF0000")
-        compose.onNodeWithTag("theme-color-wheel").performTouchInput {
-            click(Offset(width * .375f, height * .71650635f))
-        }
-        compose.onNodeWithTag("theme-brightness").performSemanticsAction(SemanticsActions.SetProgress) { it(.5f) }
-        compose.runOnIdle { assertTrue(((settings.mentionHighlightColor ushr 8) and 255) in 126..130) }
+        compose.onNodeWithTag("mention-color-hex").performTextReplacement("#123456")
+        compose.onNodeWithTag("theme-color-wheel").assertDoesNotExist()
+        compose.onNodeWithTag("mention-palette-4").assertDoesNotExist()
+        compose.onNodeWithTag("mention-color-button").performClick()
+        compose.onNodeWithTag("mention-palette-4").performClick()
+        compose.runOnIdle { assertEquals(0xffff0000.toInt(),settings.mentionHighlightColor) }
         val text = compose.onNodeWithTag("mention-color-hex").fetchSemanticsNode().config[SemanticsProperties.EditableText].text
         assertEquals(settings.mentionHighlightColor, parseThemeHex(text))
         compose.onNodeWithTag("mention-color-preview").assertExists()
+        compose.onNodeWithTag("mention-palette-4").assertDoesNotExist()
         compose.onNodeWithTag("mention-color-hex").performTextReplacement("#123456")
         compose.runOnIdle { assertEquals(0xff123456.toInt(), settings.mentionHighlightColor) }
     }
