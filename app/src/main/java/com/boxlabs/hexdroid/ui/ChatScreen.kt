@@ -2364,6 +2364,7 @@ fun ChatScreen(
                                 add(MenuEntry(stringResource(R.string.menu_settings)) { overflowExpanded = false; onOpenSettings() })
                                 add(MenuEntry("Scripts") { overflowExpanded = false; onOpenScripts() })
                                 add(MenuEntry(stringResource(R.string.menu_networks)) { overflowExpanded = false; onOpenNetworks() })
+                                add(MenuEntry(stringResource(R.string.menu_about)) { overflowExpanded = false; onAbout() })
                                 if (isIrcOper) {
                                     add(MenuEntry(stringResource(R.string.menu_ircop_tools)) { overflowExpanded = false; showIrcOpTools = true })
                                 }
